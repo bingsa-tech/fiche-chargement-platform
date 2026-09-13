@@ -1,0 +1,6 @@
+export enum AlerteType {
+  INFORMATION = 'INFORMATION',
+  ATTENTION = 'ATTENTION',
+  URGENT = 'URGENT',
+  EXPIRE = 'EXPIRE',
+}
