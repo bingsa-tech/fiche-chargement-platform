@@ -11,7 +11,6 @@ class Gare {
     required this.createdAt,
     required this.updatedAt,
   });
-
   final String id;
   final String code;
   final String nom;
@@ -22,7 +21,6 @@ class Gare {
   /// Coordonnées géographiques de la gare.
   final double? latitude;
   final double? longitude;
-
   final DateTime createdAt;
   final DateTime updatedAt;
 }
