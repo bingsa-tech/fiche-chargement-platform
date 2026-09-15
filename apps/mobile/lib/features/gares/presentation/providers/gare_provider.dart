@@ -8,15 +8,9 @@ final gareRepositoryProvider = Provider<GareRepository>((ref) {
   return GareRepositoryImpl();
 });
 
-// ✅ Déclaration de garesProvider manquante :
-final garesProvider = AsyncNotifierProvider<GaresNotifier, List<Gare>>(() {
-  return GaresNotifier();
-});
-
-final garesListProvider = FutureProvider<List<Gare>>((ref) async {
-  final repository = ref.watch(gareRepositoryProvider);
-  return repository.findAll();
-});
+final garesProvider = AsyncNotifierProvider<GaresNotifier, List<Gare>>(
+  GaresNotifier.new,
+);
 
 class GaresNotifier extends AsyncNotifier<List<Gare>> {
   late final GareRepository _repository;
@@ -29,6 +23,7 @@ class GaresNotifier extends AsyncNotifier<List<Gare>> {
 
   Future<void> ajouterGare(Gare gare) async {
     state = const AsyncLoading();
+
     state = await AsyncValue.guard(() async {
       await _repository.insert(gare);
       return _repository.findAll();
@@ -37,6 +32,7 @@ class GaresNotifier extends AsyncNotifier<List<Gare>> {
 
   Future<void> supprimerGare(String id) async {
     state = const AsyncLoading();
+
     state = await AsyncValue.guard(() async {
       await _repository.delete(id);
       return _repository.findAll();

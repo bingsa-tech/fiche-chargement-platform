@@ -6,6 +6,8 @@ class Gare {
     required this.ville,
     this.adresse,
     required this.statut,
+    this.latitude,
+    this.longitude,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -16,6 +18,11 @@ class Gare {
   final String ville;
   final String? adresse;
   final String statut;
+
+  /// Coordonnées géographiques de la gare.
+  final double? latitude;
+  final double? longitude;
+
   final DateTime createdAt;
   final DateTime updatedAt;
 }

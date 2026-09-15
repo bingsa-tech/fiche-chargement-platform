@@ -1,5 +1,7 @@
 import {
   IsEnum,
+  IsLatitude,
+  IsLongitude,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -28,7 +30,13 @@ export class CreateGareDto {
   @IsString()
   @MaxLength(255)
   adresse?: string;
+  @IsOptional()
+  @IsLatitude()
+  latitude?: number;
 
+  @IsOptional()
+  @IsLongitude()
+  longitude?: number;
   @IsEnum(GareStatut)
   statut: GareStatut;
 }

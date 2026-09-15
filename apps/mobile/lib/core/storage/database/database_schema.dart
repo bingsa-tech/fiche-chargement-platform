@@ -1,24 +1,26 @@
 class DatabaseSchema {
   DatabaseSchema._();
 
-  static const int version = 1;
+  static const int version = 2;
 
   // ============================================================
   // GARE
   // ============================================================
 
   static const String createGareTable = '''
-    CREATE TABLE gare (
-      id TEXT PRIMARY KEY,
-      code TEXT NOT NULL UNIQUE,
-      nom TEXT NOT NULL,
-      ville TEXT NOT NULL,
-      adresse TEXT,
-      statut TEXT NOT NULL,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    )
-  ''';
+  CREATE TABLE gare (
+    id TEXT PRIMARY KEY,
+    code TEXT NOT NULL UNIQUE,
+    nom TEXT NOT NULL,
+    ville TEXT NOT NULL,
+    adresse TEXT,
+    statut TEXT NOT NULL,
+    latitude REAL,
+    longitude REAL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )
+''';
 
   // ============================================================
   // VEHICULE

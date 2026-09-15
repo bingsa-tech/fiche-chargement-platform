@@ -49,6 +49,18 @@ export class Gare {
   })
   statut: GareStatut;
 
+  @Column({
+  type: 'double precision',
+  nullable: true,
+})
+latitude: number | null;
+
+@Column({
+  type: 'double precision',
+  nullable: true,
+})
+longitude: number | null;
+
   @CreateDateColumn({
     name: 'created_at',
     type: 'timestamp',

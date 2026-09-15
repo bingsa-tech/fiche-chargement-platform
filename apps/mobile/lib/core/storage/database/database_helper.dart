@@ -74,20 +74,16 @@ class DatabaseHelper implements DatabaseProvider {
 
   /// Gestion des migrations SQLite.
   ///
-  /// Pour l'instant, la version actuelle est 1.
-  /// Les migrations seront ajoutées lorsque la version augmentera.
+  /// Les migrations sont exécutées progressivement selon
+  /// la version actuelle de la base.
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     // Exemple futur :
     //
-    // if (oldVersion < 2) {
-    //   await db.execute(
-    //     'ALTER TABLE vehicule ADD COLUMN ...',
-    //   );
-    // }
-    //
-    // if (oldVersion < 3) {
-    //   ...
-    // }
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE gare ADD COLUMN latitude REAL');
+
+      await db.execute('ALTER TABLE gare ADD COLUMN longitude REAL');
+    }
   }
 
   /// Ferme la base SQLite.

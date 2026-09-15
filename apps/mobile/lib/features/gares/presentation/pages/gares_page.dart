@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/gare.dart';
 import '../providers/gare_provider.dart';
 import '../widgets/gare_card.dart';
+import 'gare_form_page.dart';
 
 class GaresPage extends ConsumerStatefulWidget {
   const GaresPage({super.key});
@@ -21,39 +22,91 @@ class _GaresPageState extends ConsumerState<GaresPage> {
   @override
   void initState() {
     super.initState();
-
     _searchController.addListener(_onSearchChanged);
   }
 
-  void _onSearchChanged() {
-    if (!mounted) {
-      return;
-    }
+  @override
+  void dispose() {
+    _searchController
+      ..removeListener(_onSearchChanged)
+      ..dispose();
 
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
     setState(() {
       _searchQuery = _searchController.text.trim().toLowerCase();
     });
   }
 
-  @override
-  void dispose() {
-    _searchController.removeListener(_onSearchChanged);
-    _searchController.dispose();
+  Future<void> _createGare() async {
+    final gare = await Navigator.of(context)
+        .push<Gare>(MaterialPageRoute(builder: (_) => const GareFormPage()));
 
-    super.dispose();
+    if (!mounted || gare == null) {
+      return;
+    }
+
+    await ref.read(garesProvider.notifier).ajouterGare(gare);
+
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Gare ajoutée avec succès.')));
+  }
+
+  Future<void> _confirmDelete(Gare gare) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Supprimer la gare'),
+          content: Text(
+            'Voulez-vous vraiment supprimer la gare « ${gare.nom} » ?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Annuler'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Supprimer'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!mounted || confirmed != true) {
+      return;
+    }
+
+    await ref.read(garesProvider.notifier).supprimerGare(gare.id);
+
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Gare supprimée avec succès.')),
+    );
   }
 
   List<Gare> _filterGares(List<Gare> gares) {
     return gares.where((gare) {
       final matchesSearch =
-          _searchQuery.isEmpty ||
           gare.nom.toLowerCase().contains(_searchQuery) ||
           gare.code.toLowerCase().contains(_searchQuery) ||
           gare.ville.toLowerCase().contains(_searchQuery);
 
       final matchesStatus = switch (_selectedFilter) {
-        'ACTIF' => gare.statut.toUpperCase() == 'ACTIF',
-        'INACTIF' => gare.statut.toUpperCase() == 'INACTIF',
+        'ACTIF' => gare.statut == 'ACTIF',
+        'INACTIF' => gare.statut == 'INACTIF',
         _ => true,
       };
 
@@ -63,201 +116,85 @@ class _GaresPageState extends ConsumerState<GaresPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final garesAsync = ref.watch(garesProvider);
 
     return Scaffold(
-      backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        elevation: 0,
-        scrolledUnderElevation: 1,
-        backgroundColor: colorScheme.surface,
-        surfaceTintColor: colorScheme.primary,
-        titleSpacing: 20,
-        title: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Gares', style: TextStyle(fontWeight: FontWeight.w700)),
-            Text(
-              'Gestion des gares routières',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w400),
-            ),
-          ],
-        ),
+        title: const Text('Gestion des gares'),
         actions: [
-          IconButton.filledTonal(
+          IconButton(
+            tooltip: 'Actualiser',
             onPressed: () {
               ref.read(garesProvider.notifier).actualiser();
             },
-            tooltip: 'Actualiser',
-            icon: const Icon(Icons.refresh_rounded),
+            icon: const Icon(Icons.refresh),
           ),
-          const SizedBox(width: 12),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _createGare(context),
-        icon: const Icon(Icons.add_rounded),
-        label: const Text(
-          'Nouvelle gare',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
+        onPressed: _createGare,
+        icon: const Icon(Icons.add),
+        label: const Text('Nouvelle gare'),
       ),
       body: garesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stackTrace) => _ErrorView(
-          error: error,
-          onRetry: () {
-            ref.read(garesProvider.notifier).actualiser();
-          },
-        ),
+        error: (error, stackTrace) {
+          return _ErrorView(
+            message: error.toString(),
+            onRetry: () {
+              ref.invalidate(garesProvider);
+            },
+          );
+        },
         data: (gares) {
-          final activeCount = gares
-              .where((gare) => gare.statut.toUpperCase() == 'ACTIF')
-              .length;
-
-          final inactiveCount = gares.length - activeCount;
-
           final filteredGares = _filterGares(gares);
+
+          final total = gares.length;
+          final actifs = gares.where((gare) => gare.statut == 'ACTIF').length;
+          final inactifs = gares
+              .where((gare) => gare.statut == 'INACTIF')
+              .length;
 
           return RefreshIndicator(
             onRefresh: () {
               return ref.read(garesProvider.notifier).actualiser();
             },
-            child: CustomScrollView(
+            child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                SliverToBoxAdapter(
-                  child: _PageHeader(
-                    total: gares.length,
-                    active: activeCount,
-                    inactive: inactiveCount,
-                  ),
+              padding: const EdgeInsets.all(20),
+              children: [
+                _PageHeader(total: total, actifs: actifs, inactifs: inactifs),
+                const SizedBox(height: 20),
+                _SearchAndFilter(
+                  controller: _searchController,
+                  selectedFilter: _selectedFilter,
+                  onFilterChanged: (filter) {
+                    setState(() {
+                      _selectedFilter = filter;
+                    });
+                  },
                 ),
-                SliverToBoxAdapter(
-                  child: _SearchAndFilter(
-                    controller: _searchController,
-                    selectedFilter: _selectedFilter,
-                    onFilterChanged: (filter) {
-                      setState(() {
-                        _selectedFilter = filter;
-                      });
-                    },
-                  ),
-                ),
+                const SizedBox(height: 20),
                 if (filteredGares.isEmpty)
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: _EmptySearchView(
-                      hasGares: gares.isNotEmpty,
-                      searchQuery: _searchQuery,
-                    ),
+                  _EmptySearchView(
+                    hasGares: gares.isNotEmpty,
+                    searchQuery: _searchQuery,
                   )
                 else
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 110),
-                    sliver: SliverList.separated(
-                      itemCount: filteredGares.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final gare = filteredGares[index];
-
-                        return GareCard(
-                          gare: gare,
-                          onDelete: () {
-                            _confirmDelete(context, gare);
-                          },
-                        );
-                      },
+                  ...filteredGares.map(
+                    (gare) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: GareCard(
+                        gare: gare,
+                        onDelete: () => _confirmDelete(gare),
+                      ),
                     ),
                   ),
+                const SizedBox(height: 80),
               ],
             ),
           );
         },
-      ),
-    );
-  }
-
-  Future<void> _createGare(BuildContext context) async {
-    final gare = await showDialog<Gare>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const _CreateGareDialog(),
-    );
-
-    if (gare == null) {
-      return;
-    }
-
-    await ref.read(garesProvider.notifier).ajouterGare(gare);
-
-    if (!context.mounted) {
-      return;
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        behavior: SnackBarBehavior.floating,
-        content: Text('Gare créée avec succès'),
-      ),
-    );
-  }
-
-  Future<void> _confirmDelete(BuildContext context, Gare gare) async {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          icon: Icon(
-            Icons.delete_outline_rounded,
-            color: colorScheme.error,
-            size: 32,
-          ),
-          title: const Text('Supprimer cette gare ?'),
-          content: Text(
-            'La gare « ${gare.nom} » sera supprimée '
-            'de la base locale.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop(false);
-              },
-              child: const Text('Annuler'),
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: colorScheme.error,
-                foregroundColor: colorScheme.onError,
-              ),
-              onPressed: () {
-                Navigator.of(dialogContext).pop(true);
-              },
-              child: const Text('Supprimer'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (confirmed != true) {
-      return;
-    }
-
-    await ref.read(garesProvider.notifier).supprimerGare(gare.id);
-
-    if (!context.mounted) {
-      return;
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        behavior: SnackBarBehavior.floating,
-        content: Text('Gare supprimée'),
       ),
     );
   }
@@ -266,142 +203,95 @@ class _GaresPageState extends ConsumerState<GaresPage> {
 class _PageHeader extends StatelessWidget {
   const _PageHeader({
     required this.total,
-    required this.active,
-    required this.inactive,
+    required this.actifs,
+    required this.inactifs,
   });
 
   final int total;
-  final int active;
-  final int inactive;
+  final int actifs;
+  final int inactifs;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
-      child: Card(
-        elevation: 0,
-        color: colorScheme.primaryContainer,
-        clipBehavior: Clip.antiAlias,
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 46,
-                    height: 46,
-                    decoration: BoxDecoration(
-                      color: colorScheme.primary,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Icon(
-                      Icons.location_city_rounded,
-                      color: colorScheme.onPrimary,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Vue d’ensemble',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: colorScheme.onPrimaryContainer,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          'État actuel des gares enregistrées',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onPrimaryContainer,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 22),
-              Row(
-                children: [
-                  Expanded(
-                    child: _SummaryItem(
-                      icon: Icons.location_city_rounded,
-                      value: total.toString(),
-                      label: 'Total',
-                    ),
-                  ),
-                  _SummaryDivider(
-                    color: colorScheme.onPrimaryContainer.withValues(
-                      alpha: 0.2,
-                    ),
-                  ),
-                  Expanded(
-                    child: _SummaryItem(
-                      icon: Icons.check_circle_outline_rounded,
-                      value: active.toString(),
-                      label: 'Actives',
-                    ),
-                  ),
-                  _SummaryDivider(
-                    color: colorScheme.onPrimaryContainer.withValues(
-                      alpha: 0.2,
-                    ),
-                  ),
-                  Expanded(
-                    child: _SummaryItem(
-                      icon: Icons.pause_circle_outline_rounded,
-                      value: inactive.toString(),
-                      label: 'Inactives',
-                    ),
-                  ),
-                ],
-              ),
-            ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Gares',
+          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Gérez les gares disponibles dans le système.',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
-      ),
+        const SizedBox(height: 20),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _SummaryItem(
+                    label: 'Total',
+                    value: total.toString(),
+                    icon: Icons.location_on_outlined,
+                  ),
+                ),
+                const _SummaryDivider(),
+                Expanded(
+                  child: _SummaryItem(
+                    label: 'Actives',
+                    value: actifs.toString(),
+                    icon: Icons.check_circle_outline,
+                  ),
+                ),
+                const _SummaryDivider(),
+                Expanded(
+                  child: _SummaryItem(
+                    label: 'Inactives',
+                    value: inactifs.toString(),
+                    icon: Icons.cancel_outlined,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
 
 class _SummaryItem extends StatelessWidget {
   const _SummaryItem({
-    required this.icon,
-    required this.value,
     required this.label,
+    required this.value,
+    required this.icon,
   });
 
-  final IconData icon;
-  final String value;
   final String label;
+  final String value;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Column(
       children: [
-        Icon(icon, size: 20, color: colorScheme.onPrimaryContainer),
-        const SizedBox(height: 6),
+        Icon(icon, size: 26),
+        const SizedBox(height: 8),
         Text(
           value,
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.w800,
-            color: colorScheme.onPrimaryContainer,
-          ),
+          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
+        const SizedBox(height: 4),
         Text(
           label,
-          style: Theme.of(context).textTheme.labelMedium
-              ?.copyWith(color: colorScheme.onPrimaryContainer),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
       ],
     );
@@ -409,13 +299,14 @@ class _SummaryItem extends StatelessWidget {
 }
 
 class _SummaryDivider extends StatelessWidget {
-  const _SummaryDivider({required this.color});
-
-  final Color color;
+  const _SummaryDivider();
 
   @override
   Widget build(BuildContext context) {
-    return Container(width: 1, height: 48, color: color);
+    return SizedBox(
+      height: 50,
+      child: VerticalDivider(color: Theme.of(context).dividerColor),
+    );
   }
 }
 
@@ -432,76 +323,46 @@ class _SearchAndFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-      child: Column(
-        children: [
-          TextField(
-            controller: controller,
-            decoration: InputDecoration(
-              hintText: 'Rechercher une gare...',
-              prefixIcon: const Icon(Icons.search_rounded),
-              suffixIcon: controller.text.isNotEmpty
-                  ? IconButton(
-                      onPressed: controller.clear,
-                      icon: const Icon(Icons.clear_rounded),
-                    )
-                  : null,
-              filled: true,
-              fillColor: colorScheme.surfaceContainerHighest.withValues(
-                alpha: 0.55,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
-              ),
-            ),
+    return Column(
+      children: [
+        TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            hintText: 'Rechercher une gare...',
+            prefixIcon: const Icon(Icons.search),
+            suffixIcon: controller.text.isNotEmpty
+                ? IconButton(
+                    tooltip: 'Effacer',
+                    onPressed: controller.clear,
+                    icon: const Icon(Icons.clear),
+                  )
+                : null,
+            border: const OutlineInputBorder(),
           ),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Wrap(
-              spacing: 8,
-              children: [
-                _FilterChip(
-                  label: 'Toutes',
-                  icon: Icons.apps_rounded,
-                  selected: selectedFilter == 'TOUS',
-                  onSelected: () {
-                    onFilterChanged('TOUS');
-                  },
-                ),
-                _FilterChip(
-                  label: 'Actives',
-                  icon: Icons.check_circle_outline_rounded,
-                  selected: selectedFilter == 'ACTIF',
-                  onSelected: () {
-                    onFilterChanged('ACTIF');
-                  },
-                ),
-                _FilterChip(
-                  label: 'Inactives',
-                  icon: Icons.pause_circle_outline_rounded,
-                  selected: selectedFilter == 'INACTIF',
-                  onSelected: () {
-                    onFilterChanged('INACTIF');
-                  },
-                ),
-              ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            _FilterChip(
+              label: 'TOUS',
+              selected: selectedFilter == 'TOUS',
+              onSelected: () => onFilterChanged('TOUS'),
             ),
-          ),
-        ],
-      ),
+            const SizedBox(width: 8),
+            _FilterChip(
+              label: 'ACTIF',
+              selected: selectedFilter == 'ACTIF',
+              onSelected: () => onFilterChanged('ACTIF'),
+            ),
+            const SizedBox(width: 8),
+            _FilterChip(
+              label: 'INACTIF',
+              selected: selectedFilter == 'INACTIF',
+              onSelected: () => onFilterChanged('INACTIF'),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -509,210 +370,20 @@ class _SearchAndFilter extends StatelessWidget {
 class _FilterChip extends StatelessWidget {
   const _FilterChip({
     required this.label,
-    required this.icon,
     required this.selected,
     required this.onSelected,
   });
 
   final String label;
-  final IconData icon;
   final bool selected;
   final VoidCallback onSelected;
 
   @override
   Widget build(BuildContext context) {
     return FilterChip(
+      label: Text(label),
       selected: selected,
       onSelected: (_) => onSelected(),
-      avatar: Icon(icon, size: 17),
-      label: Text(label),
-      showCheckmark: false,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-    );
-  }
-}
-
-class _CreateGareDialog extends StatefulWidget {
-  const _CreateGareDialog();
-
-  @override
-  State<_CreateGareDialog> createState() => _CreateGareDialogState();
-}
-
-class _CreateGareDialogState extends State<_CreateGareDialog> {
-  final _formKey = GlobalKey<FormState>();
-
-  final _codeController = TextEditingController();
-  final _nomController = TextEditingController();
-  final _villeController = TextEditingController();
-  final _adresseController = TextEditingController();
-
-  String _statut = 'ACTIF';
-
-  @override
-  void dispose() {
-    _codeController.dispose();
-    _nomController.dispose();
-    _villeController.dispose();
-    _adresseController.dispose();
-
-    super.dispose();
-  }
-
-  void _submit() {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    final now = DateTime.now();
-
-    final gare = Gare(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
-      code: _codeController.text.trim(),
-      nom: _nomController.text.trim(),
-      ville: _villeController.text.trim(),
-      adresse: _adresseController.text.trim().isEmpty
-          ? null
-          : _adresseController.text.trim(),
-      statut: _statut,
-      createdAt: now,
-      updatedAt: now,
-    );
-
-    Navigator.of(context).pop(gare);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return AlertDialog(
-      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
-      contentPadding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
-      actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
-      title: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              Icons.location_city_rounded,
-              color: colorScheme.onPrimaryContainer,
-            ),
-          ),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Text(
-              'Nouvelle gare',
-              style: TextStyle(fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
-      ),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _codeController,
-                decoration: const InputDecoration(
-                  labelText: 'Code de la gare',
-                  hintText: 'Ex. G001',
-                  prefixIcon: Icon(Icons.tag_rounded),
-                ),
-                textCapitalization: TextCapitalization.characters,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Le code est obligatoire';
-                  }
-
-                  return null;
-                },
-              ),
-              const SizedBox(height: 14),
-              TextFormField(
-                controller: _nomController,
-                decoration: const InputDecoration(
-                  labelText: 'Nom de la gare',
-                  hintText: 'Ex. Gare d\'Eseka',
-                  prefixIcon: Icon(Icons.location_city_rounded),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Le nom est obligatoire';
-                  }
-
-                  return null;
-                },
-              ),
-              const SizedBox(height: 14),
-              TextFormField(
-                controller: _villeController,
-                decoration: const InputDecoration(
-                  labelText: 'Ville',
-                  hintText: 'Ex. Eseka',
-                  prefixIcon: Icon(Icons.location_on_outlined),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'La ville est obligatoire';
-                  }
-
-                  return null;
-                },
-              ),
-              const SizedBox(height: 14),
-              TextFormField(
-                controller: _adresseController,
-                decoration: const InputDecoration(
-                  labelText: 'Adresse',
-                  hintText: 'Adresse complète',
-                  prefixIcon: Icon(Icons.home_outlined),
-                ),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 14),
-              DropdownButtonFormField<String>(
-                initialValue: _statut,
-                decoration: const InputDecoration(
-                  labelText: 'Statut',
-                  prefixIcon: Icon(Icons.toggle_on_outlined),
-                ),
-                items: const [
-                  DropdownMenuItem(value: 'ACTIF', child: Text('Actif')),
-                  DropdownMenuItem(value: 'INACTIF', child: Text('Inactif')),
-                ],
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      _statut = value;
-                    });
-                  }
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-          child: const Text('Annuler'),
-        ),
-        FilledButton.icon(
-          onPressed: _submit,
-          icon: const Icon(Icons.check_rounded),
-          label: const Text('Créer la gare'),
-        ),
-      ],
     );
   }
 }
@@ -725,91 +396,63 @@ class _EmptySearchView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    final title = hasGares ? 'Aucun résultat' : 'Aucune gare disponible';
-
-    final message = hasGares
-        ? 'Aucune gare ne correspond à '
-              '« $searchQuery ».'
-        : 'Ajoutez votre première gare avec '
-              'le bouton « Nouvelle gare ».';
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: colorScheme.primaryContainer,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                hasGares
-                    ? Icons.search_off_rounded
-                    : Icons.location_city_outlined,
-                size: 38,
-                color: colorScheme.primary,
-              ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 60),
+      child: Column(
+        children: [
+          Icon(
+            hasGares ? Icons.search_off : Icons.location_city_outlined,
+            size: 64,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            hasGares ? 'Aucune gare trouvée' : 'Aucune gare enregistrée',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            hasGares
+                ? 'Aucun résultat pour « $searchQuery ».'
+                : 'Commencez par ajouter une nouvelle gare.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
-            const SizedBox(height: 20),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w700),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              style: Theme.of(context).textTheme.bodyMedium
-                  ?.copyWith(color: colorScheme.onSurfaceVariant),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
 class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.error, required this.onRetry});
+  const _ErrorView({required this.message, required this.onRetry});
 
-  final Object error;
+  final String message;
   final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.error_outline_rounded,
-              size: 56,
-              color: colorScheme.error,
-            ),
+            const Icon(Icons.error_outline, size: 56),
             const SizedBox(height: 16),
             const Text(
               'Impossible de charger les gares',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
-            Text(error.toString(), textAlign: TextAlign.center),
+            Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 20),
             FilledButton.icon(
               onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded),
+              icon: const Icon(Icons.refresh),
               label: const Text('Réessayer'),
             ),
           ],

@@ -37,6 +37,13 @@ class TestDatabaseHelper implements DatabaseProvider {
           await db.execute(index);
         }
       },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('ALTER TABLE gare ADD COLUMN latitude REAL');
+
+          await db.execute('ALTER TABLE gare ADD COLUMN longitude REAL');
+        }
+      },
     );
 
     return _database!;
