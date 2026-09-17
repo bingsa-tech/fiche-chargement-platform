@@ -146,8 +146,8 @@ void main() {
           responseData: null,
         );
 
-        expect(
-          () => dataSource.findById('gare-001'),
+        await expectLater(
+          dataSource.findById('gare-001'),
           throwsA(isA<FormatException>()),
         );
       },
@@ -172,8 +172,12 @@ void main() {
         updatedAt: DateTime(2026, 1, 1, 10),
       );
 
-      expect(() => dataSource.create(gare), throwsA(isA<FormatException>()));
+      await expectLater(
+        dataSource.create(gare),
+        throwsA(isA<FormatException>()),
+      );
     });
+
     test('create() utilise POST /gares avec le bon payload', () async {
       final adapter = _MockHttpClientAdapter(
         statusCode: 201,
@@ -201,6 +205,7 @@ void main() {
       expect(adapter.path, '/gares');
 
       expect(adapter.requestBody, {
+        'id': 'gare-001',
         'code': 'GARE01',
         'nom': 'Gare Centrale',
         'ville': 'Sherbrooke',
@@ -210,8 +215,8 @@ void main() {
         'longitude': -71.9000,
       });
 
-      expect(adapter.requestBody.containsKey('id'), false);
       expect(adapter.requestBody.containsKey('createdAt'), false);
+
       expect(adapter.requestBody.containsKey('updatedAt'), false);
     });
 
@@ -252,9 +257,12 @@ void main() {
       });
 
       expect(adapter.requestBody.containsKey('id'), false);
+
       expect(adapter.requestBody.containsKey('createdAt'), false);
+
       expect(adapter.requestBody.containsKey('updatedAt'), false);
     });
+
     test('delete() utilise DELETE /gares/:id et accepte HTTP 204', () async {
       final adapter = _MockHttpClientAdapter(
         statusCode: 204,
@@ -268,6 +276,7 @@ void main() {
       expect(adapter.method, 'DELETE');
       expect(adapter.path, '/gares/gare-001');
     });
+
     test('update() lève une FormatException si la réponse est vide', () async {
       dio.httpClientAdapter = _MockHttpClientAdapter(
         statusCode: 200,
@@ -287,7 +296,10 @@ void main() {
         updatedAt: DateTime(2026, 1, 1, 10),
       );
 
-      expect(() => dataSource.update(gare), throwsA(isA<FormatException>()));
+      await expectLater(
+        dataSource.update(gare),
+        throwsA(isA<FormatException>()),
+      );
     });
   });
 }

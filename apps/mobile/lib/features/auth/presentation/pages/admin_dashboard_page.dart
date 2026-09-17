@@ -4,10 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fiche_chargement_app/app/router.dart';
 import 'package:fiche_chargement_app/features/auth/domain/entities/role.dart';
 import 'package:fiche_chargement_app/features/auth/presentation/providers/auth_provider.dart';
-import 'package:fiche_chargement_app/features/gares/presentation/pages/gares_page.dart';
-
-// FIXME: Le fichier référencé n'existe pas dans le projet.
-// L'import doit être corrigé vers le bon écran de gestion des gares.
 
 class AdminDashboardPage extends ConsumerWidget {
   const AdminDashboardPage({super.key});
@@ -69,13 +65,25 @@ class AdminDashboardPage extends ConsumerWidget {
               if (user.role.type == UserRoleType.admin)
                 ElevatedButton.icon(
                   onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const GaresPage()),
-                    );
+                    Navigator.of(context).pushNamed(AppRoutes.adminGares);
                   },
                   icon: const Icon(Icons.location_city_rounded),
                   label: const Text('Gestion des gares'),
                 ),
+
+              const SizedBox(height: 16),
+
+              // ==================================================
+              // SQLITE - DIAGNOSTIC
+              // OUTIL DE DÉVELOPPEMENT
+              // ==================================================
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pushNamed(AppRoutes.databaseDebug);
+                },
+                icon: const Icon(Icons.storage_rounded),
+                label: const Text('SQLite - Diagnostic'),
+              ),
 
               const SizedBox(height: 16),
 

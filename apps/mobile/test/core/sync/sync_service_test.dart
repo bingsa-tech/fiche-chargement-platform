@@ -16,6 +16,7 @@ class FakeGareApiDataSource extends GareApiDataSource {
   final bool shouldFail;
 
   final List<GareModel> createdGares = [];
+  final List<GareModel> updatedGares = [];
 
   @override
   Future<GareModel> create(GareModel gare) async {
@@ -24,6 +25,17 @@ class FakeGareApiDataSource extends GareApiDataSource {
     }
 
     createdGares.add(gare);
+
+    return gare;
+  }
+
+  @override
+  Future<GareModel> update(GareModel gare) async {
+    if (shouldFail) {
+      throw Exception('Erreur réseau simulée');
+    }
+
+    updatedGares.add(gare);
 
     return gare;
   }
@@ -184,6 +196,7 @@ void main() {
     await syncService.syncCreateGare(item);
 
     expect(fakeGareApiDataSource.createdGares.length, 1);
+
     expect(fakeGareApiDataSource.createdGares.first.code, 'GARE001');
 
     final db = await databaseHelper.database;
@@ -198,6 +211,105 @@ void main() {
     expect(rows.first['status'], 'synced');
     expect(rows.first['last_error'], isNull);
   });
+
+  test('syncPending() synchronise les créations de gares en attente', () async {
+    await syncQueueDao.insert(createItem(id: 'sync-001', entityId: 'gare-001'));
+
+    await syncQueueDao.insert(createItem(id: 'sync-002', entityId: 'gare-002'));
+
+    await syncService.syncPending();
+
+    expect(fakeGareApiDataSource.createdGares.length, 2);
+
+    expect(fakeGareApiDataSource.createdGares[0].code, 'GARE001');
+
+    expect(fakeGareApiDataSource.createdGares[1].code, 'GARE001');
+
+    final db = await databaseHelper.database;
+
+    final rows = await db.query('sync_queue', orderBy: 'created_at ASC');
+
+    expect(rows.length, 2);
+
+    expect(rows[0]['status'], 'synced');
+    expect(rows[1]['status'], 'synced');
+
+    expect(rows[0]['last_error'], isNull);
+    expect(rows[1]['last_error'], isNull);
+  });
+
+  test(
+    'syncPending() continue avec les autres opérations après une erreur',
+    () async {
+      fakeGareApiDataSource = FakeGareApiDataSource(shouldFail: true);
+
+      syncService = SyncService(
+        syncQueueDao: syncQueueDao,
+        gareApiDataSource: fakeGareApiDataSource,
+      );
+
+      await syncQueueDao.insert(
+        createItem(id: 'sync-001', entityId: 'gare-001'),
+      );
+
+      await syncQueueDao.insert(
+        createItem(id: 'sync-002', entityId: 'gare-002'),
+      );
+
+      await expectLater(syncService.syncPending(), completes);
+
+      final db = await databaseHelper.database;
+
+      final rows = await db.query('sync_queue', orderBy: 'created_at ASC');
+
+      expect(rows.length, 2);
+
+      expect(rows[0]['status'], 'failed');
+      expect(rows[1]['status'], 'failed');
+
+      expect(rows[0]['retry_count'], 1);
+      expect(rows[1]['retry_count'], 1);
+
+      expect(rows[0]['last_error'], contains('Erreur réseau simulée'));
+
+      expect(rows[1]['last_error'], contains('Erreur réseau simulée'));
+    },
+  );
+
+  test(
+    'syncPending() ignore les opérations qui ne sont pas supportées',
+    () async {
+      await syncQueueDao.insert(
+        createItem(
+          id: 'sync-001',
+          entity: 'VEHICULE',
+          entityId: 'vehicule-001',
+          operation: 'CREATE',
+        ),
+      );
+
+      await syncQueueDao.insert(
+        createItem(
+          id: 'sync-002',
+          entity: 'GARE',
+          entityId: 'gare-001',
+          operation: 'DELETE',
+        ),
+      );
+
+      await syncService.syncPending();
+
+      // Aucune opération ne doit avoir été envoyée à l'API.
+      // F10.6 ne traite actuellement que CREATE GARE.
+      expect(fakeGareApiDataSource.createdGares, isEmpty);
+
+      expect(fakeGareApiDataSource.updatedGares, isEmpty);
+
+      final pendingItems = await syncQueueDao.findPending();
+
+      expect(pendingItems.length, 2);
+    },
+  );
 
   test('marque la création comme failed en cas d erreur', () async {
     fakeGareApiDataSource = FakeGareApiDataSource(shouldFail: true);
@@ -224,7 +336,9 @@ void main() {
     expect(rows.length, 1);
     expect(rows.first['status'], 'failed');
     expect(rows.first['retry_count'], 1);
+
     expect(rows.first['last_error'], contains('Erreur réseau simulée'));
+
     expect(rows.first['last_attempt_at'], isNotNull);
   });
 }

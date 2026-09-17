@@ -5,12 +5,17 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
 } from 'class-validator';
 
 import { GareStatut } from '../enums/gare-statut.enum';
 
 export class CreateGareDto {
+  @IsOptional()
+  @IsUUID()
+  id?: string;
+  
   @IsString()
   @IsNotEmpty()
   @MaxLength(30)

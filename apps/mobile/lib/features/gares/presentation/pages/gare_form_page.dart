@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../domain/entities/gare.dart';
 
+import 'package:uuid/uuid.dart';
+
 class GareFormPage extends StatefulWidget {
   const GareFormPage({super.key});
 
@@ -10,6 +12,7 @@ class GareFormPage extends StatefulWidget {
 }
 
 class _GareFormPageState extends State<GareFormPage> {
+  static const Uuid _uuid = Uuid();
   final _formKey = GlobalKey<FormState>();
 
   final _codeController = TextEditingController();
@@ -37,7 +40,7 @@ class _GareFormPageState extends State<GareFormPage> {
     final now = DateTime.now();
 
     final gare = Gare(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      id: _uuid.v4(),
       code: _codeController.text.trim(),
       nom: _nomController.text.trim(),
       ville: _villeController.text.trim(),

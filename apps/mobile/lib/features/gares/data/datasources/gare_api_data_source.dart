@@ -80,9 +80,11 @@ class GareApiDataSource {
 
   /// Payload envoyé à POST /gares.
   ///
-  /// L'id, createdAt et updatedAt sont générés/gérés par le backend.
+  /// L'ID est celui généré localement par Flutter.
+  /// Le backend doit conserver exactement ce même UUID.
   Map<String, dynamic> _toCreatePayload(GareModel gare) {
     return {
+      'id': gare.id,
       'code': gare.code,
       'nom': gare.nom,
       'ville': gare.ville,
