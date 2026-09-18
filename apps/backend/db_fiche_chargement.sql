@@ -1,18 +1,33 @@
 -- ============================================================
--- EXTENSION UUID
+-- FICHE CHARGEMENT PLATFORM
+-- PostgreSQL / Supabase - Schema de migration
+-- ============================================================
+-- IMPORTANT :
+-- 1. Le schema suppose que les tables ROLE et UTILISATEUR existent
+--    deja et conservent :
+--      role.id = INTEGER
+--      utilisateur.id = INTEGER
+--      utilisateur.role_id = INTEGER
+--      utilisateur.gare_id = UUID
+-- 2. Aucun changement de regle metier n'est introduit ici.
+-- 3. Supabase utilise PostgreSQL : UUID, pgcrypto, JSONB, CHECK,
+--    UNIQUE et les contraintes FK sont conserves.
+-- 4. Le backend NestJS + TypeORM reste la couche d'acces aux donnees.
+-- ============================================================
+
+BEGIN;
+
+-- ============================================================
+-- 1. EXTENSION UUID
 -- ============================================================
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
--- ============================================================
--- ROLE
--- ============================================================
--- Table déjà existent dans la base.
--- Conservée avec id INTEGER.
+
 -- ============================================================
 -- 2. GARE
 -- ============================================================
 
-CREATE TABLE gare IF NOT EXISTS(
+CREATE TABLE IF NOT EXISTS gare (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     code VARCHAR(30) NOT NULL UNIQUE,
@@ -25,11 +40,12 @@ CREATE TABLE gare IF NOT EXISTS(
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-
 -- ============================================================
 -- 3. UTILISATEUR
 -- ============================================================
--- Table déjà existante dans la base.
+-- Table existante.
+-- Ne pas la recreer ici.
+--
 -- utilisateur.id = INTEGER
 -- utilisateur.role_id = INTEGER
 -- utilisateur.gare_id = UUID
@@ -38,7 +54,7 @@ CREATE TABLE gare IF NOT EXISTS(
 -- 4. VEHICULE
 -- ============================================================
 
-CREATE TABLE vehicule IF NOT EXISTS(
+CREATE TABLE IF NOT EXISTS vehicule (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     plaque_immatriculation VARCHAR(30) NOT NULL UNIQUE,
@@ -55,12 +71,11 @@ CREATE TABLE vehicule IF NOT EXISTS(
         CHECK (capacite > 0)
 );
 
-
 -- ============================================================
 -- 5. DOCUMENT_VEHICULE
 -- ============================================================
 
-CREATE TABLE document_vehicule IF NOT EXISTS(
+CREATE TABLE IF NOT EXISTS document_vehicule (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     vehicule_id UUID NOT NULL,
@@ -90,12 +105,11 @@ CREATE TABLE document_vehicule IF NOT EXISTS(
         )
 );
 
-
 -- ============================================================
 -- 6. CHAUFFEUR
 -- ============================================================
 
-CREATE TABLE chauffeur IF NOT EXISTS(
+CREATE TABLE IF NOT EXISTS chauffeur (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     nom VARCHAR(100) NOT NULL,
@@ -107,12 +121,11 @@ CREATE TABLE chauffeur IF NOT EXISTS(
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-
 -- ============================================================
 -- 7. DOCUMENT_CHAUFFEUR
 -- ============================================================
 
-CREATE TABLE document_chauffeur IF NOT EXISTS(
+CREATE TABLE IF NOT EXISTS document_chauffeur (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     chauffeur_id UUID NOT NULL,
@@ -142,12 +155,11 @@ CREATE TABLE document_chauffeur IF NOT EXISTS(
         )
 );
 
-
 -- ============================================================
 -- 8. DESTINATION
 -- ============================================================
 
-CREATE TABLE destination IF NOT EXISTS(
+CREATE TABLE IF NOT EXISTS destination (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     code VARCHAR(30) NOT NULL UNIQUE,
@@ -160,12 +172,11 @@ CREATE TABLE destination IF NOT EXISTS(
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-
 -- ============================================================
 -- 9. ITINERAIRE
 -- ============================================================
 
-CREATE TABLE itineraire IF NOT EXISTS(
+CREATE TABLE IF NOT EXISTS itineraire (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     destination_id UUID NOT NULL,
@@ -188,12 +199,11 @@ CREATE TABLE itineraire IF NOT EXISTS(
         UNIQUE (destination_id, code)
 );
 
-
 -- ============================================================
 -- 10. PASSAGER
 -- ============================================================
 
-CREATE TABLE passager IF NOT EXISTS(
+CREATE TABLE IF NOT EXISTS passager (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     nom VARCHAR(100) NOT NULL,
@@ -204,12 +214,11 @@ CREATE TABLE passager IF NOT EXISTS(
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-
 -- ============================================================
 -- 11. FICHE
 -- ============================================================
 
-CREATE TABLE fiche IF NOT EXISTS(
+CREATE TABLE IF NOT EXISTS fiche (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     reference VARCHAR(50) NOT NULL UNIQUE,
@@ -295,13 +304,12 @@ CREATE TABLE fiche IF NOT EXISTS(
         )
 );
 
-
 -- ============================================================
 -- 12. FICHE_PASSAGER
 -- ============================================================
--- Recommandé si une fiche peut contenir plusieurs passagers.
+-- Une fiche peut contenir plusieurs passagers.
 
-CREATE TABLE fiche_passager IF NOT EXISTS(
+CREATE TABLE IF NOT EXISTS fiche_passager (
     fiche_id UUID NOT NULL,
     passager_id UUID NOT NULL,
 
@@ -329,12 +337,11 @@ CREATE TABLE fiche_passager IF NOT EXISTS(
         )
 );
 
-
 -- ============================================================
 -- 13. AUDIT_LOG
 -- ============================================================
 
-CREATE TABLE audit_log IF NOT EXISTS(
+CREATE TABLE IF NOT EXISTS audit_log (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     utilisateur_id INTEGER,
@@ -357,12 +364,14 @@ CREATE TABLE audit_log IF NOT EXISTS(
         ON DELETE SET NULL
 );
 
-
 -- ============================================================
 -- 14. ALERTE_DOCUMENT
 -- ============================================================
+-- document_id reste volontairement sans FK directe :
+-- il peut referencer un document de vehicule OU de chauffeur.
+-- La coherence est geree par type_document + proprietaire_type/id.
 
-CREATE TABLE alerte_document IF NOT EXISTS(
+CREATE TABLE IF NOT EXISTS alerte_document (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     type_document VARCHAR(50) NOT NULL,
@@ -400,12 +409,11 @@ CREATE TABLE alerte_document IF NOT EXISTS(
         )
 );
 
-
 -- ============================================================
 -- 15. SYNC_QUEUE
 -- ============================================================
 
-CREATE TABLE sync_queue IF NOT EXISTS(
+CREATE TABLE IF NOT EXISTS sync_queue (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     entity_type VARCHAR(50) NOT NULL,
@@ -429,9 +437,8 @@ CREATE TABLE sync_queue IF NOT EXISTS(
         CHECK (retry_count >= 0)
 );
 
-
 -- ============================================================
--- INDEX
+-- 16. INDEX
 -- ============================================================
 
 CREATE INDEX IF NOT EXISTS idx_utilisateur_gare
@@ -467,7 +474,7 @@ CREATE INDEX IF NOT EXISTS idx_fiche_chauffeur
 CREATE INDEX IF NOT EXISTS idx_fiche_destination
     ON fiche(destination_id);
 
-CREATE INDEX IF NOT EXISTSidx_fiche_statut
+CREATE INDEX IF NOT EXISTS idx_fiche_statut
     ON fiche(statut);
 
 CREATE INDEX IF NOT EXISTS idx_audit_utilisateur
@@ -493,3 +500,6 @@ CREATE INDEX IF NOT EXISTS idx_sync_queue_status
 
 CREATE INDEX IF NOT EXISTS idx_sync_queue_entity
     ON sync_queue(entity_type, entity_id);
+
+COMMIT;
+
