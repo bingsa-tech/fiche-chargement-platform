@@ -2,6 +2,8 @@ import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 
 import { authApi } from '../api/auth.api';
+import { getApiErrorMessage } from '../api/api-error';
+
 import type { Utilisateur } from './auth.types';
 
 const ACCESS_TOKEN_KEY = 'access_token';
@@ -10,8 +12,13 @@ const USER_KEY = 'auth_user';
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<Utilisateur | null>(null);
   const accessToken = ref<string | null>(null);
+
   const loading = ref(false);
   const error = ref<string | null>(null);
+
+  // ===========================================================================
+  // COMPUTED
+  // ===========================================================================
 
   const isAuthenticated = computed(() => {
     return !!accessToken.value && !!user.value;
@@ -29,7 +36,14 @@ export const useAuthStore = defineStore('auth', () => {
     return user.value?.gareId ?? null;
   });
 
-  async function login(username: string, password: string) {
+  // ===========================================================================
+  // LOGIN
+  // ===========================================================================
+
+  async function login(
+    username: string,
+    password: string,
+  ) {
     loading.value = true;
     error.value = null;
 
@@ -39,7 +53,9 @@ export const useAuthStore = defineStore('auth', () => {
         password,
       });
 
-      accessToken.value = response.accessToken;
+      accessToken.value =
+        response.accessToken;
+
       user.value = response.user;
 
       localStorage.setItem(
@@ -53,13 +69,18 @@ export const useAuthStore = defineStore('auth', () => {
       );
 
       return response;
-    } catch (err: any) {
+    } catch (err: unknown) {
       user.value = null;
       accessToken.value = null;
 
+      localStorage.removeItem(
+        ACCESS_TOKEN_KEY,
+      );
+
+      localStorage.removeItem(USER_KEY);
+
       error.value =
-        err?.response?.data?.message ??
-        'Échec de la connexion.';
+        getApiErrorMessage(err);
 
       throw err;
     } finally {
@@ -67,9 +88,15 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  function restoreSession() {
+  // ===========================================================================
+  // RESTORE SESSION
+  // ===========================================================================
+
+  function restoreSession(): boolean {
     const storedToken =
-      localStorage.getItem(ACCESS_TOKEN_KEY);
+      localStorage.getItem(
+        ACCESS_TOKEN_KEY,
+      );
 
     const storedUser =
       localStorage.getItem(USER_KEY);
@@ -79,24 +106,39 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     try {
+      const parsedUser =
+        JSON.parse(storedUser) as Utilisateur;
+
       accessToken.value = storedToken;
-      user.value = JSON.parse(storedUser) as Utilisateur;
+      user.value = parsedUser;
 
       return true;
     } catch {
       logout();
+
       return false;
     }
   }
+
+  // ===========================================================================
+  // LOGOUT
+  // ===========================================================================
 
   function logout() {
     user.value = null;
     accessToken.value = null;
     error.value = null;
 
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(
+      ACCESS_TOKEN_KEY,
+    );
+
     localStorage.removeItem(USER_KEY);
   }
+
+  // ===========================================================================
+  // RETURN
+  // ===========================================================================
 
   return {
     user,
@@ -114,3 +156,4 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
   };
 });
+

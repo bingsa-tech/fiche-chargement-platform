@@ -10,14 +10,14 @@ import type { UserRole } from '../auth/role.types';
 /**
  * Routes publiques et protégées de l'application Admin.
  *
- * Les dashboards sont actuellement les pages de base du socle
- * d'authentification. Ils pourront ensuite être enrichis
- * progressivement avec les fonctionnalités métier.
+ * Le socle applicatif est organisé autour de AdminLayout.
+ * Les pages protégées sont rendues à l'intérieur du layout
+ * via son <RouterView />.
  */
 const routes: RouteRecordRaw[] = [
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
   // AUTHENTIFICATION
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
 
   {
     path: '/login',
@@ -28,88 +28,99 @@ const routes: RouteRecordRaw[] = [
     },
   },
 
-  // ---------------------------------------------------------------------------
-  // ROLE HUB
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
+  // APPLICATION PROTÉGÉE
+  // ===========================================================================
 
   {
     path: '/',
-    name: 'home',
-    redirect: '/role-hub',
-  },
-
-  {
-    path: '/role-hub',
-    name: 'role-hub',
-    component: () => import('../views/RoleHubView.vue'),
+    component: () => import('../layouts/AdminLayout.vue'),
     meta: {
       requiresAuth: true,
     },
+
+    children: [
+      // -----------------------------------------------------------------------
+      // RACINE
+      // -----------------------------------------------------------------------
+
+      {
+        path: '',
+        name: 'home',
+        redirect: '/role-hub',
+      },
+
+      // -----------------------------------------------------------------------
+      // ROLE HUB
+      // -----------------------------------------------------------------------
+
+      {
+        path: 'role-hub',
+        name: 'role-hub',
+        component: () => import('../views/RoleHubView.vue'),
+      },
+
+      // -----------------------------------------------------------------------
+      // DASHBOARD ADMIN
+      // -----------------------------------------------------------------------
+
+      {
+        path: 'admin/dashboard',
+        name: 'admin-dashboard',
+        component: () =>
+          import('../views/dashboards/AdminDashboard.vue'),
+        meta: {
+          roles: ['ADMIN'] satisfies UserRole[],
+        },
+      },
+
+      // -----------------------------------------------------------------------
+      // DASHBOARD AGENT
+      // -----------------------------------------------------------------------
+
+      {
+        path: 'agent/dashboard',
+        name: 'agent-dashboard',
+        component: () =>
+          import('../views/dashboards/AgentDashboard.vue'),
+        meta: {
+          roles: ['AGENT'] satisfies UserRole[],
+        },
+      },
+
+      // -----------------------------------------------------------------------
+      // DASHBOARD CONTROLEUR
+      // -----------------------------------------------------------------------
+
+      {
+        path: 'controleur/dashboard',
+        name: 'controleur-dashboard',
+        component: () =>
+          import('../views/dashboards/ControleurDashboard.vue'),
+        meta: {
+          roles: ['CONTROLEUR'] satisfies UserRole[],
+        },
+      },
+
+      // -----------------------------------------------------------------------
+      // DASHBOARD AUTORITÉ
+      // -----------------------------------------------------------------------
+
+      {
+        path: 'autorite/dashboard',
+        name: 'autorite-dashboard',
+        component: () =>
+          import('../views/dashboards/AutoriteDashboard.vue'),
+        meta: {
+          roles: ['AUTORITE_HABILITEE'] satisfies UserRole[],
+        },
+      },
+    ],
   },
 
-  // ---------------------------------------------------------------------------
-  // DASHBOARD ADMIN
-  // ---------------------------------------------------------------------------
-
-  {
-    path: '/admin/dashboard',
-    name: 'admin-dashboard',
-    component: () =>
-      import('../views/dashboards/AdminDashboard.vue'),
-    meta: {
-      requiresAuth: true,
-      roles: ['ADMIN'] satisfies UserRole[],
-    },
-  },
-
-  // ---------------------------------------------------------------------------
-  // DASHBOARD AGENT
-  // ---------------------------------------------------------------------------
-
-  {
-    path: '/agent/dashboard',
-    name: 'agent-dashboard',
-    component: () =>
-      import('../views/dashboards/AgentDashboard.vue'),
-    meta: {
-      requiresAuth: true,
-      roles: ['AGENT'] satisfies UserRole[],
-    },
-  },
-
-  // ---------------------------------------------------------------------------
-  // DASHBOARD CONTROLEUR
-  // ---------------------------------------------------------------------------
-
-  {
-    path: '/controleur/dashboard',
-    name: 'controleur-dashboard',
-    component: () =>
-      import('../views/dashboards/ControleurDashboard.vue'),
-    meta: {
-      requiresAuth: true,
-      roles: ['CONTROLEUR'] satisfies UserRole[],
-    },
-  },
-
-  // ---------------------------------------------------------------------------
-  // DASHBOARD AUTORITÉ
-  // ---------------------------------------------------------------------------
-
-  {
-    path: '/autorite/dashboard',
-    name: 'autorite-dashboard',
-    component: () =>
-      import('../views/dashboards/AutoriteDashboard.vue'),
-    meta: {
-      requiresAuth: true,
-      roles: ['AUTORITE_HABILITEE'] satisfies UserRole[],
-    },
-  },
-
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
   // NON AUTORISÉ
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
 
   {
     path: '/unauthorized',
@@ -121,9 +132,9 @@ const routes: RouteRecordRaw[] = [
     },
   },
 
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
   // 404
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
 
   {
     path: '/:pathMatch(.*)*',
@@ -188,22 +199,21 @@ function getDashboardRoute(role: UserRole | null) {
 router.beforeEach((to) => {
   const authStore = useAuthStore();
 
-  // ---------------------------------------------------------------------------
-  // 1. Restaurer la session au démarrage
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
+  // 1. Restaurer la session
+  // ===========================================================================
 
   if (!authStore.isAuthenticated) {
     authStore.restoreSession();
   }
 
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
   // 2. Route publique
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
 
   if (to.meta.public) {
     /**
-     * Si l'utilisateur est déjà connecté et tente d'accéder
-     * à /login, on le redirige vers son dashboard.
+     * Un utilisateur déjà connecté ne doit pas revenir sur /login.
      */
     if (
       to.name === 'login' &&
@@ -215,9 +225,9 @@ router.beforeEach((to) => {
     return true;
   }
 
-  // ---------------------------------------------------------------------------
-  // 3. Route nécessitant une authentification
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
+  // 3. Authentification obligatoire
+  // ===========================================================================
 
   if (
     to.meta.requiresAuth &&
@@ -231,26 +241,34 @@ router.beforeEach((to) => {
     };
   }
 
-  // ---------------------------------------------------------------------------
-  // 4. Vérification du rôle
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
+  // 4. Autorisation par rôle
+  // ===========================================================================
 
+  /**
+   * Important :
+   * to.meta.roles fonctionne également pour les routes enfants.
+   */
   const allowedRoles =
     to.meta.roles as UserRole[] | undefined;
 
-  if (allowedRoles && authStore.role) {
-    if (!allowedRoles.includes(authStore.role)) {
+  if (allowedRoles) {
+    if (
+      !authStore.role ||
+      !allowedRoles.includes(authStore.role)
+    ) {
       return {
         name: 'unauthorized',
       };
     }
   }
 
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
   // 5. Route autorisée
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
 
   return true;
 });
 
 export default router;
+
