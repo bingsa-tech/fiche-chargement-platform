@@ -10,11 +10,20 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Autoriser Flutter Web / Edge à communiquer avec l'API.
+  // Autoriser le frontend Vue et Flutter Web à communiquer
+  // avec l'API et à envoyer/recevoir les cookies HttpOnly.
   app.enableCors({
-    origin: true,
+    origin: [
+      'http://localhost:5173',
+      'http://localhost:8085',
+    ],
+    credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type, Accept, Authorization',
+    allowedHeaders: [
+      'Content-Type',
+      'Accept',
+      'Authorization',
+    ],
   });
 
   app.useGlobalPipes(
@@ -52,3 +61,4 @@ async function bootstrap() {
 }
 
 bootstrap();
+
