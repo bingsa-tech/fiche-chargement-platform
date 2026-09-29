@@ -10,21 +10,13 @@ const sidebarOpen = ref(false);
 
 const userFullName = computed(() => {
   const user = authStore.user;
-
-  if (!user) {
-    return 'Utilisateur';
-  }
-
-  return `${user.prenom} ${user.nom}`.trim();
+  if (!user) return 'Utilisateur';
+  return `${user.prenom ?? ''} ${user.nom ?? ''}`.trim() || 'Utilisateur';
 });
 
 const userRole = computed(() => authStore.role ?? 'ROLE_INCONNU');
-
 const userEmail = computed(() => authStore.user?.email ?? '');
-
-const userGare = computed(() => {
-  return authStore.user?.gareId ?? 'Non affectée';
-});
+const userGare = computed(() => authStore.user?.gareId ?? 'Non affectée');
 
 function closeSidebar() {
   sidebarOpen.value = false;
@@ -32,20 +24,18 @@ function closeSidebar() {
 
 function goToDashboard() {
   closeSidebar();
-
-  router.push({
-    name: 'role-hub',
-  });
+  router.push({ name: 'role-hub' });
 }
 
-function logout() {
+async function logout() {
   closeSidebar();
-
-  authStore.logout();
-
-  router.push({
-    name: 'login',
-  });
+  try {
+    await authStore.logout();
+  } catch (error) {
+    console.error('Erreur lors de la déconnexion', error);
+  } finally {
+    router.push({ name: 'login' });
+  }
 }
 </script>
 

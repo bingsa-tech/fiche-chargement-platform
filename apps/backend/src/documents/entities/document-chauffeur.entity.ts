@@ -18,7 +18,7 @@ export class DocumentChauffeur {
   // =====================================================
 
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   // =====================================================
   // CLÉ ÉTRANGÈRE CHAUFFEUR
@@ -27,7 +27,7 @@ export class DocumentChauffeur {
   @Column('uuid', {
     name: 'chauffeur_id',
   })
-  chauffeurId: string;
+  chauffeurId!: string;
 
   // =====================================================
   // INFORMATIONS DU DOCUMENT
@@ -37,37 +37,37 @@ export class DocumentChauffeur {
     name: 'type_document',
     length: 50,
   })
-  typeDocument: string;
+  typeDocument!: string;
 
   @Column('varchar', {
     name: 'numero_document',
     length: 100,
     nullable: true,
   })
-  numeroDocument: string | null;
+  numeroDocument!: string | null;
 
   @Column('date', {
     name: 'date_delivrance',
     nullable: true,
   })
-  dateDelivrance: Date | null;
+  dateDelivrance!: Date | null;
 
   @Column('date', {
     name: 'date_expiration',
   })
-  dateExpiration: Date;
+  dateExpiration!: Date;
 
   @Column('varchar', {
     name: 'statut',
     length: 20,
   })
-  statut: string;
+  statut!: string;
 
   @Column('text', {
     name: 'observations',
     nullable: true,
   })
-  observations: string | null;
+  observations!: string | null;
 
   // =====================================================
   // DATES DE TRAÇABILITÉ
@@ -77,13 +77,13 @@ export class DocumentChauffeur {
     name: 'created_at',
     default: () => 'CURRENT_TIMESTAMP',
   })
-  createdAt: Date;
+  createdAt!: Date;
 
   @Column('timestamp', {
     name: 'updated_at',
     default: () => 'CURRENT_TIMESTAMP',
   })
-  updatedAt: Date;
+  updatedAt!: Date;
 
   // =====================================================
   // RELATION CHAUFFEUR
@@ -104,5 +104,5 @@ export class DocumentChauffeur {
     name: 'chauffeur_id',
     referencedColumnName: 'id',
   })
-  chauffeur: Chauffeur;
+  chauffeur!: Chauffeur;
 }

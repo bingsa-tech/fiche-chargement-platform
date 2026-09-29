@@ -1,3 +1,4 @@
+
 import {
   Column,
   CreateDateColumn,
@@ -15,8 +16,12 @@ import { Utilisateur } from '../../../utilisateurs/entities/utilisateur.entity';
 @Index('idx_refresh_token_hash', ['tokenHash'])
 @Index('idx_refresh_token_expires_at', ['expiresAt'])
 export class RefreshToken {
+  // =========================
+  // IDENTIFIANT
+  // =========================
+
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   // =========================
   // UTILISATEUR
@@ -26,7 +31,7 @@ export class RefreshToken {
     name: 'user_id',
     type: 'integer',
   })
-  userId: number;
+  userId!: number;
 
   @ManyToOne(
     () => Utilisateur,
@@ -40,7 +45,7 @@ export class RefreshToken {
     name: 'user_id',
     referencedColumnName: 'id',
   })
-  user: Utilisateur;
+  user!: Utilisateur;
 
   // =========================
   // TOKEN
@@ -52,7 +57,7 @@ export class RefreshToken {
     length: 255,
     unique: true,
   })
-  tokenHash: string;
+  tokenHash!: string;
 
   // =========================
   // EXPIRATION
@@ -62,7 +67,7 @@ export class RefreshToken {
     name: 'expires_at',
     type: 'timestamp',
   })
-  expiresAt: Date;
+  expiresAt!: Date;
 
   // =========================
   // RÉVOCATION
@@ -73,7 +78,7 @@ export class RefreshToken {
     type: 'timestamp',
     nullable: true,
   })
-  revokedAt: Date | null;
+  revokedAt!: Date | null;
 
   // =========================
   // ROTATION
@@ -84,7 +89,7 @@ export class RefreshToken {
     type: 'integer',
     nullable: true,
   })
-  replacedByTokenId: number | null;
+  replacedByTokenId!: number | null;
 
   // =========================
   // CONTEXTE DE SESSION
@@ -96,7 +101,7 @@ export class RefreshToken {
     length: 500,
     nullable: true,
   })
-  userAgent: string | null;
+  userAgent!: string | null;
 
   @Column({
     name: 'ip_address',
@@ -104,7 +109,7 @@ export class RefreshToken {
     length: 45,
     nullable: true,
   })
-  ipAddress: string | null;
+  ipAddress!: string | null;
 
   // =========================
   // DATE DE CRÉATION
@@ -115,6 +120,5 @@ export class RefreshToken {
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
   })
-  createdAt: Date;
+  createdAt!: Date;
 }
-

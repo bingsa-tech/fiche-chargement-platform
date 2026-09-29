@@ -28,123 +28,123 @@ import { FicheStatut } from '../enums/fiche-statut.enum';
 @Index('idx_fiche_vehicule', ['vehiculeId'])
 export class Fiche {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({
     type: 'varchar',
     length: 50,
     unique: true,
   })
-  reference: string;
+  reference!: string;
 
   @Column('uuid', { name: 'gare_id' })
-  gareId: string;
+  gareId!: string;
 
   @Column('uuid', { name: 'vehicule_id' })
-  vehiculeId: string;
+  vehiculeId!: string;
 
   @Column('uuid', { name: 'chauffeur_id' })
-  chauffeurId: string;
+  chauffeurId!: string;
 
   @Column('uuid', { name: 'destination_id' })
-  destinationId: string;
+  destinationId!: string;
 
   @Column('uuid', {
     name: 'itineraire_id',
     nullable: true,
   })
-  itineraireId: string | null;
+  itineraireId!: string | null;
 
   @Column('integer', { name: 'createur_id' })
-  createurId: number;
+  createurId!: number;
 
   @Column('integer', {
     name: 'finalisateur_id',
     nullable: true,
   })
-  finalisateurId: number | null;
+  finalisateurId!: number | null;
 
   @Column('integer', {
     name: 'annulateur_id',
     nullable: true,
   })
-  annulateurId: number | null;
+  annulateurId!: number | null;
 
   @Column({
     type: 'timestamp',
     name: 'date_creation',
     default: () => 'CURRENT_TIMESTAMP',
   })
-  dateCreation: Date;
+  dateCreation!: Date;
 
   @Column({
     type: 'timestamp',
     name: 'heure_arrivee_gare',
     nullable: true,
   })
-  heureArriveeGare: Date | null;
+  heureArriveeGare!: Date | null;
 
   @Column({
     type: 'timestamp',
     name: 'heure_depart',
     nullable: true,
   })
-  heureDepart: Date | null;
+  heureDepart!: Date | null;
 
   @Column({
     type: 'timestamp',
     name: 'heure_arrivee_destination',
     nullable: true,
   })
-  heureArriveeDestination: Date | null;
+  heureArriveeDestination!: Date | null;
 
   @Column({
     type: 'timestamp',
     name: 'date_finalisation',
     nullable: true,
   })
-  dateFinalisation: Date | null;
+  dateFinalisation!: Date | null;
 
   @Column({
     type: 'timestamp',
     name: 'date_cloture',
     nullable: true,
   })
-  dateCloture: Date | null;
+  dateCloture!: Date | null;
 
   @Column({
     type: 'timestamp',
     name: 'date_annulation',
     nullable: true,
   })
-  dateAnnulation: Date | null;
+  dateAnnulation!: Date | null;
 
   @Column({
-    type: 'varchar',
-    length: 30,
-  })
-  statut: FicheStatut;
-
+  type: 'enum',
+  enum: FicheStatut,
+  default: FicheStatut.BROUILLON,
+})
+statut!: FicheStatut;
   @Column({
     type: 'text',
     name: 'motif_annulation',
     nullable: true,
   })
-  motifAnnulation: string | null;
+  motifAnnulation!: string | null;
 
   @CreateDateColumn({
     name: 'created_at',
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
   })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({
     name: 'updated_at',
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
   })
-  updatedAt: Date;
+  updatedAt!: Date;
 
   // =========================
   // RELATIONS
@@ -158,7 +158,7 @@ export class Fiche {
     name: 'gare_id',
     referencedColumnName: 'id',
   })
-  gare: Gare;
+  gare!: Gare;
 
   @ManyToOne(() => Vehicule, (vehicule) => vehicule.fiches, {
     onDelete: 'RESTRICT',
@@ -168,7 +168,7 @@ export class Fiche {
     name: 'vehicule_id',
     referencedColumnName: 'id',
   })
-  vehicule: Vehicule;
+  vehicule!: Vehicule;
 
   @ManyToOne(() => Chauffeur, (chauffeur) => chauffeur.fiches, {
     onDelete: 'RESTRICT',
@@ -178,7 +178,7 @@ export class Fiche {
     name: 'chauffeur_id',
     referencedColumnName: 'id',
   })
-  chauffeur: Chauffeur;
+  chauffeur!: Chauffeur;
 
   @ManyToOne(() => Destination, (destination) => destination.fiches, {
     onDelete: 'RESTRICT',
@@ -188,7 +188,7 @@ export class Fiche {
     name: 'destination_id',
     referencedColumnName: 'id',
   })
-  destination: Destination;
+  destination!: Destination;
 
   @ManyToOne(() => Itineraire, (itineraire) => itineraire.fiches, {
     nullable: true,
@@ -199,7 +199,7 @@ export class Fiche {
     name: 'itineraire_id',
     referencedColumnName: 'id',
   })
-  itineraire: Itineraire | null;
+  itineraire!: Itineraire | null;
 
   @ManyToOne(() => Utilisateur, (utilisateur) => utilisateur.fiches, {
     onDelete: 'RESTRICT',
@@ -209,7 +209,7 @@ export class Fiche {
     name: 'createur_id',
     referencedColumnName: 'id',
   })
-  createur: Utilisateur;
+  createur!: Utilisateur;
 
   @ManyToOne(
     () => Utilisateur,
@@ -224,7 +224,7 @@ export class Fiche {
     name: 'finalisateur_id',
     referencedColumnName: 'id',
   })
-  finalisateur: Utilisateur | null;
+  finalisateur!: Utilisateur | null;
 
   @ManyToOne(
     () => Utilisateur,
@@ -239,11 +239,11 @@ export class Fiche {
     name: 'annulateur_id',
     referencedColumnName: 'id',
   })
-  annulateur: Utilisateur | null;
+  annulateur!: Utilisateur | null;
 
   @OneToMany(
     () => FichePassager,
     (fichePassager) => fichePassager.fiche,
   )
-  fichePassagers: FichePassager[];
+  fichePassagers!: FichePassager[];
 }

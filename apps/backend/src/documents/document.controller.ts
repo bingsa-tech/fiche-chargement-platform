@@ -14,7 +14,8 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-
+import { CreateDocumentVehiculeDto } from './dto/create-document-vehicule.dto';
+import { UpdateDocumentVehiculeDto } from './dto/update-document-vehicule.dto';
 import { DocumentsService } from './document.service';
 
 @ApiTags('Documents')
@@ -70,7 +71,7 @@ export class DocumentsController {
     status: 201,
     description: 'Document véhicule créé',
   })
-  createVehicule(@Body() data: any) {
+  createVehicule(@Body() data: CreateDocumentVehiculeDto) {
     return this.documentsService.createVehicule(data);
   }
 
@@ -83,11 +84,11 @@ export class DocumentsController {
     description: 'UUID du document véhicule',
   })
   updateVehicule(
-    @Param('id', new ParseUUIDPipe()) id: string,
-    @Body() data: any,
-  ) {
-    return this.documentsService.updateVehicule(id, data);
-  }
+  @Param('id', new ParseUUIDPipe()) id: string,
+  @Body() data: UpdateDocumentVehiculeDto,
+) {
+  return this.documentsService.updateVehicule(id, data);
+}
 
   @Delete('vehicules/:id')
   @ApiOperation({

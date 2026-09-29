@@ -4,11 +4,15 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   Min,
 } from 'class-validator';
 
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  ApiProperty,
+  ApiPropertyOptional,
+} from '@nestjs/swagger';
 
 import { VehiculeStatut } from '../enums/vehicule-statut.enum';
 
@@ -21,7 +25,7 @@ export class CreateVehiculeDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(30)
-  plaqueImmatriculation: string;
+  plaqueImmatriculation!: string;
 
   @ApiProperty({
     example: 'BUS',
@@ -31,7 +35,7 @@ export class CreateVehiculeDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(30)
-  type: string;
+  type!: string;
 
   @ApiPropertyOptional({
     example: 'Toyota',
@@ -60,7 +64,7 @@ export class CreateVehiculeDto {
   })
   @IsInt()
   @Min(1)
-  capacite: number;
+  capacite!: number;
 
   @ApiProperty({
     enum: VehiculeStatut,
@@ -68,5 +72,13 @@ export class CreateVehiculeDto {
     description: 'Statut du véhicule',
   })
   @IsEnum(VehiculeStatut)
-  statut: VehiculeStatut;
+  statut!: VehiculeStatut;
+
+  @ApiProperty({
+    example: 'bfb47b50-6000-42c8-8220-8985ae27f12f',
+    description: 'Identifiant UUID du propriétaire',
+  })
+  @IsUUID()
+  @IsNotEmpty()
+  proprietaireId!: string;
 }

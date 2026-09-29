@@ -7,7 +7,8 @@ import { DataSource } from 'typeorm';
 
 import { DocumentVehicule } from './entities/document-vehicule.entity';
 import { DocumentChauffeur } from './entities/document-chauffeur.entity';
-
+import { CreateDocumentVehiculeDto } from './dto/create-document-vehicule.dto';
+import { UpdateDocumentVehiculeDto } from './dto/update-document-vehicule.dto';
 @Injectable()
 export class DocumentsService {
   constructor(
@@ -51,29 +52,67 @@ export class DocumentsService {
   }
 
   async createVehicule(
-    data: Partial<DocumentVehicule>,
-  ): Promise<DocumentVehicule> {
-    const repository =
-      this.dataSource.getRepository(DocumentVehicule);
+  data: CreateDocumentVehiculeDto,
+): Promise<DocumentVehicule> {
+  const repository =
+    this.dataSource.getRepository(DocumentVehicule);
 
-    const document = repository.create(data);
+  const document = repository.create({
+    vehiculeId: data.vehiculeId,
+    typeDocument: data.typeDocument,
+    numeroDocument: data.numeroDocument ?? null,
+    dateDelivrance: data.dateDelivrance
+      ? new Date(data.dateDelivrance)
+      : null,
+    dateExpiration: new Date(data.dateExpiration),
+    statut: data.statut,
+    observations: data.observations ?? null,
+  });
 
-    return repository.save(document);
+  return repository.save(document);
+}
+
+async updateVehicule(
+  id: string,
+  data: UpdateDocumentVehiculeDto,
+): Promise<DocumentVehicule> {
+  const repository =
+    this.dataSource.getRepository(DocumentVehicule);
+
+  const document = await this.findOneVehicule(id);
+
+  if (data.vehiculeId !== undefined) {
+    document.vehiculeId = data.vehiculeId;
   }
 
-  async updateVehicule(
-    id: string,
-    data: Partial<DocumentVehicule>,
-  ): Promise<DocumentVehicule> {
-    const repository =
-      this.dataSource.getRepository(DocumentVehicule);
-
-    const document = await this.findOneVehicule(id);
-
-    Object.assign(document, data);
-
-    return repository.save(document);
+  if (data.typeDocument !== undefined) {
+    document.typeDocument = data.typeDocument;
   }
+
+  if (data.numeroDocument !== undefined) {
+    document.numeroDocument = data.numeroDocument;
+  }
+
+  if (data.dateDelivrance !== undefined) {
+    document.dateDelivrance = data.dateDelivrance
+      ? new Date(data.dateDelivrance)
+      : null;
+  }
+
+  if (data.dateExpiration !== undefined) {
+    document.dateExpiration = new Date(data.dateExpiration);
+  }
+
+  if (data.statut !== undefined) {
+    document.statut = data.statut;
+  }
+
+  if (data.observations !== undefined) {
+    document.observations = data.observations;
+  }
+
+  return repository.save(document);
+}
 
   async removeVehicule(id: string): Promise<void> {
     const repository =

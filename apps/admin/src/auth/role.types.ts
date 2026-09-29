@@ -3,7 +3,7 @@ export type UserRole =
   | 'AGENT'
   | 'CONTROLEUR'
   | 'AUTORITE_HABILITEE'
-  | 'USER';
+  | 'RESPONSABLE_GARE';
 
 export interface Role {
   id: number;

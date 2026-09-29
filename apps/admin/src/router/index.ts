@@ -1,6 +1,7 @@
 import {
   createRouter,
   createWebHistory,
+  type RouteLocationRaw,
   type RouteRecordRaw,
 } from 'vue-router';
 
@@ -8,16 +9,47 @@ import { useAuthStore } from '../auth/auth.store';
 import type { UserRole } from '../auth/role.types';
 
 /**
- * Routes publiques et protégées de l'application Admin.
+ * ============================================================================
+ * ROUTES DE L'APPLICATION ADMIN
+ * ============================================================================
  *
- * Le socle applicatif est organisé autour de AdminLayout.
- * Les pages protégées sont rendues à l'intérieur du layout
- * via son <RouterView />.
+ * Architecture :
+ *
+ * /login
+ *    └── route publique
+ *
+ * /
+ *    └── AdminLayout.vue
+ *         ├── /role-hub
+ *         ├── /auth-test
+ *         ├── /admin/dashboard
+ *         ├── /agent/dashboard
+ *         ├── /controleur/dashboard
+ *         ├── /responsable-gare/dashboard
+ *         └── /autorite/dashboard
+ *
+ * /unauthorized
+ *    └── route publique
+ *
+ * /:pathMatch(.*)*
+ *    └── 404
+ *
+ * IMPORTANT :
+ * Le frontend contrôle l'affichage et la navigation.
+ * La sécurité réelle reste assurée par le backend NestJS
+ * et ses guards/permissions.
  */
+
+/**
+ * ============================================================================
+ * ROUTES
+ * ============================================================================
+ */
+
 const routes: RouteRecordRaw[] = [
-  // ===========================================================================
+  // ==========================================================================
   // AUTHENTIFICATION
-  // ===========================================================================
+  // ==========================================================================
 
   {
     path: '/login',
@@ -28,9 +60,9 @@ const routes: RouteRecordRaw[] = [
     },
   },
 
-  // ===========================================================================
+  // ==========================================================================
   // APPLICATION PROTÉGÉE
-  // ===========================================================================
+  // ==========================================================================
 
   {
     path: '/',
@@ -40,19 +72,21 @@ const routes: RouteRecordRaw[] = [
     },
 
     children: [
-      // -----------------------------------------------------------------------
-      // RACINE
-      // -----------------------------------------------------------------------
+      // ========================================================================
+      // ACCUEIL
+      // ========================================================================
 
       {
         path: '',
         name: 'home',
-        redirect: '/role-hub',
+        redirect: {
+          name: 'role-hub',
+        },
       },
 
-      // -----------------------------------------------------------------------
+      // ========================================================================
       // ROLE HUB
-      // -----------------------------------------------------------------------
+      // ========================================================================
 
       {
         path: 'role-hub',
@@ -60,9 +94,19 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../views/RoleHubView.vue'),
       },
 
-      // -----------------------------------------------------------------------
+      // ========================================================================
+      // TEST AUTHENTIFICATION JWT
+      // ========================================================================
+
+      {
+        path: 'auth-test',
+        name: 'auth-test',
+        component: () => import('../views/AuthTestView.vue'),
+      },
+
+      // ========================================================================
       // DASHBOARD ADMIN
-      // -----------------------------------------------------------------------
+      // ========================================================================
 
       {
         path: 'admin/dashboard',
@@ -74,9 +118,9 @@ const routes: RouteRecordRaw[] = [
         },
       },
 
-      // -----------------------------------------------------------------------
+      // ========================================================================
       // DASHBOARD AGENT
-      // -----------------------------------------------------------------------
+      // ========================================================================
 
       {
         path: 'agent/dashboard',
@@ -88,9 +132,9 @@ const routes: RouteRecordRaw[] = [
         },
       },
 
-      // -----------------------------------------------------------------------
-      // DASHBOARD CONTROLEUR
-      // -----------------------------------------------------------------------
+      // ========================================================================
+      // DASHBOARD CONTRÔLEUR
+      // ========================================================================
 
       {
         path: 'controleur/dashboard',
@@ -102,9 +146,25 @@ const routes: RouteRecordRaw[] = [
         },
       },
 
-      // -----------------------------------------------------------------------
-      // DASHBOARD AUTORITÉ
-      // -----------------------------------------------------------------------
+      // ========================================================================
+      // DASHBOARD RESPONSABLE DE GARE
+      // ========================================================================
+
+      {
+        path: 'responsable-gare/dashboard',
+        name: 'responsable-gare-dashboard',
+        component: () =>
+          import(
+            '../views/dashboards/ResponsableGareDashboard.vue'
+          ),
+        meta: {
+          roles: ['RESPONSABLE_GARE'] satisfies UserRole[],
+        },
+      },
+
+      // ========================================================================
+      // DASHBOARD AUTORITÉ HABILITÉE
+      // ========================================================================
 
       {
         path: 'autorite/dashboard',
@@ -118,9 +178,9 @@ const routes: RouteRecordRaw[] = [
     ],
   },
 
-  // ===========================================================================
+  // ==========================================================================
   // NON AUTORISÉ
-  // ===========================================================================
+  // ==========================================================================
 
   {
     path: '/unauthorized',
@@ -132,9 +192,9 @@ const routes: RouteRecordRaw[] = [
     },
   },
 
-  // ===========================================================================
-  // 404
-  // ===========================================================================
+  // ==========================================================================
+  // PAGE 404
+  // ==========================================================================
 
   {
     path: '/:pathMatch(.*)*',
@@ -148,10 +208,16 @@ const routes: RouteRecordRaw[] = [
 ];
 
 /**
- * Création du routeur Vue.
+ * ============================================================================
+ * ROUTEUR
+ * ============================================================================
  */
+
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(
+    import.meta.env.BASE_URL,
+  ),
+
   routes,
 
   scrollBehavior() {
@@ -162,9 +228,17 @@ const router = createRouter({
 });
 
 /**
- * Retourne la route du dashboard correspondant au rôle.
+ * ============================================================================
+ * DASHBOARD PAR RÔLE
+ * ============================================================================
+ *
+ * Cette fonction détermine le dashboard initial
+ * après authentification.
  */
-function getDashboardRoute(role: UserRole | null) {
+
+function getDashboardRoute(
+  role: UserRole | null,
+): RouteLocationRaw {
   switch (role) {
     case 'ADMIN':
       return {
@@ -181,6 +255,11 @@ function getDashboardRoute(role: UserRole | null) {
         name: 'controleur-dashboard',
       };
 
+    case 'RESPONSABLE_GARE':
+      return {
+        name: 'responsable-gare-dashboard',
+      };
+
     case 'AUTORITE_HABILITEE':
       return {
         name: 'autorite-dashboard',
@@ -194,40 +273,55 @@ function getDashboardRoute(role: UserRole | null) {
 }
 
 /**
- * Guard global d'authentification et d'autorisation.
+ * ============================================================================
+ * GUARD GLOBAL
+ * ============================================================================
+ *
+ * Responsabilités :
+ *
+ * 1. Restaurer la session depuis localStorage.
+ * 2. Bloquer les routes protégées sans authentification.
+ * 3. Rediriger un utilisateur déjà connecté qui visite /login.
+ * 4. Vérifier le rôle requis par la route.
+ *
+ * La vérification des permissions métier reste côté backend.
  */
+
 router.beforeEach((to) => {
   const authStore = useAuthStore();
 
-  // ===========================================================================
-  // 1. Restaurer la session
-  // ===========================================================================
+  // ==========================================================================
+  // 1. RESTAURATION DE SESSION
+  // ==========================================================================
 
   if (!authStore.isAuthenticated) {
     authStore.restoreSession();
   }
 
-  // ===========================================================================
-  // 2. Route publique
-  // ===========================================================================
+  // ==========================================================================
+  // 2. ROUTE PUBLIQUE
+  // ==========================================================================
 
   if (to.meta.public) {
     /**
-     * Un utilisateur déjà connecté ne doit pas revenir sur /login.
+     * Un utilisateur déjà authentifié n'a pas besoin
+     * de revenir sur la page de connexion.
      */
     if (
       to.name === 'login' &&
       authStore.isAuthenticated
     ) {
-      return getDashboardRoute(authStore.role);
+      return getDashboardRoute(
+        authStore.role,
+      );
     }
 
     return true;
   }
 
-  // ===========================================================================
-  // 3. Authentification obligatoire
-  // ===========================================================================
+  // ==========================================================================
+  // 3. AUTHENTIFICATION REQUISE
+  // ==========================================================================
 
   if (
     to.meta.requiresAuth &&
@@ -241,21 +335,19 @@ router.beforeEach((to) => {
     };
   }
 
-  // ===========================================================================
-  // 4. Autorisation par rôle
-  // ===========================================================================
+  // ==========================================================================
+  // 4. AUTORISATION PAR RÔLE
+  // ==========================================================================
 
-  /**
-   * Important :
-   * to.meta.roles fonctionne également pour les routes enfants.
-   */
   const allowedRoles =
     to.meta.roles as UserRole[] | undefined;
 
   if (allowedRoles) {
+    const currentRole = authStore.role;
+
     if (
-      !authStore.role ||
-      !allowedRoles.includes(authStore.role)
+      !currentRole ||
+      !allowedRoles.includes(currentRole)
     ) {
       return {
         name: 'unauthorized',
@@ -263,12 +355,11 @@ router.beforeEach((to) => {
     }
   }
 
-  // ===========================================================================
-  // 5. Route autorisée
-  // ===========================================================================
+  // ==========================================================================
+  // 5. ROUTE AUTORISÉE
+  // ==========================================================================
 
   return true;
 });
 
 export default router;
-

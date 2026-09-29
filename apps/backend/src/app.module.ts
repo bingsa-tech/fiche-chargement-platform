@@ -14,6 +14,7 @@ import { ItinerairesModule } from './itineraires/itineraires.module';
 import { FichePassagersModule } from './fiche-passagers/fiche-passagers.module';
 import { PassagersModule } from './passagers/passagers.module';
 import { TestRolesModule } from './test-roles/test-roles.module';
+import { ProprietairesModule } from './proprietaires/proprietaires.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { TestRolesModule } from './test-roles/test-roles.module';
     FichePassagersModule,
     PassagersModule,
     TestRolesModule,
+    ProprietairesModule,
   ],
 })
 export class AppModule {}
