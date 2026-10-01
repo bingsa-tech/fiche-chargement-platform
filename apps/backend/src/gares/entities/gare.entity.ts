@@ -14,76 +14,76 @@ import { GareStatut } from '../enums/gare-statut.enum';
 @Entity('gare', { schema: 'public' })
 export class Gare {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({
     type: 'varchar',
     length: 30,
     unique: true,
   })
-  code: string;
+  code!: string;
 
   @Column({
     type: 'varchar',
     length: 150,
   })
-  nom: string;
+  nom!: string;
 
   @Column({
     type: 'varchar',
     length: 100,
   })
-  ville: string;
+  ville!: string;
 
   @Column({
     type: 'varchar',
     length: 255,
     nullable: true,
   })
-  adresse: string | null;
+  adresse!: string | null;
 
   @Column({
     type: 'varchar',
     length: 20,
     name: 'statut',
   })
-  statut: GareStatut;
+  statut!: GareStatut;
 
   @Column({
   type: 'double precision',
   nullable: true,
 })
-latitude: number | null;
+latitude!: number | null;
 
 @Column({
   type: 'double precision',
   nullable: true,
 })
-longitude: number | null;
+longitude!: number | null;
 
   @CreateDateColumn({
     name: 'created_at',
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
   })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({
     name: 'updated_at',
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
   })
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @OneToMany(
     () => Fiche,
     (fiche) => fiche.gare,
   )
-  fiches: Fiche[];
+  fiches!: Fiche[];
 
   @OneToMany(
     () => Utilisateur,
     (utilisateur) => utilisateur.gare,
   )
-  utilisateurs: Utilisateur[];
+  utilisateurs!: Utilisateur[];
 }

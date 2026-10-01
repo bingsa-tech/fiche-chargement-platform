@@ -8,27 +8,57 @@ const authStore = useAuthStore();
 
 const sidebarOpen = ref(false);
 
+/**
+ * Informations utilisateur
+ */
 const userFullName = computed(() => {
   const user = authStore.user;
-  if (!user) return 'Utilisateur';
+
+  if (!user) {
+    return 'Utilisateur';
+  }
+
   return `${user.prenom ?? ''} ${user.nom ?? ''}`.trim() || 'Utilisateur';
 });
 
-const userRole = computed(() => authStore.role ?? 'ROLE_INCONNU');
-const userEmail = computed(() => authStore.user?.email ?? '');
-const userGare = computed(() => authStore.user?.gareId ?? 'Non affectée');
+const userRole = computed(() => {
+  return authStore.role ?? 'ROLE_INCONNU';
+});
 
+const userEmail = computed(() => {
+  return authStore.user?.email ?? '';
+});
+
+const userGare = computed(() => {
+  return authStore.user?.gareId ?? 'Non affectée';
+});
+
+/**
+ * Fermer le menu mobile
+ */
 function closeSidebar() {
   sidebarOpen.value = false;
 }
 
-function goToDashboard() {
+/**
+ * Navigation des modules disponibles
+ */
+function navigateTo(
+  routeName: 'gares' | 'proprietaires' | 'vehicules',
+) {
   closeSidebar();
-  router.push({ name: 'role-hub' });
+
+  router.push({
+    name: routeName,
+  });
 }
 
+/**
+ * Déconnexion
+ */
 async function logout() {
   closeSidebar();
+
   try {
     await authStore.logout();
   } catch (error) {
@@ -53,6 +83,7 @@ async function logout() {
       class="sidebar"
       :class="{ 'sidebar-open': sidebarOpen }"
     >
+      <!-- En-tête sidebar -->
       <div class="sidebar-header">
         <div class="brand">
           <div class="brand-logo">
@@ -75,49 +106,66 @@ async function logout() {
         </button>
       </div>
 
+      <!-- Navigation -->
       <nav class="navigation">
+        <!-- =========================
+             PRINCIPAL
+        ========================== -->
         <div class="navigation-section">
           <span class="navigation-title">
             Principal
           </span>
 
-          <button
-            type="button"
-            class="navigation-item active"
-            @click="goToDashboard"
+          <RouterLink
+            :to="{ name: 'role-hub' }"
+            class="navigation-item"
+            active-class="active"
+            @click="closeSidebar"
           >
             <span class="navigation-icon">⌂</span>
             <span>Dashboard</span>
-          </button>
+          </RouterLink>
         </div>
 
+        <!-- =========================
+             GESTION
+        ========================== -->
         <div class="navigation-section">
           <span class="navigation-title">
             Gestion
           </span>
 
+          <!-- Gares -->
           <button
             type="button"
-            class="navigation-item disabled"
-            disabled
-            title="Module prochainement disponible"
+            class="navigation-item"
+            @click="navigateTo('gares')"
           >
             <span class="navigation-icon">G</span>
             <span>Gares</span>
-            <small>À venir</small>
           </button>
 
+          <!-- Propriétaires -->
           <button
             type="button"
-            class="navigation-item disabled"
-            disabled
-            title="Module prochainement disponible"
+            class="navigation-item"
+            @click="navigateTo('proprietaires')"
+          >
+            <span class="navigation-icon">P</span>
+            <span>Propriétaires</span>
+          </button>
+
+          <!-- Véhicules -->
+          <button
+            type="button"
+            class="navigation-item"
+            @click="navigateTo('vehicules')"
           >
             <span class="navigation-icon">V</span>
             <span>Véhicules</span>
-            <small>À venir</small>
           </button>
 
+          <!-- Chauffeurs -->
           <button
             type="button"
             class="navigation-item disabled"
@@ -129,6 +177,7 @@ async function logout() {
             <small>À venir</small>
           </button>
 
+          <!-- Documents -->
           <button
             type="button"
             class="navigation-item disabled"
@@ -140,6 +189,7 @@ async function logout() {
             <small>À venir</small>
           </button>
 
+          <!-- Fiches -->
           <button
             type="button"
             class="navigation-item disabled"
@@ -151,6 +201,7 @@ async function logout() {
             <small>À venir</small>
           </button>
 
+          <!-- Passagers -->
           <button
             type="button"
             class="navigation-item disabled"
@@ -163,11 +214,15 @@ async function logout() {
           </button>
         </div>
 
+        <!-- =========================
+             SUPERVISION
+        ========================== -->
         <div class="navigation-section">
           <span class="navigation-title">
             Supervision
           </span>
 
+          <!-- Alertes -->
           <button
             type="button"
             class="navigation-item disabled"
@@ -179,6 +234,7 @@ async function logout() {
             <small>À venir</small>
           </button>
 
+          <!-- Audit -->
           <button
             type="button"
             class="navigation-item disabled"
@@ -192,6 +248,7 @@ async function logout() {
         </div>
       </nav>
 
+      <!-- Déconnexion -->
       <div class="sidebar-footer">
         <button
           type="button"
@@ -206,6 +263,7 @@ async function logout() {
 
     <!-- Zone principale -->
     <div class="main-area">
+      <!-- Topbar -->
       <header class="topbar">
         <button
           type="button"
@@ -232,7 +290,9 @@ async function logout() {
         </div>
       </header>
 
+      <!-- Contenu -->
       <main class="content">
+        <!-- Contexte utilisateur -->
         <div class="content-user-context">
           <div>
             <span class="context-label">Compte</span>
@@ -255,6 +315,7 @@ async function logout() {
           </div>
         </div>
 
+        <!-- Vue courante -->
         <RouterView />
       </main>
     </div>
@@ -262,6 +323,10 @@ async function logout() {
 </template>
 
 <style scoped>
+/* =========================
+   LAYOUT PRINCIPAL
+========================= */
+
 .admin-layout {
   min-height: 100vh;
   display: flex;
@@ -338,6 +403,10 @@ async function logout() {
   cursor: pointer;
 }
 
+/* =========================
+   NAVIGATION
+========================= */
+
 .navigation {
   flex: 1;
   overflow-y: auto;
@@ -371,7 +440,10 @@ async function logout() {
   background: transparent;
   color: #d1d5db;
   text-align: left;
+  text-decoration: none;
+  box-sizing: border-box;
   cursor: pointer;
+  font: inherit;
 }
 
 .navigation-item:hover:not(:disabled) {
@@ -405,6 +477,10 @@ async function logout() {
   font-size: 10px;
 }
 
+/* =========================
+   SIDEBAR FOOTER
+========================= */
+
 .sidebar-footer {
   padding: 14px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -422,6 +498,7 @@ async function logout() {
   background: transparent;
   color: #d1d5db;
   cursor: pointer;
+  font: inherit;
 }
 
 .logout-button:hover {
@@ -438,6 +515,10 @@ async function logout() {
   min-height: 100vh;
   margin-left: 260px;
 }
+
+/* =========================
+   TOPBAR
+========================= */
 
 .topbar {
   height: 76px;
@@ -499,6 +580,10 @@ async function logout() {
   color: #6b7280;
   font-size: 11px;
 }
+
+/* =========================
+   CONTENT
+========================= */
 
 .content {
   padding: 28px;
@@ -604,4 +689,3 @@ async function logout() {
   }
 }
 </style>
-

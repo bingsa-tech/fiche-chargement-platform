@@ -16,7 +16,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { CreateVehiculeDto } from './dto/create-vehicule.dto';
+import { CreateVehiculeCompletDto } from './dto/create-vehicule-complet.dto';
 import { UpdateVehiculeDto } from './dto/update-vehicule.dto';
 import { VehiculesService } from './vehicules.service';
 
@@ -27,27 +27,52 @@ export class VehiculesController {
     private readonly vehiculesService: VehiculesService,
   ) {}
 
+  // =====================================================
+  // CREATE
+  // VÉHICULE + DOCUMENTS
+  // =====================================================
+
   @Post()
   @ApiOperation({
-    summary: 'Créer un véhicule',
+    summary: 'Créer un véhicule avec ses documents',
+    description:
+      'Crée un véhicule et au moins un document associé dans une seule transaction. Si la création du véhicule ou d’un document échoue, toute l’opération est annulée.',
   })
   @ApiResponse({
     status: 201,
-    description: 'Véhicule créé avec succès.',
+    description:
+      'Véhicule et documents créés avec succès.',
+  })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Données du véhicule ou des documents invalides.',
+  })
+  @ApiResponse({
+    status: 404,
+    description:
+      'Propriétaire introuvable.',
   })
   @ApiResponse({
     status: 409,
-    description: 'La plaque d’immatriculation existe déjà.',
+    description:
+      'La plaque d’immatriculation existe déjà ou aucun document valide n’a été fourni.',
   })
-  create(@Body() createVehiculeDto: CreateVehiculeDto) {
-    return this.vehiculesService.create(
-      createVehiculeDto,
-    );
+  create(
+    @Body() data: CreateVehiculeCompletDto,
+  ) {
+    return this.vehiculesService.create(data);
   }
+
+  // =====================================================
+  // READ ALL
+  // =====================================================
 
   @Get()
   @ApiOperation({
     summary: 'Récupérer tous les véhicules',
+    description:
+      'Retourne tous les véhicules avec leur propriétaire et leurs documents.',
   })
   @ApiResponse({
     status: 200,
@@ -57,9 +82,15 @@ export class VehiculesController {
     return this.vehiculesService.findAll();
   }
 
+  // =====================================================
+  // READ ONE
+  // =====================================================
+
   @Get(':id')
   @ApiOperation({
     summary: 'Récupérer un véhicule par son ID',
+    description:
+      'Retourne un véhicule avec son propriétaire et ses documents.',
   })
   @ApiResponse({
     status: 200,
@@ -69,21 +100,35 @@ export class VehiculesController {
     status: 404,
     description: 'Véhicule introuvable.',
   })
-  findOne(@Param('id') id: string) {
+  findOne(
+    @Param('id') id: string,
+  ) {
     return this.vehiculesService.findOne(id);
   }
+
+  // =====================================================
+  // UPDATE
+  // =====================================================
 
   @Patch(':id')
   @ApiOperation({
     summary: 'Modifier un véhicule',
+    description:
+      'Modifie les informations du véhicule. La gestion détaillée des documents reste effectuée par le module Documents.',
   })
   @ApiResponse({
     status: 200,
-    description: 'Véhicule modifié avec succès.',
+    description:
+      'Véhicule modifié avec succès.',
   })
   @ApiResponse({
     status: 404,
     description: 'Véhicule introuvable.',
+  })
+  @ApiResponse({
+    status: 409,
+    description:
+      'La plaque d’immatriculation existe déjà.',
   })
   update(
     @Param('id') id: string,
@@ -95,10 +140,16 @@ export class VehiculesController {
     );
   }
 
+  // =====================================================
+  // DELETE
+  // =====================================================
+
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Supprimer un véhicule',
+    description:
+      'Supprime un véhicule. Les documents associés sont supprimés selon la relation configurée sur DocumentVehicule.',
   })
   @ApiResponse({
     status: 204,
@@ -113,7 +164,9 @@ export class VehiculesController {
     description:
       'Impossible de supprimer le véhicule car il est utilisé dans une fiche.',
   })
-  remove(@Param('id') id: string) {
+  remove(
+    @Param('id') id: string,
+  ) {
     return this.vehiculesService.remove(id);
   }
 }

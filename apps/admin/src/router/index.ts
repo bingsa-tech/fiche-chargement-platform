@@ -82,7 +82,109 @@ const routes: RouteRecordRaw[] = [
         redirect: {
           name: 'role-hub',
         },
+
       },
+      {
+  path: 'gares',
+  name: 'gares',
+  component: () =>
+    import('../views/gares/GaresListView.vue'),
+},
+
+{
+  path: 'gares/new',
+  name: 'gare-create',
+  component: () =>
+    import('../views/gares/GareFormView.vue'),
+  meta: {
+    roles: ['ADMIN'],
+  },
+},
+
+{
+  path: 'gares/:id/edit',
+  name: 'gare-edit',
+  component: () =>
+    import('../views/gares/GareFormView.vue'),
+  meta: {
+    roles: [
+      'ADMIN',
+      'RESPONSABLE_GARE',
+    ],
+  },
+},
+// ========================================================================
+// PROPRIÉTAIRES
+// ========================================================================
+
+{
+  path: 'proprietaires',
+  name: 'proprietaires',
+  component: () =>
+    import(
+      '../views/proprietaires/ProprietairesListView.vue'
+    ),
+},
+
+{
+  path: 'proprietaires/new',
+  name: 'proprietaire-create',
+  component: () =>
+    import(
+      '../views/proprietaires/ProprietairesFormView.vue'
+    ),
+  meta: {
+    roles: ['ADMIN'],
+  },
+},
+
+{
+  path: 'proprietaires/:id/edit',
+  name: 'proprietaire-edit',
+  component: () =>
+    import(
+      '../views/proprietaires/ProprietairesFormView.vue'
+    ),
+  meta: {
+    roles: [
+      'ADMIN',
+      'RESPONSABLE_GARE',
+    ],
+  },
+},
+{
+  path: 'vehicules',
+  name: 'vehicules',
+  component: () =>
+    import('../views/vehicules/VehiculesListView.vue'),
+},
+{
+  path: 'vehicules/new',
+  name: 'vehicule-create',
+  component: () =>
+    import('../views/vehicules/VehiculeFormView.vue'),
+  meta: {
+    roles: [
+      'ADMIN',
+      'RESPONSABLE_GARE',
+      'AGENT',
+    ],
+  },
+},
+{
+  path: 'vehicules/:id/edit',
+  name: 'vehicule-edit',
+  component: () =>
+    import('../views/vehicules/VehiculeFormView.vue'),
+  meta: {
+    roles: [
+      'ADMIN',
+      'RESPONSABLE_GARE',
+      'CONTROLEUR',
+      'AGENT',
+    ],
+  },
+},
 
       // ========================================================================
       // ROLE HUB

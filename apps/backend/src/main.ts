@@ -53,11 +53,11 @@ async function bootstrap() {
     document,
   );
 
-  await app.listen(8085, '0.0.0.0');
+ const port = Number(process.env.PORT) || 8085;
 
-  console.log(
-    'Serveur NestJS actif sur http://localhost:8085',
-  );
+await app.listen(port, '0.0.0.0');
+
+console.log(`Serveur NestJS actif sur http://localhost:${port}`);
 }
 
 bootstrap();
