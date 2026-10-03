@@ -16,6 +16,7 @@ async function bootstrap() {
     origin: [
       'http://localhost:5173',
       'http://localhost:8085',
+      'https://fiche-chargement-platform-frontend.onrender.com',
     ],
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
