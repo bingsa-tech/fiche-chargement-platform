@@ -4,45 +4,45 @@ import { Role } from './role.entity';
 @Entity('utilisateur')
 export class Utilisateur {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @ManyToOne(() => Role, { eager: true })
   @JoinColumn({ name: 'role_id' })
-  role: Role;
+  role!: Role;
 
   @Column({ name: 'gare_id', nullable: true })
-  gareId: number;
+  gareId!: number;
 
   @Column({ unique: true, length: 50 })
-  username: string;
+  username!: string;
 
   @Column({ length: 100 })
-  nom: string;
+  nom!: string;
 
   @Column({ length: 100 })
-  prenom: string;
+  prenom!: string;
 
   @Column({ unique: true, length: 100 })
-  email: string;
+  email!: string;
 
   @Column({ length: 20, nullable: true })
-  telephone: string;
+  telephone!: string;
 
   @Column({ name: 'password_hash', length: 255 })
-  passwordHash: string;
+  passwordHash!: string;
 
   @Column({ default: true })
-  actif: boolean;
+  actif!: boolean;
 
   @Column({ default: false })
-  bloque: boolean;
+  bloque!: boolean;
 
   @Column({ name: 'last_login_at', nullable: true })
-  lastLoginAt: Date;
+  lastLoginAt!: Date;
 
   @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
+  updatedAt!: Date;
 }

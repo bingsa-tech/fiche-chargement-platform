@@ -20,44 +20,44 @@ import { AlerteDocument } from '../../alertes/entities/alerte-document.entity';
 @Index('idx_utilisateur_role', ['roleId'])
 export class Utilisateur {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({ type: 'varchar', length: 50, unique: true })
-  username: string;
+  username!: string;
 
   @Column({ type: 'varchar', length: 100, unique: true })
-  email: string;
+  email!: string;
 
   @Column({ name: 'password_hash', type: 'varchar', length: 255 })
-  passwordHash: string;
+  passwordHash!: string;
 
   @Column({ type: 'varchar', length: 100 })
-  nom: string;
+  nom!: string;
 
   @Column({ type: 'varchar', length: 100 })
-  prenom: string;
+  prenom!: string;
 
   @Column({ type: 'varchar', length: 20, nullable: true })
-  telephone: string | null;
+  telephone!: string | null;
 
   @Column({ type: 'boolean', default: true })
-  actif: boolean;
+  actif!: boolean;
 
   @Column({ type: 'boolean', default: false })
-  bloque: boolean;
+  bloque!: boolean;
 
   @Column({ name: 'last_login_at', type: 'timestamp', nullable: true })
-  lastLoginAt: Date | null;
+  lastLoginAt!: Date | null;
 
   // =========================
   // CLÉS ÉTRANGÈRES
   // =========================
 
   @Column({ name: 'gare_id', type: 'uuid', nullable: true })
-  gareId: string | null;
+  gareId!: string | null;
 
   @Column({ name: 'role_id', type: 'integer', nullable: true })
-  roleId: number | null;
+  roleId!: number | null;
 
   // =========================
   // DATES
@@ -68,14 +68,14 @@ export class Utilisateur {
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
   })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({
     name: 'updated_at',
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
   })
-  updatedAt: Date;
+  updatedAt!: Date;
 
   // =========================
   // RELATION ROLE
@@ -83,7 +83,7 @@ export class Utilisateur {
 
   @ManyToOne(() => Role, (role) => role.utilisateurs, { nullable: true })
   @JoinColumn({ name: 'role_id', referencedColumnName: 'id' })
-  role: Role | null;
+  role!: Role | null;
 
   // =========================
   // RELATION GARE
@@ -95,33 +95,33 @@ export class Utilisateur {
     nullable: true,
   })
   @JoinColumn({ name: 'gare_id', referencedColumnName: 'id' })
-  gare: Gare | null;
+  gare!: Gare | null;
 
   // =========================
   // FICHES CRÉÉES
   // =========================
 
   @OneToMany(() => Fiche, (fiche) => fiche.createur)
-  fiches: Fiche[];
+  fiches!: Fiche[];
 
   // =========================
   // FICHES FINALISÉES
   // =========================
 
   @OneToMany(() => Fiche, (fiche) => fiche.finalisateur)
-  fichesFinalisees: Fiche[];
+  fichesFinalisees!: Fiche[];
 
   // =========================
   // FICHES ANNULÉES
   // =========================
 
   @OneToMany(() => Fiche, (fiche) => fiche.annulateur)
-  fichesAnnulees: Fiche[];
+  fichesAnnulees!: Fiche[];
 
   // =========================
   // ALERTES LUES PAR L'UTILISATEUR
   // =========================
 
   @OneToMany(() => AlerteDocument, (alerte) => alerte.utilisateur)
-  alertesLues: AlerteDocument[];
+  alertesLues!: AlerteDocument[];
 }

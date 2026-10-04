@@ -25,10 +25,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     // Ce qui sera injecté dans req.user
     return {
-      id: utilisateur.id,
-      username: utilisateur.username,
-      role: payload.role,
-      gareId: payload.gareId,
-    };
+  id: utilisateur.id,
+  username: utilisateur.username,
+  role: utilisateur.role?.code,
+  gareId: utilisateur.gareId,
+};
   }
 }

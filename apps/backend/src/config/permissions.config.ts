@@ -166,6 +166,7 @@ export const PERMISSIONS = {
 
     CREATE: [
       ROLE_CODES.ADMIN,
+      ROLE_CODES.RESPONSABLE_GARE,
     ],
 
     UPDATE: [

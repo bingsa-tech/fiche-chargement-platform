@@ -8,6 +8,8 @@ import {
 import { useAuthStore } from '../auth/auth.store';
 import type { UserRole } from '../auth/role.types';
 
+import RegisterView from '../views/utilisateurs/RegisterView.vue';
+
 /**
  * ============================================================================
  * ROUTES DE L'APPLICATION ADMIN
@@ -22,6 +24,10 @@ import type { UserRole } from '../auth/role.types';
  *    └── AdminLayout.vue
  *         ├── /role-hub
  *         ├── /auth-test
+ *         ├── /gares
+ *         ├── /proprietaires
+ *         ├── /vehicules
+ *         ├── /utilisateurs/nouveau
  *         ├── /admin/dashboard
  *         ├── /agent/dashboard
  *         ├── /controleur/dashboard
@@ -54,7 +60,8 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/login',
     name: 'login',
-    component: () => import('../views/LoginView.vue'),
+    component: () =>
+      import('../views/LoginView.vue'),
     meta: {
       public: true,
     },
@@ -66,7 +73,9 @@ const routes: RouteRecordRaw[] = [
 
   {
     path: '/',
-    component: () => import('../layouts/AdminLayout.vue'),
+    component: () =>
+      import('../layouts/AdminLayout.vue'),
+
     meta: {
       requiresAuth: true,
     },
@@ -82,109 +91,144 @@ const routes: RouteRecordRaw[] = [
         redirect: {
           name: 'role-hub',
         },
-
       },
+
+      // ========================================================================
+      // GARES
+      // ========================================================================
+
       {
-  path: 'gares',
-  name: 'gares',
-  component: () =>
-    import('../views/gares/GaresListView.vue'),
-},
+        path: 'gares',
+        name: 'gares',
+        component: () =>
+          import('../views/gares/GaresListView.vue'),
+      },
 
-{
-  path: 'gares/new',
-  name: 'gare-create',
-  component: () =>
-    import('../views/gares/GareFormView.vue'),
-  meta: {
-    roles: ['ADMIN'],
-  },
-},
+      {
+        path: 'gares/new',
+        name: 'gare-create',
+        component: () =>
+          import('../views/gares/GareFormView.vue'),
+        meta: {
+          roles: ['ADMIN'] satisfies UserRole[],
+        },
+      },
 
-{
-  path: 'gares/:id/edit',
-  name: 'gare-edit',
-  component: () =>
-    import('../views/gares/GareFormView.vue'),
-  meta: {
-    roles: [
-      'ADMIN',
-      'RESPONSABLE_GARE',
-    ],
-  },
-},
-// ========================================================================
-// PROPRIÉTAIRES
-// ========================================================================
+      {
+        path: 'gares/:id/edit',
+        name: 'gare-edit',
+        component: () =>
+          import('../views/gares/GareFormView.vue'),
+        meta: {
+          roles: [
+            'ADMIN',
+            'RESPONSABLE_GARE',
+          ] satisfies UserRole[],
+        },
+      },
 
-{
-  path: 'proprietaires',
-  name: 'proprietaires',
-  component: () =>
-    import(
-      '../views/proprietaires/ProprietairesListView.vue'
-    ),
-},
+      // ========================================================================
+      // PROPRIÉTAIRES
+      // ========================================================================
 
-{
-  path: 'proprietaires/new',
-  name: 'proprietaire-create',
-  component: () =>
-    import(
-      '../views/proprietaires/ProprietairesFormView.vue'
-    ),
-  meta: {
-    roles: ['ADMIN'],
-  },
-},
+      {
+        path: 'proprietaires',
+        name: 'proprietaires',
+        component: () =>
+          import(
+            '../views/proprietaires/ProprietairesListView.vue'
+          ),
+      },
 
-{
-  path: 'proprietaires/:id/edit',
-  name: 'proprietaire-edit',
-  component: () =>
-    import(
-      '../views/proprietaires/ProprietairesFormView.vue'
-    ),
-  meta: {
-    roles: [
-      'ADMIN',
-      'RESPONSABLE_GARE',
-    ],
-  },
-},
-{
-  path: 'vehicules',
-  name: 'vehicules',
-  component: () =>
-    import('../views/vehicules/VehiculesListView.vue'),
-},
-{
-  path: 'vehicules/new',
-  name: 'vehicule-create',
-  component: () =>
-    import('../views/vehicules/VehiculeFormView.vue'),
-  meta: {
-    roles: [
-      'ADMIN',
-      'RESPONSABLE_GARE',
-      'AGENT',
-    ],
-  },
-},
-{
-  path: 'vehicules/:id/edit',
-  name: 'vehicule-edit',
-  component: () =>
-    import('../views/vehicules/VehiculeFormView.vue'),
-  meta: {
-    roles: [
-      'ADMIN',
-      'RESPONSABLE_GARE',
-      'CONTROLEUR',
-      'AGENT',
-    ],
-  },
-},
+      {
+        path: 'proprietaires/new',
+        name: 'proprietaire-create',
+        component: () =>
+          import(
+            '../views/proprietaires/ProprietairesFormView.vue'
+          ),
+        meta: {
+          roles: ['ADMIN'] satisfies UserRole[],
+        },
+      },
+
+      {
+        path: 'proprietaires/:id/edit',
+        name: 'proprietaire-edit',
+        component: () =>
+          import(
+            '../views/proprietaires/ProprietairesFormView.vue'
+          ),
+        meta: {
+          roles: [
+            'ADMIN',
+            'RESPONSABLE_GARE',
+          ] satisfies UserRole[],
+        },
+      },
+
+      // ========================================================================
+      // UTILISATEURS
+      // ========================================================================
+
+      {
+        path: 'utilisateurs/nouveau',
+        name: 'utilisateur-create',
+        component: RegisterView,
+        meta: {
+          requiresAuth: true,
+          roles: [
+            'ADMIN',
+            'RESPONSABLE_GARE',
+          ] satisfies UserRole[],
+        },
+      },
+
+      // ========================================================================
+      // VÉHICULES
+      // ========================================================================
+
+      {
+        path: 'vehicules',
+        name: 'vehicules',
+        component: () =>
+          import(
+            '../views/vehicules/VehiculesListView.vue'
+          ),
+      },
+
+      {
+        path: 'vehicules/new',
+        name: 'vehicule-create',
+        component: () =>
+          import(
+            '../views/vehicules/VehiculeFormView.vue'
+          ),
+        meta: {
+          roles: [
+            'ADMIN',
+            'RESPONSABLE_GARE',
+            'AGENT',
+          ] satisfies UserRole[],
+        },
+      },
+
+      {
+        path: 'vehicules/:id/edit',
+        name: 'vehicule-edit',
+        component: () =>
+          import(
+            '../views/vehicules/VehiculeFormView.vue'
+          ),
+        meta: {
+          roles: [
+            'ADMIN',
+            'RESPONSABLE_GARE',
+            'CONTROLEUR',
+            'AGENT',
+          ] satisfies UserRole[],
+        },
+      },
 
       // ========================================================================
       // ROLE HUB
@@ -193,7 +237,8 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'role-hub',
         name: 'role-hub',
-        component: () => import('../views/RoleHubView.vue'),
+        component: () =>
+          import('../views/RoleHubView.vue'),
       },
 
       // ========================================================================
@@ -203,7 +248,8 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'auth-test',
         name: 'auth-test',
-        component: () => import('../views/AuthTestView.vue'),
+        component: () =>
+          import('../views/AuthTestView.vue'),
       },
 
       // ========================================================================
@@ -214,9 +260,13 @@ const routes: RouteRecordRaw[] = [
         path: 'admin/dashboard',
         name: 'admin-dashboard',
         component: () =>
-          import('../views/dashboards/AdminDashboard.vue'),
+          import(
+            '../views/dashboards/AdminDashboard.vue'
+          ),
         meta: {
-          roles: ['ADMIN'] satisfies UserRole[],
+          roles: [
+            'ADMIN',
+          ] satisfies UserRole[],
         },
       },
 
@@ -228,9 +278,13 @@ const routes: RouteRecordRaw[] = [
         path: 'agent/dashboard',
         name: 'agent-dashboard',
         component: () =>
-          import('../views/dashboards/AgentDashboard.vue'),
+          import(
+            '../views/dashboards/AgentDashboard.vue'
+          ),
         meta: {
-          roles: ['AGENT'] satisfies UserRole[],
+          roles: [
+            'AGENT',
+          ] satisfies UserRole[],
         },
       },
 
@@ -242,9 +296,13 @@ const routes: RouteRecordRaw[] = [
         path: 'controleur/dashboard',
         name: 'controleur-dashboard',
         component: () =>
-          import('../views/dashboards/ControleurDashboard.vue'),
+          import(
+            '../views/dashboards/ControleurDashboard.vue'
+          ),
         meta: {
-          roles: ['CONTROLEUR'] satisfies UserRole[],
+          roles: [
+            'CONTROLEUR',
+          ] satisfies UserRole[],
         },
       },
 
@@ -260,7 +318,9 @@ const routes: RouteRecordRaw[] = [
             '../views/dashboards/ResponsableGareDashboard.vue'
           ),
         meta: {
-          roles: ['RESPONSABLE_GARE'] satisfies UserRole[],
+          roles: [
+            'RESPONSABLE_GARE',
+          ] satisfies UserRole[],
         },
       },
 
@@ -272,9 +332,13 @@ const routes: RouteRecordRaw[] = [
         path: 'autorite/dashboard',
         name: 'autorite-dashboard',
         component: () =>
-          import('../views/dashboards/AutoriteDashboard.vue'),
+          import(
+            '../views/dashboards/AutoriteDashboard.vue'
+          ),
         meta: {
-          roles: ['AUTORITE_HABILITEE'] satisfies UserRole[],
+          roles: [
+            'AUTORITE_HABILITEE',
+          ] satisfies UserRole[],
         },
       },
     ],
@@ -409,6 +473,7 @@ router.beforeEach((to) => {
      * Un utilisateur déjà authentifié n'a pas besoin
      * de revenir sur la page de connexion.
      */
+
     if (
       to.name === 'login' &&
       authStore.isAuthenticated
@@ -445,7 +510,8 @@ router.beforeEach((to) => {
     to.meta.roles as UserRole[] | undefined;
 
   if (allowedRoles) {
-    const currentRole = authStore.role;
+    const currentRole =
+      authStore.role;
 
     if (
       !currentRole ||

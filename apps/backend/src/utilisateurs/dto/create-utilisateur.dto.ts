@@ -13,28 +13,28 @@ export class CreateUtilisateurDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(50)
-  username: string;
+  username!: string;
 
   @IsEmail()
   @IsNotEmpty()
   @MaxLength(100)
-  email: string;
+  email!: string;
 
   @IsString()
   @IsNotEmpty()
   @MinLength(6)
   @MaxLength(100)
-  password: string;
+  password!: string;
 
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  nom: string;
+  nom!: string;
 
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  prenom: string;
+  prenom!: string;
 
   @IsOptional()
   @IsString()
