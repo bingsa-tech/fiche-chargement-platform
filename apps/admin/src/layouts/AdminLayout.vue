@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../auth/auth.store';
 
+
 const router = useRouter();
 const authStore = useAuthStore();
 
@@ -32,6 +33,12 @@ const userEmail = computed(() => {
 const userGare = computed(() => {
   return authStore.user?.gareId ?? 'Non affectée';
 });
+const canManageUsers = computed(() => {
+  return (
+    authStore.role === 'ADMIN' ||
+    authStore.role === 'RESPONSABLE_GARE'
+  );
+});
 
 /**
  * Fermer le menu mobile
@@ -44,7 +51,11 @@ function closeSidebar() {
  * Navigation des modules disponibles
  */
 function navigateTo(
-  routeName: 'gares' | 'proprietaires' | 'vehicules',
+  routeName:
+    | 'gares'
+    | 'proprietaires'
+    | 'vehicules'
+    | 'utilisateurs',
 ) {
   closeSidebar();
 
@@ -135,6 +146,16 @@ async function logout() {
             Gestion
           </span>
 
+  <!-- Utilisateurs -->
+  <button
+    v-if="canManageUsers"
+    type="button"
+    class="navigation-item"
+    @click="navigateTo('utilisateurs')"
+  >
+    <span class="navigation-icon">U</span>
+    <span>Utilisateurs</span>
+  </button>
           <!-- Gares -->
           <button
             type="button"

@@ -6,9 +6,8 @@ import {
 } from 'vue-router';
 
 import { useAuthStore } from '../auth/auth.store';
-import type { UserRole } from '../auth/role.types';
 
-import RegisterView from '../views/utilisateurs/RegisterView.vue';
+import type { UserRole } from '../auth/role.types';
 
 /**
  * ============================================================================
@@ -27,7 +26,9 @@ import RegisterView from '../views/utilisateurs/RegisterView.vue';
  *         ├── /gares
  *         ├── /proprietaires
  *         ├── /vehicules
+ *         ├── /utilisateurs
  *         ├── /utilisateurs/nouveau
+ *         ├── /utilisateurs/:id/modifier
  *         ├── /admin/dashboard
  *         ├── /agent/dashboard
  *         ├── /controleur/dashboard
@@ -101,16 +102,22 @@ const routes: RouteRecordRaw[] = [
         path: 'gares',
         name: 'gares',
         component: () =>
-          import('../views/gares/GaresListView.vue'),
+          import(
+            '../views/gares/GaresListView.vue'
+          ),
       },
 
       {
         path: 'gares/new',
         name: 'gare-create',
         component: () =>
-          import('../views/gares/GareFormView.vue'),
+          import(
+            '../views/gares/GareFormView.vue'
+          ),
         meta: {
-          roles: ['ADMIN'] satisfies UserRole[],
+          roles: [
+            'ADMIN',
+          ] satisfies UserRole[],
         },
       },
 
@@ -118,7 +125,9 @@ const routes: RouteRecordRaw[] = [
         path: 'gares/:id/edit',
         name: 'gare-edit',
         component: () =>
-          import('../views/gares/GareFormView.vue'),
+          import(
+            '../views/gares/GareFormView.vue'
+          ),
         meta: {
           roles: [
             'ADMIN',
@@ -148,7 +157,9 @@ const routes: RouteRecordRaw[] = [
             '../views/proprietaires/ProprietairesFormView.vue'
           ),
         meta: {
-          roles: ['ADMIN'] satisfies UserRole[],
+          roles: [
+            'ADMIN',
+          ] satisfies UserRole[],
         },
       },
 
@@ -172,11 +183,43 @@ const routes: RouteRecordRaw[] = [
       // ========================================================================
 
       {
+        path: 'utilisateurs',
+        name: 'utilisateurs',
+        component: () =>
+          import(
+            '../views/utilisateurs/UtilisateurListView.vue'
+          ),
+        meta: {
+          roles: [
+            'ADMIN',
+            'RESPONSABLE_GARE',
+          ] satisfies UserRole[],
+        },
+      },
+
+      {
         path: 'utilisateurs/nouveau',
         name: 'utilisateur-create',
-        component: RegisterView,
+        component: () =>
+          import(
+            '../views/utilisateurs/UtilisateurFormView.vue'
+          ),
         meta: {
-          requiresAuth: true,
+          roles: [
+            'ADMIN',
+            'RESPONSABLE_GARE',
+          ] satisfies UserRole[],
+        },
+      },
+
+      {
+        path: 'utilisateurs/:id/modifier',
+        name: 'utilisateur-edit',
+        component: () =>
+          import(
+            '../views/utilisateurs/UtilisateurFormView.vue'
+          ),
+        meta: {
           roles: [
             'ADMIN',
             'RESPONSABLE_GARE',
@@ -238,7 +281,9 @@ const routes: RouteRecordRaw[] = [
         path: 'role-hub',
         name: 'role-hub',
         component: () =>
-          import('../views/RoleHubView.vue'),
+          import(
+            '../views/RoleHubView.vue'
+          ),
       },
 
       // ========================================================================
@@ -249,7 +294,9 @@ const routes: RouteRecordRaw[] = [
         path: 'auth-test',
         name: 'auth-test',
         component: () =>
-          import('../views/AuthTestView.vue'),
+          import(
+            '../views/AuthTestView.vue'
+          ),
       },
 
       // ========================================================================
@@ -352,7 +399,9 @@ const routes: RouteRecordRaw[] = [
     path: '/unauthorized',
     name: 'unauthorized',
     component: () =>
-      import('../views/UnauthorizedView.vue'),
+      import(
+        '../views/UnauthorizedView.vue'
+      ),
     meta: {
       public: true,
     },
@@ -366,7 +415,9 @@ const routes: RouteRecordRaw[] = [
     path: '/:pathMatch(.*)*',
     name: 'not-found',
     component: () =>
-      import('../views/NotFoundView.vue'),
+      import(
+        '../views/NotFoundView.vue'
+      ),
     meta: {
       public: true,
     },
@@ -397,9 +448,6 @@ const router = createRouter({
  * ============================================================================
  * DASHBOARD PAR RÔLE
  * ============================================================================
- *
- * Cette fonction détermine le dashboard initial
- * après authentification.
  */
 
 function getDashboardRoute(
@@ -469,11 +517,6 @@ router.beforeEach((to) => {
   // ==========================================================================
 
   if (to.meta.public) {
-    /**
-     * Un utilisateur déjà authentifié n'a pas besoin
-     * de revenir sur la page de connexion.
-     */
-
     if (
       to.name === 'login' &&
       authStore.isAuthenticated
@@ -507,7 +550,9 @@ router.beforeEach((to) => {
   // ==========================================================================
 
   const allowedRoles =
-    to.meta.roles as UserRole[] | undefined;
+    to.meta.roles as
+      | UserRole[]
+      | undefined;
 
   if (allowedRoles) {
     const currentRole =
@@ -515,7 +560,9 @@ router.beforeEach((to) => {
 
     if (
       !currentRole ||
-      !allowedRoles.includes(currentRole)
+      !allowedRoles.includes(
+        currentRole,
+      )
     ) {
       return {
         name: 'unauthorized',
