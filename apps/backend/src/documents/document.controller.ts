@@ -7,19 +7,38 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
+
 import {
+  ApiBearerAuth,
   ApiOperation,
   ApiParam,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+
 import { CreateDocumentVehiculeDto } from './dto/create-document-vehicule.dto';
 import { UpdateDocumentVehiculeDto } from './dto/update-document-vehicule.dto';
+
+import { CreateDocumentChauffeurDto } from './dto/create-document-chauffeur.dto';
+import { UpdateDocumentChauffeurDto } from './dto/update-document-chauffeur.dto';
+
 import { DocumentsService } from './document.service';
 
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Permission } from '../auth/decorators/permission.decorator';
+
+import {
+  PERMISSION_ACTIONS,
+  PERMISSION_RESOURCES,
+} from '../config/permissions.config';
+
 @ApiTags('Documents')
+@ApiBearerAuth()
 @Controller('api/documents')
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class DocumentsController {
   constructor(
     private readonly documentsService: DocumentsService,
@@ -30,6 +49,10 @@ export class DocumentsController {
   // =====================================================
 
   @Get('vehicules')
+  @Permission(
+    PERMISSION_RESOURCES.DOCUMENTS,
+    PERMISSION_ACTIONS.READ,
+  )
   @ApiOperation({
     summary: 'Lister les documents des véhicules',
   })
@@ -42,6 +65,10 @@ export class DocumentsController {
   }
 
   @Get('vehicules/:id')
+  @Permission(
+    PERMISSION_RESOURCES.DOCUMENTS,
+    PERMISSION_ACTIONS.READ,
+  )
   @ApiOperation({
     summary: 'Obtenir un document véhicule',
   })
@@ -64,6 +91,10 @@ export class DocumentsController {
   }
 
   @Post('vehicules')
+  @Permission(
+    PERMISSION_RESOURCES.DOCUMENTS,
+    PERMISSION_ACTIONS.CREATE,
+  )
   @ApiOperation({
     summary: 'Créer un document véhicule',
   })
@@ -71,11 +102,17 @@ export class DocumentsController {
     status: 201,
     description: 'Document véhicule créé',
   })
-  createVehicule(@Body() data: CreateDocumentVehiculeDto) {
+  createVehicule(
+    @Body() data: CreateDocumentVehiculeDto,
+  ) {
     return this.documentsService.createVehicule(data);
   }
 
   @Patch('vehicules/:id')
+  @Permission(
+    PERMISSION_RESOURCES.DOCUMENTS,
+    PERMISSION_ACTIONS.UPDATE,
+  )
   @ApiOperation({
     summary: 'Modifier un document véhicule',
   })
@@ -84,13 +121,20 @@ export class DocumentsController {
     description: 'UUID du document véhicule',
   })
   updateVehicule(
-  @Param('id', new ParseUUIDPipe()) id: string,
-  @Body() data: UpdateDocumentVehiculeDto,
-) {
-  return this.documentsService.updateVehicule(id, data);
-}
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() data: UpdateDocumentVehiculeDto,
+  ) {
+    return this.documentsService.updateVehicule(
+      id,
+      data,
+    );
+  }
 
   @Delete('vehicules/:id')
+  @Permission(
+    PERMISSION_RESOURCES.DOCUMENTS,
+    PERMISSION_ACTIONS.DELETE,
+  )
   @ApiOperation({
     summary: 'Supprimer un document véhicule',
   })
@@ -113,6 +157,10 @@ export class DocumentsController {
   // =====================================================
 
   @Get('chauffeurs')
+  @Permission(
+    PERMISSION_RESOURCES.DOCUMENTS,
+    PERMISSION_ACTIONS.READ,
+  )
   @ApiOperation({
     summary: 'Lister les documents des chauffeurs',
   })
@@ -121,6 +169,10 @@ export class DocumentsController {
   }
 
   @Get('chauffeurs/:id')
+  @Permission(
+    PERMISSION_RESOURCES.DOCUMENTS,
+    PERMISSION_ACTIONS.READ,
+  )
   @ApiOperation({
     summary: 'Obtenir un document chauffeur',
   })
@@ -135,14 +187,24 @@ export class DocumentsController {
   }
 
   @Post('chauffeurs')
+  @Permission(
+    PERMISSION_RESOURCES.DOCUMENTS,
+    PERMISSION_ACTIONS.CREATE,
+  )
   @ApiOperation({
-    summary: 'Créer un document chauffeur',
+    summary: 'Créer un document chauffeur supplémentaire',
   })
-  createChauffeur(@Body() data: any) {
+  createChauffeur(
+    @Body() data: CreateDocumentChauffeurDto,
+  ) {
     return this.documentsService.createChauffeur(data);
   }
 
   @Patch('chauffeurs/:id')
+  @Permission(
+    PERMISSION_RESOURCES.DOCUMENTS,
+    PERMISSION_ACTIONS.UPDATE,
+  )
   @ApiOperation({
     summary: 'Modifier un document chauffeur',
   })
@@ -152,12 +214,19 @@ export class DocumentsController {
   })
   updateChauffeur(
     @Param('id', new ParseUUIDPipe()) id: string,
-    @Body() data: any,
+    @Body() data: UpdateDocumentChauffeurDto,
   ) {
-    return this.documentsService.updateChauffeur(id, data);
+    return this.documentsService.updateChauffeur(
+      id,
+      data,
+    );
   }
 
   @Delete('chauffeurs/:id')
+  @Permission(
+    PERMISSION_RESOURCES.DOCUMENTS,
+    PERMISSION_ACTIONS.DELETE,
+  )
   @ApiOperation({
     summary: 'Supprimer un document chauffeur',
   })
@@ -170,7 +239,4 @@ export class DocumentsController {
   ) {
     return this.documentsService.removeChauffeur(id);
   }
-
-
-
 }

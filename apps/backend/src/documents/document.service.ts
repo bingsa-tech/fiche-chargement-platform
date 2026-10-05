@@ -9,6 +9,8 @@ import { DocumentVehicule } from './entities/document-vehicule.entity';
 import { DocumentChauffeur } from './entities/document-chauffeur.entity';
 import { CreateDocumentVehiculeDto } from './dto/create-document-vehicule.dto';
 import { UpdateDocumentVehiculeDto } from './dto/update-document-vehicule.dto';
+import { CreateDocumentChauffeurDto } from './dto/create-document-chauffeur.dto';
+import { UpdateDocumentChauffeurDto } from './dto/update-document-chauffeur.dto';
 @Injectable()
 export class DocumentsService {
   constructor(
@@ -159,37 +161,71 @@ async updateVehicule(
     return document;
   }
 
-  async createChauffeur(
-    data: Partial<DocumentChauffeur>,
-  ): Promise<DocumentChauffeur> {
-    const repository =
-      this.dataSource.getRepository(DocumentChauffeur);
+ async createChauffeur(
+  data: CreateDocumentChauffeurDto,
+): Promise<DocumentChauffeur> {
+  const repository =
+    this.dataSource.getRepository(DocumentChauffeur);
 
-    const document = repository.create(data);
+  const document = repository.create({
+    chauffeurId: data.chauffeurId,
+    typeDocument: data.typeDocument,
+    numeroDocument: data.numeroDocument ?? null,
+    dateDelivrance: data.dateDelivrance
+      ? new Date(data.dateDelivrance)
+      : null,
+    dateExpiration: new Date(data.dateExpiration),
+    statut: data.statut,
+    observations: data.observations ?? null,
+  });
 
-    return repository.save(document);
-  }
+  return repository.save(document);
+}
 
   async updateChauffeur(
-    id: string,
-    data: Partial<DocumentChauffeur>,
-  ): Promise<DocumentChauffeur> {
-    const repository =
-      this.dataSource.getRepository(DocumentChauffeur);
+  id: string,
+  data: UpdateDocumentChauffeurDto,
+): Promise<DocumentChauffeur> {
+  const repository =
+    this.dataSource.getRepository(DocumentChauffeur);
 
-    const document = await this.findOneChauffeur(id);
+  const document = await this.findOneChauffeur(id);
 
-    Object.assign(document, data);
-
-    return repository.save(document);
+  if (data.typeDocument !== undefined) {
+    document.typeDocument = data.typeDocument;
   }
 
-  async removeChauffeur(id: string): Promise<void> {
-    const repository =
-      this.dataSource.getRepository(DocumentChauffeur);
-
-    const document = await this.findOneChauffeur(id);
-
-    await repository.remove(document);
+  if (data.numeroDocument !== undefined) {
+    document.numeroDocument = data.numeroDocument;
   }
+
+  if (data.dateDelivrance !== undefined) {
+    document.dateDelivrance = data.dateDelivrance
+      ? new Date(data.dateDelivrance)
+      : null;
+  }
+
+  if (data.dateExpiration !== undefined) {
+    document.dateExpiration =
+      new Date(data.dateExpiration);
+  }
+
+  if (data.statut !== undefined) {
+    document.statut = data.statut;
+  }
+
+  if (data.observations !== undefined) {
+    document.observations = data.observations;
+  }
+
+  return repository.save(document);
 }
+async removeChauffeur(id: string): Promise<void> {
+  const repository =
+    this.dataSource.getRepository(DocumentChauffeur);
+
+  const document =
+    await this.findOneChauffeur(id);
+
+  await repository.remove(document);
+}}

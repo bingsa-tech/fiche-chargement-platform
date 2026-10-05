@@ -3,15 +3,10 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
-  IsUUID,
   MaxLength,
 } from 'class-validator';
 
-export class CreateDocumentChauffeurDto {
-  @IsUUID()
-  @IsNotEmpty()
-  chauffeurId!: string;
-
+export class CreateDocumentChauffeurInitialDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(50)

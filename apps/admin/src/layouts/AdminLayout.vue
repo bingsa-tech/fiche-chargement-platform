@@ -55,6 +55,7 @@ function navigateTo(
     | 'gares'
     | 'proprietaires'
     | 'vehicules'
+    | 'chauffeurs'
     | 'utilisateurs',
 ) {
   closeSidebar();
@@ -187,16 +188,15 @@ async function logout() {
           </button>
 
           <!-- Chauffeurs -->
-          <button
-            type="button"
-            class="navigation-item disabled"
-            disabled
-            title="Module prochainement disponible"
-          >
-            <span class="navigation-icon">C</span>
-            <span>Chauffeurs</span>
-            <small>À venir</small>
-          </button>
+         <!-- Chauffeurs -->
+<button
+  type="button"
+  class="navigation-item"
+  @click="navigateTo('chauffeurs')"
+>
+  <span class="navigation-icon">C</span>
+  <span>Chauffeurs</span>
+</button>
 
           <!-- Documents -->
           <button

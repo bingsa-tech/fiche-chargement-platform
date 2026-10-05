@@ -26,6 +26,7 @@ import type { UserRole } from '../auth/role.types';
  *         ├── /gares
  *         ├── /proprietaires
  *         ├── /vehicules
+ *         ├── /chauffeurs
  *         ├── /utilisateurs
  *         ├── /utilisateurs/nouveau
  *         ├── /utilisateurs/:id/modifier
@@ -61,8 +62,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/login',
     name: 'login',
-    component: () =>
-      import('../views/LoginView.vue'),
+    component: () => import('../views/LoginView.vue'),
     meta: {
       public: true,
     },
@@ -74,8 +74,7 @@ const routes: RouteRecordRaw[] = [
 
   {
     path: '/',
-    component: () =>
-      import('../layouts/AdminLayout.vue'),
+    component: () => import('../layouts/AdminLayout.vue'),
 
     meta: {
       requiresAuth: true,
@@ -102,18 +101,14 @@ const routes: RouteRecordRaw[] = [
         path: 'gares',
         name: 'gares',
         component: () =>
-          import(
-            '../views/gares/GaresListView.vue'
-          ),
+          import('../views/gares/GaresListView.vue'),
       },
 
       {
         path: 'gares/new',
         name: 'gare-create',
         component: () =>
-          import(
-            '../views/gares/GareFormView.vue'
-          ),
+          import('../views/gares/GareFormView.vue'),
         meta: {
           roles: [
             'ADMIN',
@@ -125,9 +120,7 @@ const routes: RouteRecordRaw[] = [
         path: 'gares/:id/edit',
         name: 'gare-edit',
         component: () =>
-          import(
-            '../views/gares/GareFormView.vue'
-          ),
+          import('../views/gares/GareFormView.vue'),
         meta: {
           roles: [
             'ADMIN',
@@ -262,6 +255,61 @@ const routes: RouteRecordRaw[] = [
         component: () =>
           import(
             '../views/vehicules/VehiculeFormView.vue'
+          ),
+        meta: {
+          roles: [
+            'ADMIN',
+            'RESPONSABLE_GARE',
+            'CONTROLEUR',
+            'AGENT',
+          ] satisfies UserRole[],
+        },
+      },
+
+      // ========================================================================
+      // CHAUFFEURS
+      // ========================================================================
+
+      {
+        path: 'chauffeurs',
+        name: 'chauffeurs',
+        component: () =>
+          import(
+            '../views/chauffeurs/ChauffeurListView.vue'
+          ),
+        meta: {
+          roles: [
+            'ADMIN',
+            'RESPONSABLE_GARE',
+            'CONTROLEUR',
+            'AGENT',
+            'AUTORITE_HABILITEE',
+          ] satisfies UserRole[],
+        },
+      },
+
+      {
+        path: 'chauffeurs/nouveau',
+        name: 'chauffeur-create',
+        component: () =>
+          import(
+            '../views/chauffeurs/ChauffeurFormView.vue'
+          ),
+        meta: {
+          roles: [
+            'ADMIN',
+            'RESPONSABLE_GARE',
+            'AGENT',
+          ] satisfies UserRole[],
+        },
+      },
+
+      {
+        path: 'chauffeurs/:id/modifier',
+        name: 'chauffeur-edit',
+        component: () =>
+          import(
+            '../views/chauffeurs/ChauffeurFormView.vue'
           ),
         meta: {
           roles: [
