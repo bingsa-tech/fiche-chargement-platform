@@ -58,7 +58,21 @@ export class PermissionsGuard implements CanActivate {
      * req.user est créé par JwtStrategy.validate()
      */
     const user = request.user;
+console.log(
+  '[PermissionsGuard]',
+  {
+    path: request.path,
+    method: request.method,
+    user,
+    permission,
+  },
+);
 
+if (!user) {
+  throw new UnauthorizedException(
+    'Utilisateur non authentifié',
+  );
+}
     if (!user) {
       throw new UnauthorizedException(
         'Utilisateur non authentifié',

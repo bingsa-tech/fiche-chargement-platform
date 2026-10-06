@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAuthStore } from '../auth/auth.store';
 
+import { useAuthStore } from '../auth/auth.store';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -33,6 +33,7 @@ const userEmail = computed(() => {
 const userGare = computed(() => {
   return authStore.user?.gareId ?? 'Non affectée';
 });
+
 const canManageUsers = computed(() => {
   return (
     authStore.role === 'ADMIN' ||
@@ -56,6 +57,8 @@ function navigateTo(
     | 'proprietaires'
     | 'vehicules'
     | 'chauffeurs'
+    | 'documents-vehicules'
+    | 'documents-chauffeurs'
     | 'utilisateurs',
 ) {
   closeSidebar();
@@ -83,18 +86,20 @@ async function logout() {
 
 <template>
   <div class="admin-layout">
+
     <!-- Overlay mobile -->
     <div
       v-if="sidebarOpen"
       class="sidebar-overlay"
       @click="closeSidebar"
-    />
+    ></div>
 
     <!-- Sidebar -->
     <aside
       class="sidebar"
       :class="{ 'sidebar-open': sidebarOpen }"
     >
+
       <!-- En-tête sidebar -->
       <div class="sidebar-header">
         <div class="brand">
@@ -120,9 +125,11 @@ async function logout() {
 
       <!-- Navigation -->
       <nav class="navigation">
+
         <!-- =========================
              PRINCIPAL
         ========================== -->
+
         <div class="navigation-section">
           <span class="navigation-title">
             Principal
@@ -142,21 +149,23 @@ async function logout() {
         <!-- =========================
              GESTION
         ========================== -->
+
         <div class="navigation-section">
           <span class="navigation-title">
             Gestion
           </span>
 
-  <!-- Utilisateurs -->
-  <button
-    v-if="canManageUsers"
-    type="button"
-    class="navigation-item"
-    @click="navigateTo('utilisateurs')"
-  >
-    <span class="navigation-icon">U</span>
-    <span>Utilisateurs</span>
-  </button>
+          <!-- Utilisateurs -->
+          <button
+            v-if="canManageUsers"
+            type="button"
+            class="navigation-item"
+            @click="navigateTo('utilisateurs')"
+          >
+            <span class="navigation-icon">U</span>
+            <span>Utilisateurs</span>
+          </button>
+
           <!-- Gares -->
           <button
             type="button"
@@ -188,28 +197,33 @@ async function logout() {
           </button>
 
           <!-- Chauffeurs -->
-         <!-- Chauffeurs -->
+          <button
+            type="button"
+            class="navigation-item"
+            @click="navigateTo('chauffeurs')"
+          >
+            <span class="navigation-icon">C</span>
+            <span>Chauffeurs</span>
+          </button>
+
+          <!-- Documents véhicules -->
+          <button
+            type="button"
+            class="navigation-item"
+            @click="navigateTo('documents-vehicules')"
+          >
+            <span class="navigation-icon">DV</span>
+            <span>Documents véhicules</span>
+          </button>
+          <!-- Documents chauffeurs -->
 <button
   type="button"
   class="navigation-item"
-  @click="navigateTo('chauffeurs')"
+  @click="navigateTo('documents-chauffeurs')"
 >
-  <span class="navigation-icon">C</span>
-  <span>Chauffeurs</span>
+  <span class="navigation-icon">DC</span>
+  <span>Documents chauffeurs</span>
 </button>
-
-          <!-- Documents -->
-          <button
-            type="button"
-            class="navigation-item disabled"
-            disabled
-            title="Module prochainement disponible"
-          >
-            <span class="navigation-icon">D</span>
-            <span>Documents</span>
-            <small>À venir</small>
-          </button>
-
           <!-- Fiches -->
           <button
             type="button"
@@ -238,6 +252,7 @@ async function logout() {
         <!-- =========================
              SUPERVISION
         ========================== -->
+
         <div class="navigation-section">
           <span class="navigation-title">
             Supervision
@@ -284,6 +299,7 @@ async function logout() {
 
     <!-- Zone principale -->
     <div class="main-area">
+
       <!-- Topbar -->
       <header class="topbar">
         <button
@@ -313,6 +329,7 @@ async function logout() {
 
       <!-- Contenu -->
       <main class="content">
+
         <!-- Contexte utilisateur -->
         <div class="content-user-context">
           <div>

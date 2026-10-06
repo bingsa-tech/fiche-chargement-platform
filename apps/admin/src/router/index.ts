@@ -6,7 +6,6 @@ import {
 } from 'vue-router';
 
 import { useAuthStore } from '../auth/auth.store';
-
 import type { UserRole } from '../auth/role.types';
 
 /**
@@ -17,41 +16,34 @@ import type { UserRole } from '../auth/role.types';
  * Architecture :
  *
  * /login
- *    └── route publique
+ *   └── route publique
  *
  * /
- *    └── AdminLayout.vue
- *         ├── /role-hub
- *         ├── /auth-test
- *         ├── /gares
- *         ├── /proprietaires
- *         ├── /vehicules
- *         ├── /chauffeurs
- *         ├── /utilisateurs
- *         ├── /utilisateurs/nouveau
- *         ├── /utilisateurs/:id/modifier
- *         ├── /admin/dashboard
- *         ├── /agent/dashboard
- *         ├── /controleur/dashboard
- *         ├── /responsable-gare/dashboard
- *         └── /autorite/dashboard
+ *   └── AdminLayout.vue
+ *       ├── /role-hub
+ *       ├── /auth-test
+ *       ├── /gares
+ *       ├── /proprietaires
+ *       ├── /utilisateurs
+ *       ├── /vehicules
+ *       ├── /chauffeurs
+ *       ├── /documents/vehicules
+ *       ├── /admin/dashboard
+ *       ├── /agent/dashboard
+ *       ├── /controleur/dashboard
+ *       ├── /responsable-gare/dashboard
+ *       └── /autorite/dashboard
  *
  * /unauthorized
- *    └── route publique
+ *   └── route publique
  *
  * /:pathMatch(.*)*
- *    └── 404
+ *   └── 404
  *
  * IMPORTANT :
  * Le frontend contrôle l'affichage et la navigation.
  * La sécurité réelle reste assurée par le backend NestJS
  * et ses guards/permissions.
- */
-
-/**
- * ============================================================================
- * ROUTES
- * ============================================================================
  */
 
 const routes: RouteRecordRaw[] = [
@@ -321,6 +313,47 @@ const routes: RouteRecordRaw[] = [
         },
       },
 
+      // ========================================================================
+      // DOCUMENTS VÉHICULES
+      // ========================================================================
+
+      {
+        path: 'documents/vehicules',
+        name: 'documents-vehicules',
+        component: () =>
+          import(
+            '../views/documents/DocumentVehiculeListView.vue'
+          ),
+        meta: {
+          roles: [
+            'ADMIN',
+            'RESPONSABLE_GARE',
+            'CONTROLEUR',
+            'AGENT',
+            'AUTORITE_HABILITEE',
+          ] satisfies UserRole[],
+        },
+      },
+      // ========================================================================
+      // DOCUMENTS CHAUFFEURS
+      // ========================================================================
+      {
+  path: 'documents/chauffeurs',
+  name: 'documents-chauffeurs',
+  component: () =>
+    import(
+      '../views/documents/DocumentChauffeurListView.vue'
+    ),
+  meta: {
+    roles: [
+      'ADMIN',
+      'RESPONSABLE_GARE',
+      'CONTROLEUR',
+      'AGENT',
+      'AUTORITE_HABILITEE',
+    ] satisfies UserRole[],
+  },
+},
       // ========================================================================
       // ROLE HUB
       // ========================================================================
