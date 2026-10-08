@@ -1,44 +1,44 @@
-# Fiche Électronique pour le Chargement des Passagers
+# Fiche Ã‰lectronique pour le Chargement des Passagers
 
-> Plateforme numérique de gestion, contrôle et suivi des opérations de chargement des passagers.
+> Plateforme numÃ©rique de gestion, contrÃ´le et suivi des opÃ©rations de chargement des passagers.
 
-## ?? Présentation
+## ?? PrÃ©sentation
 
-**Fiche Électronique pour le Chargement des Passagers** est une plateforme logicielle destinée à moderniser, sécuriser et centraliser la gestion des opérations de chargement des passagers.
+**Fiche Ã‰lectronique pour le Chargement des Passagers** est une plateforme logicielle destinÃ©e Ã  moderniser, sÃ©curiser et centraliser la gestion des opÃ©rations de chargement des passagers.
 
-La solution permet de gérer notamment :
+La solution permet de gÃ©rer notamment :
 
 - les gares ;
-- les véhicules ;
+- les vÃ©hicules ;
 - les chauffeurs ;
 - les documents administratifs ;
 - les passagers ;
 - les destinations ;
-- les itinéraires ;
+- les itinÃ©raires ;
 - les fiches de chargement ;
 - les alertes ;
-- les contrôles ;
+- les contrÃ´les ;
 - les audits ;
-- la synchronisation des données.
+- la synchronisation des donnÃ©es.
 
-L'application mobile Flutter adopte une architecture **Offline First**, permettant aux utilisateurs de continuer à travailler même en cas d'absence ou d'instabilité de la connexion Internet.
+L'application mobile Flutter adopte une architecture **Offline First**, permettant aux utilisateurs de continuer Ã  travailler mÃªme en cas d'absence ou d'instabilitÃ© de la connexion Internet.
 
 ---
 
 # ??? Architecture du projet
 
-Le projet est organisé sous forme de **monorepo** contenant trois applications principales :
+Le projet est organisÃ© sous forme de **monorepo** contenant trois applications principales :
 
 ```text
 fiche-chargement-platform/
-¦
+Â¦
 +-- apps/
-¦   +-- mobile/       # Application mobile Flutter
-¦   +-- backend/      # API REST NestJS
-¦   +-- admin/        # Interface d'administration VueJS
-¦
+Â¦   +-- mobile/       # Application mobile Flutter
+Â¦   +-- backend/      # API REST NestJS
+Â¦   +-- admin/        # Interface d'administration VueJS
+Â¦
 +-- docs/             # Documentation technique et fonctionnelle
-¦
+Â¦
 +-- .gitignore
 +-- README.md
 
@@ -46,42 +46,42 @@ fiche-chargement-platform/
 Architecture globale
 
 +-------------------------------+
-¦       Application Mobile      ¦
-¦            Flutter            ¦
-¦                               ¦
-¦   UI ? Riverpod ? Repository  ¦
-¦            ?                  ¦
-¦          SQLite               ¦
+Â¦       Application Mobile      Â¦
+Â¦            Flutter            Â¦
+Â¦                               Â¦
+Â¦   UI ? Riverpod ? Repository  Â¦
+Â¦            ?                  Â¦
+Â¦          SQLite               Â¦
 +-------------------------------+
-                ¦
-                ¦ Synchronisation REST
+                Â¦
+                Â¦ Synchronisation REST
                 ?
 +-------------------------------+
-¦          API Backend          ¦
-¦            NestJS             ¦
-¦                               ¦
-¦ Controllers                   ¦
-¦ Services                      ¦
-¦ Guards / JWT / Permissions    ¦
-¦ TypeORM                       ¦
+Â¦          API Backend          Â¦
+Â¦            NestJS             Â¦
+Â¦                               Â¦
+Â¦ Controllers                   Â¦
+Â¦ Services                      Â¦
+Â¦ Guards / JWT / Permissions    Â¦
+Â¦ TypeORM                       Â¦
 +-------------------------------+
-                ¦
+                Â¦
                 ?
 +-------------------------------+
-¦          PostgreSQL           ¦
-¦      db_fiche_chargement      ¦
+Â¦          PostgreSQL           Â¦
+Â¦      db_fiche_chargement      Â¦
 +-------------------------------+
 
 +-------------------------------+
-¦       Administration Web      ¦
-¦            VueJS              ¦
-¦                               ¦
-¦ Gestion / supervision /       ¦
-¦ administration                ¦
+Â¦       Administration Web      Â¦
+Â¦            VueJS              Â¦
+Â¦                               Â¦
+Â¦ Gestion / supervision /       Â¦
+Â¦ administration                Â¦
 +-------------------------------+
 
 
-Application Mobile — Flutter
+Application Mobile â€” Flutter
 
 apps/mobile/
 
@@ -116,18 +116,18 @@ NestJS API
 
 Modules fonctionnels
 
-Les modules sont développés progressivement selon les sprints Agile
+Les modules sont dÃ©veloppÃ©s progressivement selon les sprints Agile
 
 
-Authentification et gestion des rôles
+Authentification et gestion des rÃ´les
 Gares
-Véhicules
-Documents véhicules
+VÃ©hicules
+Documents vÃ©hicules
 Chauffeurs
 Documents chauffeurs
 Passagers
 Destinations
-Itinéraires
+ItinÃ©raires
 Fiches de chargement
 Alertes
 Audit
@@ -135,7 +135,7 @@ Synchronisation
 Statistiques et tableaux de bord
 
 
-Backend — NestJS
+Backend â€” NestJS
 
 apps/backend/
 
@@ -152,7 +152,7 @@ Swagger
 class-validator
 class-transformer
 
-Base de données
+Base de donnÃ©es
 PostgreSQL
 Database: db_fiche_chargement
 
@@ -177,11 +177,11 @@ audit
 sync
 
 
-Administration Web — VueJS
+Administration Web â€” VueJS
 apps/admin/
 
 
-L'application web permet de gérer et superviser les données et opérations nécessitant une interface d'administration.
+L'application web permet de gÃ©rer et superviser les donnÃ©es et opÃ©rations nÃ©cessitant une interface d'administration.
 
 Technologies principales
 VueJS
@@ -190,42 +190,42 @@ Vue Router
 Axios
 Vite
 
-Les fonctionnalités d'administration seront intégrées progressivement selon les besoins des rôles et des sprints Agile
+Les fonctionnalitÃ©s d'administration seront intÃ©grÃ©es progressivement selon les besoins des rÃ´les et des sprints Agile
 
 
-Authentification et rôles
-La plateforme utilise une authentification basée sur JWT.
+Authentification et rÃ´les
+La plateforme utilise une authentification basÃ©e sur JWT.
 
-Les rôles fonctionnels principaux sont :
+Les rÃ´les fonctionnels principaux sont :
 
-| Rôle         | Description                                  |
+| RÃ´le         | Description                                  |
 | ------------ | -------------------------------------------- |
-| `ADMIN`      | Administration complète de la plateforme     |
-| `AGENT`      | Opérations et gestion quotidienne            |
-| `CONTROLEUR` | Contrôle, vérification et consultation       |
+| `ADMIN`      | Administration complÃ¨te de la plateforme     |
+| `AGENT`      | OpÃ©rations et gestion quotidienne            |
+| `CONTROLEUR` | ContrÃ´le, vÃ©rification et consultation       |
 | `AUTORITE`   | Supervision et consultation des informations |
-| `PUBLIC`     | Accès aux informations publiques             |
+| `PUBLIC`     | AccÃ¨s aux informations publiques             |
 
 
 
-Matrice fonctionnelle générale
+Matrice fonctionnelle gÃ©nÃ©rale
 
-| Fonctionnalité              |       ADMIN      |   AGENT   |    CONTROLEUR    |   AUTORITE   |  PUBLIC |
+| FonctionnalitÃ©              |       ADMIN      |   AGENT   |    CONTROLEUR    |   AUTORITE   |  PUBLIC |
 | --------------------------- | :--------------: | :-------: | :--------------: | :----------: | :-----: |
-| Authentification            |         ?        |     ?     |         ?        |       ?      |    —    |
-| Gares                       |       CRUD       |    CRU    |      Lecture     |    Lecture   |    —    |
-| Véhicules                   |       CRUD       |    CRUD   |      Lecture     |    Lecture   |    —    |
-| Documents véhicules         |       CRUD       |    CRUD   |     Contrôle     |    Lecture   |    —    |
-| Chauffeurs                  |       CRUD       |    CRUD   | Lecture/Contrôle |    Lecture   |    —    |
-| Documents chauffeurs        |       CRUD       |    CRUD   |     Contrôle     |    Lecture   |    —    |
-| Passagers                   |       CRUD       |    CRUD   |     Contrôle     |    Lecture   |    —    |
+| Authentification            |         ?        |     ?     |         ?        |       ?      |    â€”    |
+| Gares                       |       CRUD       |    CRU    |      Lecture     |    Lecture   |    â€”    |
+| VÃ©hicules                   |       CRUD       |    CRUD   |      Lecture     |    Lecture   |    â€”    |
+| Documents vÃ©hicules         |       CRUD       |    CRUD   |     ContrÃ´le     |    Lecture   |    â€”    |
+| Chauffeurs                  |       CRUD       |    CRUD   | Lecture/ContrÃ´le |    Lecture   |    â€”    |
+| Documents chauffeurs        |       CRUD       |    CRUD   |     ContrÃ´le     |    Lecture   |    â€”    |
+| Passagers                   |       CRUD       |    CRUD   |     ContrÃ´le     |    Lecture   |    â€”    |
 | Destinations                |       CRUD       |    CRUD   |      Lecture     |    Lecture   | Lecture |
-| Itinéraires                 |       CRUD       |    CRUD   |     Contrôle     |    Lecture   | Lecture |
-| Fiches de chargement        |       CRUD       |    CRUD   |     Contrôle     |    Lecture   |    —    |
-| Alertes                     |       CRUD       |  Gestion  |   Consultation   | Consultation |    —    |
-| Audit                       | Lecture complète |     —     |   Consultation   | Consultation |    —    |
-| Synchronisation             |      Gestion     | Exécution |     Exécution    |       —      |    —    |
-| Administration utilisateurs |       CRUD       |     —     |         —        |       —      |    —    |
+| ItinÃ©raires                 |       CRUD       |    CRUD   |     ContrÃ´le     |    Lecture   | Lecture |
+| Fiches de chargement        |       CRUD       |    CRUD   |     ContrÃ´le     |    Lecture   |    â€”    |
+| Alertes                     |       CRUD       |  Gestion  |   Consultation   | Consultation |    â€”    |
+| Audit                       | Lecture complÃ¨te |     â€”     |   Consultation   | Consultation |    â€”    |
+| Synchronisation             |      Gestion     | ExÃ©cution |     ExÃ©cution    |       â€”      |    â€”    |
+| Administration utilisateurs |       CRUD       |     â€”     |         â€”        |       â€”      |    â€”    |
 
 
 Architecture Offline First
@@ -251,18 +251,18 @@ PostgreSQL
 
 Principes
 
-Les données opérationnelles sont d'abord enregistrées localement.
+Les donnÃ©es opÃ©rationnelles sont d'abord enregistrÃ©es localement.
 SQLite constitue le stockage local de l'application mobile.
-Les opérations en attente sont conservées dans sync_queue.
-La synchronisation est exécutée lorsque la connexion est disponible.
-PostgreSQL constitue la source centrale des données.
-Les conflits de synchronisation devront être traités explicitement.
+Les opÃ©rations en attente sont conservÃ©es dans sync_queue.
+La synchronisation est exÃ©cutÃ©e lorsque la connexion est disponible.
+PostgreSQL constitue la source centrale des donnÃ©es.
+Les conflits de synchronisation devront Ãªtre traitÃ©s explicitement.
 
 
 
-Modèle de données principal
+ModÃ¨le de donnÃ©es principal
 
-Les principales entités du système comprennent :
+Les principales entitÃ©s du systÃ¨me comprennent :
 Role
 Utilisateur
 Gare
@@ -280,35 +280,35 @@ AuditLog
 SyncQueue
 
 
-Règle importante : documents séparés
+RÃ¨gle importante : documents sÃ©parÃ©s
 
-Les documents ne sont pas fusionnés avec les entités principales.
+Les documents ne sont pas fusionnÃ©s avec les entitÃ©s principales.
 
 
 Vehicule
-   ¦
+   Â¦
    +-- DocumentVehicule
 
 Chauffeur
-   ¦
+   Â¦
    +-- DocumentChauffeur
 
 
-Cette séparation permet de gérer plusieurs documents, leurs dates d'expiration et leurs états indépendamment de l'entité principale.
+Cette sÃ©paration permet de gÃ©rer plusieurs documents, leurs dates d'expiration et leurs Ã©tats indÃ©pendamment de l'entitÃ© principale.
 
 
 Gestion des documents et alertes
 Documents chauffeur
 Permis de conduire
 CNI
-Certificat médical
-Bulletin n°3
-Autres documents réglementaires
-Documents véhicule
+Certificat mÃ©dical
+Bulletin nÂ°3
+Autres documents rÃ©glementaires
+Documents vÃ©hicule
 Carte grise
 Carte bleue
 Assurance
-Autres documents réglementaires
+Autres documents rÃ©glementaires
 Niveaux d'alerte
 
 INFORMATION
@@ -316,8 +316,8 @@ ATTENTION
 URGENT
 EXPIRE
 
-Stratégie de tests
-La qualité du projet repose sur une validation progressive.
+StratÃ©gie de tests
+La qualitÃ© du projet repose sur une validation progressive.
 
 Flutter
 cd apps/mobile
@@ -335,7 +335,7 @@ npm install
 npm run build
 
 Installation du projet
-Prérequis
+PrÃ©requis
 
 Installer au minimum :
 
@@ -345,8 +345,8 @@ Dart
 Node.js
 npm
 PostgreSQL
-VS Code recommandé
-Cloner le dépôt
+VS Code recommandÃ©
+Cloner le dÃ©pÃ´t
 
 git clone https://github.com/bingsa-tech/fiche-chargement-platform.git
 cd fiche-chargement-platform
@@ -363,7 +363,7 @@ Installation Backend
 cd apps/backend
 npm install
 
-Lancer en développement :
+Lancer en dÃ©veloppement :
 
 npm run start:dev
 
@@ -379,12 +379,12 @@ npm run dev
 Construire pour la production
 npm run build
 
-Stratégie Git
+StratÃ©gie Git
 
-Le projet utilise une stratégie Git basée sur :
+Le projet utilise une stratÃ©gie Git basÃ©e sur :
 
 main
- ¦
+ Â¦
  +-- sprint/0-foundations
  +-- sprint/1-gares
  +-- sprint/2-vehicules
@@ -399,24 +399,24 @@ main
 
 Principes
 main doit rester stable.
-Chaque fonctionnalité importante est développée dans une branche dédiée.
-Les commits doivent être explicites.
-Un sprint doit être validé avant son intégration.
+Chaque fonctionnalitÃ© importante est dÃ©veloppÃ©e dans une branche dÃ©diÃ©e.
+Les commits doivent Ãªtre explicites.
+Un sprint doit Ãªtre validÃ© avant son intÃ©gration.
 Les tests doivent passer avant fusion.
-Les migrations et changements de schéma doivent être documentés.
+Les migrations et changements de schÃ©ma doivent Ãªtre documentÃ©s.
 Convention de commits
-feat: ajout du module véhicules
-fix: correction du mapping du rôle autorité
+feat: ajout du module vÃ©hicules
+fix: correction du mapping du rÃ´le autoritÃ©
 test: ajout des tests du DAO chauffeur
 refactor: simplification du repository
-docs: mise à jour de la documentation
-chore: mise à jour des dépendances
+docs: mise Ã  jour de la documentation
+chore: mise Ã  jour des dÃ©pendances
 
 Plan Agile
 
-Le développement est organisé en sprints afin de garantir une progression contrôlée et vérifiable.
+Le dÃ©veloppement est organisÃ© en sprints afin de garantir une progression contrÃ´lÃ©e et vÃ©rifiable.
 
-Sprint 0 — Foundations
+Sprint 0 â€” Foundations
 Objectifs
 Initialiser le monorepo
 Stabiliser Flutter
@@ -424,34 +424,34 @@ Stabiliser NestJS
 Stabiliser VueJS
 Mettre en place Git
 Authentification JWT
-Gestion des rôles
+Gestion des rÃ´les
 Routing
-Dashboards par rôle
+Dashboards par rÃ´le
 SQLite
 Tests de base
 Architecture Offline First
-Sprint 1 — Gares
+Sprint 1 â€” Gares
 Objectifs
-Entité Gare
+EntitÃ© Gare
 SQLite
 DAO
 Repository
 Provider
-Écrans Flutter
+Ã‰crans Flutter
 API NestJS
 Tests
-Permissions par rôle
-Sprint 2 — Véhicules
+Permissions par rÃ´le
+Sprint 2 â€” VÃ©hicules
 Objectifs
-CRUD véhicules
+CRUD vÃ©hicules
 SQLite
 DAO
 Repository
 Provider
 API
 Tests
-Intégration des documents véhicules
-Sprint 3 — Chauffeurs
+IntÃ©gration des documents vÃ©hicules
+Sprint 3 â€” Chauffeurs
 Objectifs
 CRUD chauffeurs
 SQLite
@@ -460,77 +460,77 @@ Repository
 Provider
 API
 Tests
-Intégration des documents chauffeurs
-Sprint 4 — Passagers
+IntÃ©gration des documents chauffeurs
+Sprint 4 â€” Passagers
 Objectifs
 Gestion des passagers
-Données locales
+DonnÃ©es locales
 API
 Tests
 Permissions
-Sprint 5 — Destinations
+Sprint 5 â€” Destinations
 Objectifs
 CRUD destinations
 SQLite
 API
 Tests
-Sprint 6 — Itinéraires
+Sprint 6 â€” ItinÃ©raires
 Objectifs
-Gestion des itinéraires
+Gestion des itinÃ©raires
 Association gare/destination
 API
 Tests
-Sprint 7 — Fiches de chargement
+Sprint 7 â€” Fiches de chargement
 Objectifs
-Création d'une fiche
-Association véhicule
+CrÃ©ation d'une fiche
+Association vÃ©hicule
 Association chauffeur
 Association passagers
 Validation
 Historique
-Sprint 8 — Alertes
+Sprint 8 â€” Alertes
 Objectifs
 Expiration des documents
 Niveaux d'alerte
 Notifications
-Consultation par rôle
-Sprint 9 — Audit
+Consultation par rÃ´le
+Sprint 9 â€” Audit
 Objectifs
-Journalisation des opérations
-Traçabilité
-Consultation des événements
+Journalisation des opÃ©rations
+TraÃ§abilitÃ©
+Consultation des Ã©vÃ©nements
 Permissions
-Sprint 10 — Synchronisation
+Sprint 10 â€” Synchronisation
 Objectifs
 Sync Queue
 Synchronisation Offline First
-Gestion des erreurs réseau
+Gestion des erreurs rÃ©seau
 Gestion des conflits
 Synchronisation bidirectionnelle
 Tests de synchronisation
 ?? Definition of Done
 
-Une fonctionnalité est considérée comme terminée lorsque :
+Une fonctionnalitÃ© est considÃ©rÃ©e comme terminÃ©e lorsque :
 
- Le modèle de données est défini.
- Le backend est implémenté.
- SQLite est implémenté si nécessaire.
+ Le modÃ¨le de donnÃ©es est dÃ©fini.
+ Le backend est implÃ©mentÃ©.
+ SQLite est implÃ©mentÃ© si nÃ©cessaire.
  DAO et Repository sont disponibles.
- Provider Riverpod est intégré.
+ Provider Riverpod est intÃ©grÃ©.
  L'interface Flutter est fonctionnelle.
- Les permissions sont respectées.
- Les tests sont écrits.
- flutter analyze ne présente pas d'erreur.
+ Les permissions sont respectÃ©es.
+ Les tests sont Ã©crits.
+ flutter analyze ne prÃ©sente pas d'erreur.
  flutter test passe.
  Le backend compile.
- La documentation est mise à jour.
- Le code est commité.
- Le sprint est validé avant fusion dans main.
+ La documentation est mise Ã  jour.
+ Le code est commitÃ©.
+ Le sprint est validÃ© avant fusion dans main.
 
 
 Documentation
 
-La documentation détaillée est centralisée dans :
+La documentation dÃ©taillÃ©e est centralisÃ©e dans :
 
 docs/
 
@@ -549,38 +549,38 @@ docs/
 
 Vision du projet
 
-La vision à terme est de disposer d'une plateforme fiable, sécurisée et évolutive permettant :
+La vision Ã  terme est de disposer d'une plateforme fiable, sÃ©curisÃ©e et Ã©volutive permettant :
 
 la digitalisation des fiches de chargement ;
-la réduction des opérations papier ;
-le contrôle des documents réglementaires ;
-la détection des documents expirés ;
-la traçabilité des opérations ;
+la rÃ©duction des opÃ©rations papier ;
+le contrÃ´le des documents rÃ©glementaires ;
+la dÃ©tection des documents expirÃ©s ;
+la traÃ§abilitÃ© des opÃ©rations ;
 le fonctionnement Offline First ;
-la centralisation des données ;
-la supervision par les autorités ;
-l'administration centralisée ;
+la centralisation des donnÃ©es ;
+la supervision par les autoritÃ©s ;
+l'administration centralisÃ©e ;
 la production de statistiques et de rapports.
 
-État actuel du projet
+Ã‰tat actuel du projet
 
-Phase actuelle : Sprint 0 — Foundations
+Phase actuelle : Sprint 0 â€” Foundations
 
-Priorités immédiates
+PrioritÃ©s immÃ©diates
 Stabiliser le monorepo.
 Valider l'authentification.
-Valider le mapping des rôles.
-Valider les dashboards par rôle.
+Valider le mapping des rÃ´les.
+Valider les dashboards par rÃ´le.
 Valider SQLite.
 Valider les tests Flutter.
 Valider le backend NestJS.
 Valider l'administration VueJS.
-Créer le baseline Git v0.1.0.
-Démarrer le Sprint 1 — Gares.
+CrÃ©er le baseline Git v0.1.0.
+DÃ©marrer le Sprint 1 â€” Gares.
 
 Projet
 
-Nom : Fiche Électronique pour le Chargement des Passagers
+Nom : Fiche Ã‰lectronique pour le Chargement des Passagers
 
 Architecture :
 Flutter + SQLite
@@ -601,9 +601,415 @@ REST API
 JWT Authentication
 Role-Based Access Control
 Agile / Scrum
-Tests automatisés
+Tests automatisÃ©s
 
 
+
+actual backend structure
+fiche-chargement-platform/apps/backend
+B:.
+|   app.controller.spec.ts
+|   app.controller.ts
+|   app.module.ts
+|   app.service.ts
+|   main.ts
+|
++---alertes
+|   |   alertes.controller.spec.ts
+|   |   alertes.controller.ts
+|   |   alertes.module.ts
+|   |   alertes.service.spec.ts
+|   |   alertes.service.ts
+|   |
+|   +---dto
+|   |       create-alerte.dto.ts
+|   |       update-alerte.dto.ts
+|   |
+|   +---entities
+|   |       alerte-document.entity.ts
+|   |
+|   \---enums
+|           alerte-proprietaire-type.enum.ts
+|           alerte-statut.enum.ts
+|           alerte-type.enum.ts
+|
++---auth
+|   |   auth-test.controller.ts
+|   |   auth.controller.ts
+|   |   auth.module.ts
+|   |   auth.service.ts
+|   |
+|   +---decorators
+|   |       permission.decorator.ts
+|   |
+|   +---dto
+|   |       login.dto.ts
+|   |
+|   +---guards
+|   |       jwt-auth.guard.ts
+|   |       permissions.guard.ts
+|   |
+|   +---refresh
+|   |   |   refresh-token.service.spec.ts
+|   |   |   refresh-token.service.ts
+|   |   |
+|   |   \---entities
+|   |           refresh-token.entity.ts
+|   |
+|   \---strategies
+|           jwt.strategy.ts
+|
++---chauffeurs
+|   |   chauffeurs.controller.spec.ts
+|   |   chauffeurs.controller.ts
+|   |   chauffeurs.module.ts
+|   |   chauffeurs.service.spec.ts
+|   |   chauffeurs.service.ts
+|   |
+|   +---dto
+|   |       create-chauffeur.dto.ts
+|   |       update-chauffeur.dto.ts
+|   |
+|   +---entities
+|   |       chauffeur.entity.ts
+|   |
+|   \---enums
+|           chauffeur-statut.enum.ts
+|
++---common
+|   +---controllers
+|   |       test-roles.controller.ts
+|   |
+|   +---decorators
+|   |       roles.decorator.ts
+|   |
+|   \---guards
+|           roles.guard.ts
+|
++---config
+|       permissions.config.ts
+|       roles.config.ts
+|
++---destinations
+|   |   destinations.controller.spec.ts
+|   |   destinations.controller.ts
+|   |   destinations.module.ts
+|   |   destinations.service.spec.ts
+|   |   destinations.service.ts
+|   |
+|   +---dto
+|   |       create-destination.dto.ts
+|   |       update-destination.dto.ts
+|   |
+|   +---entities
+|   |       destination.entity.ts
+|   |
+|   \---enums
+|           destination-statut.enum.ts
+|
++---documents
+|   |   document.controller.ts
+|   |   document.module.ts
+|   |   document.service.ts
+|   |
+|   +---dto
+|   |       create-document-chauffeur-initial.dto.ts
+|   |       create-document-chauffeur.dto.ts
+|   |       create-document-vehicule-input.dto.ts
+|   |       create-document-vehicule.dto.ts
+|   |       update-document-chauffeur.dto.ts
+|   |       update-document-vehicule.dto.ts
+|   |
+|   \---entities
+|           document-chauffeur.entity.ts
+|           document-vehicule.entity.ts
+|
++---entities
+|       role.entity.ts
+|       utilisateur.entity.ts
+|
++---fiche-impressions
+|   |   fiche-impressions.controller.spec.ts
+|   |   fiche-impressions.controller.ts
+|   |   fiche-impressions.module.ts
+|   |   fiche-impressions.service.spec.ts
+|   |   fiche-impressions.service.ts
+|   |
+|   +---dto
+|   |       create-fiche-impression.dto.ts
+|   |       update-fiche-impression.dto.ts
+|   |
+|   \---entities
+|           fiche-impression.entity.ts
+|
++---fiche-passagers
+|   |   fiche-passagers.controller.spec.ts
+|   |   fiche-passagers.controller.ts
+|   |   fiche-passagers.module.ts
+|   |   fiche-passagers.service.spec.ts
+|   |   fiche-passagers.service.ts
+|   |
+|   +---dto
+|   |       create-fiche-passager.dto.ts
+|   |       update-fiche-passager.dto.ts
+|   |
+|   \---entities
+|           fiche-passager.entity.ts
+|
++---fiche-remises
+|   |   fiche-remises.controller.spec.ts
+|   |   fiche-remises.controller.ts
+|   |   fiche-remises.module.ts
+|   |   fiche-remises.service.spec.ts
+|   |   fiche-remises.service.ts
+|   |
+|   +---dto
+|   |       create-fiche-remise.dto.ts
+|   |       update-fiche-remise.dto.ts
+|   |
+|   \---entities
+|           fiche-remise.entity.ts
+|
++---fiches
+|   |   fiche.controller.spec.ts
+|   |   fiche.controller.ts
+|   |   fiche.module.ts
+|   |   fiche.service.spec.ts
+|   |   fiche.service.ts
+|   |
+|   +---dto
+|   |       annuler-fiche.dto.ts
+|   |       create-fiche.dto.ts
+|   |       update-fiche.dto.ts
+|   |
+|   +---entities
+|   |       fiche-impression.entity.ts
+|   |       fiche-passager.entity.ts
+|   |       fiche-remise.entity.ts
+|   |       fiche.entity.ts
+|   |
+|   \---enums
+|           fiche-statut.enum.ts
+|
++---gares
+|   |   gares.controller.spec.ts
+|   |   gares.controller.ts
+|   |   gares.module.ts
+|   |   gares.service.spec.ts
+|   |   gares.service.ts
+|   |
+|   +---dto
+|   |       create-gare.dto.ts
+|   |       update-gare.dto.ts
+|   |
+|   +---entities
+|   |       gare.entity.ts
+|   |
+|   \---enums
+|           gare-statut.enum.ts
+|
++---itineraires
+|   |   itineraires.controller.spec.ts
+|   |   itineraires.controller.ts
+|   |   itineraires.module.ts
+|   |   itineraires.service.spec.ts
+|   |   itineraires.service.ts
+|   |
+|   +---dto
+|   |       create-itineraire.dto.ts
+|   |       update-itineraire.dto.ts
+|   |
+|   +---entities
+|   |       itineraire.entity.ts
+|   |
+|   \---enums
+|           itineraire-statut.enum.ts
+|
++---passagers
+|   |   passagers.controller.spec.ts
+|   |   passagers.controller.ts
+|   |   passagers.module.ts
+|   |   passagers.service.spec.ts
+|   |   passagers.service.ts
+|   |
+|   +---dto
+|   |       create-passager.dto.ts
+|   |       update-passager.dto.ts
+|   |
+|   \---entities
+|           passager.entity.ts
+|
++---proprietaires
+|   |   proprietaires.controller.spec.ts
+|   |   proprietaires.controller.ts
+|   |   proprietaires.module.ts
+|   |   proprietaires.service.spec.ts
+|   |   proprietaires.service.ts
+|   |
+|   +---dto
+|   |       create-proprietaire.dto.ts
+|   |       update-proprietaire.dto.ts
+|   |
+|   \---entities
+|           proprietaire.entity.ts
+|
++---roles
+|   |   roles.controller.spec.ts
+|   |   roles.controller.ts
+|   |   roles.module.ts
+|   |   roles.service.spec.ts
+|   |   roles.service.ts
+|   |
+|   +---dto
+|   |       create-role.dto.ts
+|   |       update-role.dto.ts
+|   |
+|   +---entities
+|   |       role.entity.ts
+|   |
+|   \---enums
++---test-roles
+|       test-roles.controller.ts
+|       test-roles.module.ts
+|
++---utilisateurs
+|   |   utilisateur.controller.ts
+|   |   utilisateur.module.ts
+|   |   utilisateur.service.ts
+|   |
+|   +---dto
+|   |       create-utilisateur.dto.ts
+|   |       update-utilisateur.dto.ts
+|   |
+|   \---entities
+|           utilisateur.entity.ts
+|
+\---vehicules
+    |   vehicules.controller.spec.ts
+    |   vehicules.controller.ts
+    |   vehicules.module.ts
+    |   vehicules.service.spec.ts
+    |   vehicules.service.ts
+    |
+    +---dto
+    |       create-document-vehicule-input.dto.ts
+    |       create-vehicule-complet.dto.ts
+    |       create-vehicule.dto.ts
+    |       update-vehicule.dto.ts
+    |
+    +---entities
+    |       vehicule.entity.ts
+    |
+    \---enums
+            vehicule-statut.enum.ts
+
+
+actual admin structure
+B:.
+|   App.vue
+|   main.ts
+|   style.css
+|
++---api
+|       api-error.ts
+|       auth-test.api.ts
+|       auth.api.ts
+|       axios.ts
+|       chauffeurs.api.ts
+|       documents.api.ts
+|       fiche.api.ts
+|       gares.api.ts
+|       proprietaires.api.ts
+|       roles.api.ts
+|       utilisateurs.api.ts
+|       vehicules.api.ts
+|
++---assets
+|       hero.png
+|       vite.svg
+|       vue.svg
+|
++---auth
+|       auth.service.ts
+|       auth.store.ts
+|       auth.types.ts
+|       role.types.ts
+|
++---components
+|   +---documents
+|   +---gares
+|   +---proprietaires
+|   \---vehicules
++---layouts
+|       AdminLayout.vue
+|
++---router
+|       index.ts
+|
++---types
+|       chauffeur.types.ts
+|       document.types.ts
+|       fiche.types.ts
+|       gare.types.ts
+|       proprietaire.types.ts
+|       role.types.ts
+|       utilisateur.types.ts
+|       vehicule.types.ts
+|
+\---views
+    |   AuthTestView.vue
+    |   LoginView.vue
+    |   NotFoundView.vue
+    |   RoleHubView.vue
+    |   UnauthorizedView.vue
+    |
+    +---chauffeurs
+    |       ChauffeurFormView.vue
+    |       ChauffeurListView.vue
+    |
+    +---dashboards
+    |       AdminDashboard.vue
+    |       AgentDashboard.vue
+    |       AutoriteDashboard.vue
+    |       ControleurDashboard.vue
+    |       ResponsableGareDashboard.vue
+    |
+    +---documents
+    |       DocumentChauffeurListView.vue
+    |       DocumentDetailsView.vue
+    |       DocumentFormView.vue
+    |       DocumentsListView.vue
+    |       DocumentVehiculeListView.vue
+    |
+    +---fiches
+    |       FicheCreateView.vue
+    |       FicheDetailView.vue
+    |       FicheEditView.vue
+    |       FichesListView.vue
+    |
+    +---gares
+    |       GareFormView.vue
+    |       GaresListView.vue
+    |
+    +---mobilite
+    |       MobiliteDashboard.vue
+    |
+    +---proprietaires
+    |       ProprietairesFormView.vue
+    |       ProprietairesListView.vue
+    |
+    +---rapports
+    |       RapportJournalierView.vue
+    |       RapportsView.vue
+    |
+    +---utilisateurs
+    |       RegisterView.vue
+    |       UtilisateurFormView.vue
+    |       UtilisateurListView.vue
+    |
+    \---vehicules
+            VehiculeFormView.vue
+            VehiculesListView.vue
 Licence
 
-Projet en cours de développement.
+Projet en cours de dÃ©veloppement.
