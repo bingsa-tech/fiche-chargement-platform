@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 
 import { FicheService } from './fiche.service';
 import { Fiche } from './entities/fiche.entity';
+import { FicheImpressionsService } from '../fiche-impressions/fiche-impressions.service';
 
 describe('FicheService', () => {
   let service: FicheService;
@@ -18,16 +19,21 @@ describe('FicheService', () => {
       remove: jest.fn(),
     };
 
-    const module: TestingModule =
-      await Test.createTestingModule({
-        providers: [
-          FicheService,
-          {
-            provide: getRepositoryToken(Fiche),
-            useValue: repository,
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        FicheService,
+        {
+          provide: getRepositoryToken(Fiche),
+          useValue: repository,
+        },
+        {
+          provide: FicheImpressionsService,
+          useValue: {
+            // Mock des méthodes d'impression si nécessaire dans les tests.
           },
-        ],
-      }).compile();
+        },
+      ],
+    }).compile();
 
     service = module.get<FicheService>(FicheService);
   });

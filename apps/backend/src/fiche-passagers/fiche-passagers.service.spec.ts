@@ -1,16 +1,21 @@
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { FichePassagersService } from './fiche-passagers.service';
 import { FichePassager } from './entities/fiche-passager.entity';
+import { Fiche } from '../fiches/entities/fiche.entity';
 
 describe('FichePassagersService', () => {
   let service: FichePassagersService;
-  let repository: jest.Mocked<Partial<Repository<FichePassager>>>;
+  let fichePassagerRepository: jest.Mocked<
+    Partial<Repository<FichePassager>>
+  >;
+  let ficheRepository: jest.Mocked<Partial<Repository<Fiche>>>;
 
   beforeEach(async () => {
-    repository = {
+    fichePassagerRepository = {
       create: jest.fn(),
       save: jest.fn(),
       find: jest.fn(),
@@ -18,16 +23,23 @@ describe('FichePassagersService', () => {
       remove: jest.fn(),
     };
 
-    const module: TestingModule =
-      await Test.createTestingModule({
-        providers: [
-          FichePassagersService,
-          {
-            provide: getRepositoryToken(FichePassager),
-            useValue: repository,
-          },
-        ],
-      }).compile();
+    ficheRepository = {
+      findOne: jest.fn(),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        FichePassagersService,
+        {
+          provide: getRepositoryToken(FichePassager),
+          useValue: fichePassagerRepository,
+        },
+        {
+          provide: getRepositoryToken(Fiche),
+          useValue: ficheRepository,
+        },
+      ],
+    }).compile();
 
     service = module.get<FichePassagersService>(
       FichePassagersService,

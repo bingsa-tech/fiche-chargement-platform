@@ -63,7 +63,7 @@ export class FicheController {
   })
   @ApiResponse({
     status: 403,
-    description: 'Permission insuffisante',
+    description: 'Permission insuffisante ou gare non autorisée',
   })
   create(
     @Body() createFicheDto: CreateFicheDto,
@@ -71,7 +71,7 @@ export class FicheController {
   ) {
     return this.ficheService.create(
       createFicheDto,
-      request.user.id,
+      request.user,
     );
   }
 
@@ -85,11 +85,11 @@ export class FicheController {
     PERMISSION_ACTIONS.READ,
   )
   @ApiOperation({
-    summary: 'Lister toutes les fiches',
+    summary: 'Lister les fiches accessibles à l’utilisateur',
   })
   @ApiResponse({
     status: 200,
-    description: 'Liste des fiches',
+    description: 'Liste des fiches accessibles',
   })
   @ApiResponse({
     status: 401,
@@ -97,10 +97,12 @@ export class FicheController {
   })
   @ApiResponse({
     status: 403,
-    description: 'Permission insuffisante',
+    description: 'Permission insuffisante ou gare non définie',
   })
-  findAll() {
-    return this.ficheService.findAll();
+  findAll(
+    @Req() request: any,
+  ) {
+    return this.ficheService.findAll(request.user);
   }
 
   // =====================================================
@@ -129,7 +131,7 @@ export class FicheController {
   })
   @ApiResponse({
     status: 403,
-    description: 'Permission insuffisante',
+    description: 'Permission insuffisante ou gare non définie',
   })
   @ApiResponse({
     status: 404,
@@ -137,8 +139,12 @@ export class FicheController {
   })
   findOne(
     @Param('id', new ParseUUIDPipe()) id: string,
+    @Req() request: any,
   ) {
-    return this.ficheService.findOne(id);
+    return this.ficheService.findOne(
+      id,
+      request.user,
+    );
   }
 
   // =====================================================
@@ -162,12 +168,16 @@ export class FicheController {
     description: 'Fiche modifiée avec succès',
   })
   @ApiResponse({
+    status: 400,
+    description: 'Modification impossible selon le statut',
+  })
+  @ApiResponse({
     status: 401,
     description: 'Utilisateur non authentifié',
   })
   @ApiResponse({
     status: 403,
-    description: 'Permission insuffisante',
+    description: 'Permission insuffisante ou accès à la gare refusé',
   })
   @ApiResponse({
     status: 404,
@@ -176,99 +186,108 @@ export class FicheController {
   update(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() updateFicheDto: UpdateFicheDto,
+    @Req() request: any,
   ) {
     return this.ficheService.update(
       id,
       updateFicheDto,
+      request.user,
     );
   }
+
   // =====================================================
-// PRENDRE EN CHARGE
-// =====================================================
+  // PRENDRE EN CHARGE
+  // EN_ATTENTE → EN_COURS
+  // =====================================================
 
-@Post(':id/prendre-en-charge')
-@Permission(
-  PERMISSION_RESOURCES.FICHES,
-  PERMISSION_ACTIONS.UPDATE,
-)
-@ApiOperation({
-  summary: 'Prendre en charge une fiche',
-})
-@ApiParam({
-  name: 'id',
-  description: 'UUID de la fiche',
-})
-@ApiResponse({
-  status: 200,
-  description: 'Fiche prise en charge avec succès',
-})
-@ApiResponse({
-  status: 400,
-  description: 'La fiche ne peut pas être prise en charge dans son état actuel',
-})
-@ApiResponse({
-  status: 401,
-  description: 'Utilisateur non authentifié',
-})
-@ApiResponse({
-  status: 403,
-  description: 'Permission insuffisante',
-})
-@ApiResponse({
-  status: 404,
-  description: 'Fiche introuvable',
-})
-prendreEnCharge(
-  @Param('id', new ParseUUIDPipe()) id: string,
-) {
-  return this.ficheService.prendreEnCharge(id);
-}
+  @Post(':id/prendre-en-charge')
+  @Permission(
+    PERMISSION_RESOURCES.FICHES,
+    PERMISSION_ACTIONS.UPDATE,
+  )
+  @ApiOperation({
+    summary: 'Prendre en charge une fiche',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'UUID de la fiche',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Fiche prise en charge avec succès',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'La fiche ne peut pas être prise en charge dans son état actuel',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Utilisateur non authentifié',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Permission insuffisante ou accès à la gare refusé',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Fiche introuvable',
+  })
+  prendreEnCharge(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Req() request: any,
+  ) {
+    return this.ficheService.prendreEnCharge(
+      id,
+      request.user,
+    );
+  }
 
-// =====================================================
-// FINALISER
-// =====================================================
+  // =====================================================
+  // FINALISER
+  // EN_COURS → FINALISEE
+  // =====================================================
 
-@Post(':id/finaliser')
-@Permission(
-  PERMISSION_RESOURCES.FICHES,
-  PERMISSION_ACTIONS.FINALIZE,
-)
-@ApiOperation({
-  summary: 'Finaliser une fiche',
-})
-@ApiParam({
-  name: 'id',
-  description: 'UUID de la fiche',
-})
-@ApiResponse({
-  status: 200,
-  description: 'Fiche finalisée avec succès',
-})
-@ApiResponse({
-  status: 400,
-  description: 'La fiche ne peut pas être finalisée dans son état actuel',
-})
-@ApiResponse({
-  status: 401,
-  description: 'Utilisateur non authentifié',
-})
-@ApiResponse({
-  status: 403,
-  description: 'Permission insuffisante',
-})
-@ApiResponse({
-  status: 404,
-  description: 'Fiche introuvable',
-})
-finaliser(
-  @Param('id', new ParseUUIDPipe()) id: string,
-  @Req() request: any,
-) {
-  return this.ficheService.finaliser(
-    id,
-    request.user.id,
-  );
-}
+  @Post(':id/finaliser')
+  @Permission(
+    PERMISSION_RESOURCES.FICHES,
+    PERMISSION_ACTIONS.FINALIZE,
+  )
+  @ApiOperation({
+    summary: 'Finaliser une fiche',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'UUID de la fiche',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Fiche finalisée avec succès',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'La fiche ne peut pas être finalisée dans son état actuel',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Utilisateur non authentifié',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Permission insuffisante ou accès à la gare refusé',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Fiche introuvable',
+  })
+  finaliser(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Req() request: any,
+  ) {
+    return this.ficheService.finaliser(
+      id,
+      request.user,
+    );
+  }
 
   // =====================================================
   // SUPPRIMER UNE FICHE
@@ -296,7 +315,7 @@ finaliser(
   })
   @ApiResponse({
     status: 403,
-    description: 'Permission insuffisante',
+    description: 'Permission insuffisante ou accès à la gare refusé',
   })
   @ApiResponse({
     status: 404,
@@ -304,52 +323,58 @@ finaliser(
   })
   remove(
     @Param('id', new ParseUUIDPipe()) id: string,
+    @Req() request: any,
   ) {
-    return this.ficheService.remove(id);
+    return this.ficheService.remove(
+      id,
+      request.user,
+    );
   }
-// =====================================================
-// IMPRIMER UNE FICHE
-// =====================================================
 
-@Post(':id/imprimer')
-@Permission(
-  PERMISSION_RESOURCES.FICHES,
-  PERMISSION_ACTIONS.UPDATE,
-)
-@ApiOperation({
-  summary: 'Imprimer une fiche',
-})
-@ApiParam({
-  name: 'id',
-  description: 'UUID de la fiche',
-})
-@ApiResponse({
-  status: 200,
-  description: 'Fiche imprimée avec succès',
-})
-@ApiResponse({
-  status: 400,
-  description: 'La fiche ne peut pas être imprimée dans son état actuel',
-})
-@ApiResponse({
-  status: 401,
-  description: 'Utilisateur non authentifié',
-})
-@ApiResponse({
-  status: 403,
-  description: 'Permission insuffisante',
-})
-@ApiResponse({
-  status: 404,
-  description: 'Fiche introuvable',
-})
-imprimer(
-  @Param('id', new ParseUUIDPipe()) id: string,
-  @Req() request: any,
-) {
-  return this.ficheService.imprimer(
-    id,
-    request.user.id,
-  );
-}
+  // =====================================================
+  // IMPRIMER UNE FICHE
+  // FINALISEE → IMPRIMEE
+  // =====================================================
+
+  @Post(':id/imprimer')
+  @Permission(
+    PERMISSION_RESOURCES.FICHES,
+    PERMISSION_ACTIONS.UPDATE,
+  )
+  @ApiOperation({
+    summary: 'Imprimer une fiche',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'UUID de la fiche',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Fiche imprimée avec succès',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'La fiche ne peut pas être imprimée dans son état actuel',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Utilisateur non authentifié',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Permission insuffisante ou accès à la gare refusé',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Fiche introuvable',
+  })
+  imprimer(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Req() request: any,
+  ) {
+    return this.ficheService.imprimer(
+      id,
+      request.user,
+    );
+  }
 }

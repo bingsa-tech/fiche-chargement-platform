@@ -1,4 +1,3 @@
-
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -6,53 +5,40 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
-
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { PermissionsGuard } from './guards/permissions.guard';
 
 import { UtilisateursModule } from '../utilisateurs/utilisateur.module';
 
-import { AuthTestController } from './auth-test.controller';
-
 import { RefreshToken } from './refresh/entities/refresh-token.entity';
 import { RefreshTokenService } from './refresh/refresh-token.service';
+
+const jwtSecret = process.env.JWT_SECRET;
+
+if (!jwtSecret?.trim()) {
+  throw new Error(
+    'JWT_SECRET doit être configuré avant le démarrage du backend.',
+  );
+}
 
 @Module({
   imports: [
     UtilisateursModule,
-
-    TypeOrmModule.forFeature([
-      RefreshToken,
-    ]),
-
+    TypeOrmModule.forFeature([RefreshToken]),
     JwtModule.register({
       global: true,
-
-      secret:
-        process.env.JWT_SECRET ||
-        'lifefindintoinnerpeace',
-
+      secret: jwtSecret,
       signOptions: {
         expiresIn: '1d',
       },
     }),
   ],
-
   providers: [
     AuthService,
     JwtStrategy,
     PermissionsGuard,
     RefreshTokenService,
   ],
-
-  controllers: [
-    AuthController,
-    AuthTestController,
-  ],
-
-  exports: [
-    RefreshTokenService,
-  ],
+  controllers: [AuthController],
+  exports: [RefreshTokenService],
 })
 export class AuthModule {}
-

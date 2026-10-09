@@ -1,3 +1,4 @@
+
 import {
   CanActivate,
   ExecutionContext,
@@ -7,12 +8,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
-import {
-  PERMISSIONS,
-  PermissionAction,
-  PermissionResource,
-} from '../../config/permissions.config';
-
+import { PERMISSIONS } from '../../config/permissions.config';
 import {
   PERMISSION_KEY,
   PermissionMetadata,
@@ -20,68 +16,31 @@ import {
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
-  constructor(
-    private readonly reflector: Reflector,
-  ) {}
+  constructor(private readonly reflector: Reflector) {}
 
-  canActivate(
-    context: ExecutionContext,
-  ): boolean {
-
-    /**
-     * Récupération de la permission déclarée
-     * sur la route avec @Permission(...)
-     */
+  canActivate(context: ExecutionContext): boolean {
     const permission =
-      this.reflector.get<PermissionMetadata>(
+      this.reflector.getAllAndOverride<PermissionMetadata>(
         PERMISSION_KEY,
-        context.getHandler(),
+        [context.getHandler(), context.getClass()],
       );
 
-    /**
-     * Si aucune permission n'est déclarée,
-     * le Guard laisse passer.
-     *
-     * Cela permet d'ajouter progressivement
-     * la sécurité aux Controllers.
-     */
+    // Refuser par défaut si aucune permission n'est déclarée.
     if (!permission) {
-      return true;
+      throw new ForbiddenException(
+        'Aucune permission déclarée pour cette route',
+      );
     }
 
-    /**
-     * Récupération de la requête HTTP
-     */
     const request = context.switchToHttp().getRequest();
-
-    /**
-     * req.user est créé par JwtStrategy.validate()
-     */
     const user = request.user;
-console.log(
-  '[PermissionsGuard]',
-  {
-    path: request.path,
-    method: request.method,
-    user,
-    permission,
-  },
-);
 
-if (!user) {
-  throw new UnauthorizedException(
-    'Utilisateur non authentifié',
-  );
-}
     if (!user) {
       throw new UnauthorizedException(
         'Utilisateur non authentifié',
       );
     }
 
-    /**
-     * Récupération du rôle contenu dans le JWT
-     */
     const role = user.role;
 
     if (!role) {
@@ -90,16 +49,10 @@ if (!user) {
       );
     }
 
-    /**
-     * Recherche de la ressource dans la matrice.
-     */
     const resourcePermissions =
-      PERMISSIONS[
-        permission.resource
-      ] as Record<
-        string,
-        readonly string[]
-      > | undefined;
+      PERMISSIONS[permission.resource] as
+        | Record<string, readonly string[]>
+        | undefined;
 
     if (!resourcePermissions) {
       throw new ForbiddenException(
@@ -107,14 +60,8 @@ if (!user) {
       );
     }
 
-    /**
-     * Recherche des rôles autorisés
-     * pour l'action demandée.
-     */
     const allowedRoles =
-      resourcePermissions[
-        permission.action
-      ];
+      resourcePermissions[permission.action];
 
     if (!allowedRoles) {
       throw new ForbiddenException(
@@ -122,17 +69,9 @@ if (!user) {
       );
     }
 
-    /**
-     * Vérification finale.
-     */
-    const authorized =
-      allowedRoles.includes(role);
-
-    if (!authorized) {
+    if (!allowedRoles.includes(role)) {
       throw new ForbiddenException(
-        `Accès refusé : le rôle ${role} ` +
-        `ne possède pas la permission ` +
-        `${permission.resource}:${permission.action}`,
+        `Accès refusé pour le rôle ${role}`,
       );
     }
 

@@ -1,8 +1,8 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
-  
 } from '@nestjs/common';
 
 import { InjectRepository } from '@nestjs/typeorm';
@@ -14,27 +14,109 @@ import { UpdateFicheDto } from './dto/update-fiche.dto';
 
 import { FicheStatut } from './enums/fiche-statut.enum';
 import { FicheImpressionsService } from '../fiche-impressions/fiche-impressions.service';
+
+type FicheUserContext = {
+  id: number;
+  username: string;
+  role: string;
+  gareId: string | null;
+};
+
 @Injectable()
 export class FicheService {
   constructor(
-  @InjectRepository(Fiche)
-  private readonly ficheRepository: Repository<Fiche>,
+    @InjectRepository(Fiche)
+    private readonly ficheRepository: Repository<Fiche>,
 
-  private readonly ficheImpressionsService: FicheImpressionsService,
-) {}
+    private readonly ficheImpressionsService: FicheImpressionsService,
+  ) {}
 
-  async create(createFicheDto: CreateFicheDto, createurId: number): Promise<Fiche> {
+  // =====================================================
+  // CONTRÔLE D'ACCÈS AUX GARES
+  // =====================================================
+
+  private peutConsulterToutesLesGares(
+    user: FicheUserContext,
+  ): boolean {
+    return (
+      user.role === 'ADMIN' ||
+      user.role === 'AUTORITE_HABILITEE'
+    );
+  }
+
+  private exigerGareUtilisateur(
+    user: FicheUserContext,
+  ): string {
+    if (!user.gareId) {
+      throw new ForbiddenException(
+        'Votre compte n’est associé à aucune gare.',
+      );
+    }
+
+    return user.gareId;
+  }
+
+  private verifierGareCreation(
+    gareId: string,
+    user: FicheUserContext,
+  ): void {
+    if (user.role === 'ADMIN') {
+      return;
+    }
+
+    const rolesAutorises = [
+      'AGENT',
+      'CONTROLEUR',
+      'RESPONSABLE_GARE',
+    ];
+
+    if (!rolesAutorises.includes(user.role)) {
+      throw new ForbiddenException(
+        'Votre rôle ne permet pas de créer une fiche.',
+      );
+    }
+
+    const gareUtilisateur = this.exigerGareUtilisateur(user);
+
+    if (gareId !== gareUtilisateur) {
+      throw new ForbiddenException(
+        'Vous ne pouvez pas créer une fiche dans une autre gare.',
+      );
+    }
+  }
+
+  // =====================================================
+  // CRÉER UNE FICHE
+  // =====================================================
+
+  async create(
+    createFicheDto: CreateFicheDto,
+    user: FicheUserContext,
+  ): Promise<Fiche> {
+    this.verifierGareCreation(createFicheDto.gareId, user);
+
     const fiche = this.ficheRepository.create({
       ...createFicheDto,
       statut: FicheStatut.EN_ATTENTE,
-      createurId,
+      createurId: user.id,
     });
 
     return this.ficheRepository.save(fiche);
   }
 
-  async findAll(): Promise<Fiche[]> {
+  // =====================================================
+  // CONSULTER TOUTES LES FICHES AUTORISÉES
+  // =====================================================
+
+  async findAll(user: FicheUserContext): Promise<Fiche[]> {
+    const where = this.peutConsulterToutesLesGares(user)
+      ? {}
+      : {
+          gareId: this.exigerGareUtilisateur(user),
+        };
+
     return this.ficheRepository.find({
+      where,
       relations: {
         gare: true,
         vehicule: true,
@@ -52,9 +134,23 @@ export class FicheService {
     });
   }
 
-  async findOne(id: string): Promise<Fiche> {
+  // =====================================================
+  // CONSULTER UNE FICHE
+  // =====================================================
+
+  async findOne(
+    id: string,
+    user: FicheUserContext,
+  ): Promise<Fiche> {
+    const where = this.peutConsulterToutesLesGares(user)
+      ? { id }
+      : {
+          id,
+          gareId: this.exigerGareUtilisateur(user),
+        };
+
     const fiche = await this.ficheRepository.findOne({
-      where: { id },
+      where,
       relations: {
         gare: true,
         vehicule: true,
@@ -69,109 +165,124 @@ export class FicheService {
     });
 
     if (!fiche) {
-      throw new NotFoundException(
-        `Fiche ${id} introuvable`,
-      );
+      throw new NotFoundException('Fiche introuvable.');
     }
 
     return fiche;
   }
-// =====================================================
-// PRENDRE EN CHARGE
-// EN_ATTENTE → EN_COURS
-// =====================================================
 
-async prendreEnCharge(id: string): Promise<Fiche> {
-  const fiche = await this.findOne(id);
+  // =====================================================
+  // PRENDRE EN CHARGE
+  // EN_ATTENTE → EN_COURS
+  // =====================================================
 
-  if (fiche.statut !== FicheStatut.EN_ATTENTE) {
-    throw new BadRequestException(
-      `La fiche doit être EN_ATTENTE pour être prise en charge. Statut actuel : ${fiche.statut}.`,
-    );
+  async prendreEnCharge(
+    id: string,
+    user: FicheUserContext,
+  ): Promise<Fiche> {
+    const fiche = await this.findOne(id, user);
+
+    if (fiche.statut !== FicheStatut.EN_ATTENTE) {
+      throw new BadRequestException(
+        `La fiche doit être EN_ATTENTE pour être prise en charge. Statut actuel : ${fiche.statut}.`,
+      );
+    }
+
+    fiche.statut = FicheStatut.EN_COURS;
+
+    return this.ficheRepository.save(fiche);
   }
 
-  fiche.statut = FicheStatut.EN_COURS;
+  // =====================================================
+  // FINALISER
+  // EN_COURS → FINALISEE
+  // =====================================================
 
-  return this.ficheRepository.save(fiche);
-}
+  async finaliser(
+    id: string,
+    user: FicheUserContext,
+  ): Promise<Fiche> {
+    const fiche = await this.findOne(id, user);
 
-// =====================================================
-// FINALISER
-// EN_COURS → FINALISEE
-// =====================================================
+    if (fiche.statut !== FicheStatut.EN_COURS) {
+      throw new BadRequestException(
+        `La fiche doit être EN_COURS pour être finalisée. Statut actuel : ${fiche.statut}.`,
+      );
+    }
 
-async finaliser(
-  id: string,
-  finalisateurId: number,
-): Promise<Fiche> {
-  const fiche = await this.findOne(id);
+    fiche.statut = FicheStatut.FINALISEE;
+    fiche.finalisateurId = user.id;
+    fiche.dateFinalisation = new Date();
 
-  if (fiche.statut !== FicheStatut.EN_COURS) {
-    throw new BadRequestException(
-      `La fiche doit être EN_COURS pour être finalisée. Statut actuel : ${fiche.statut}.`,
-    );
+    return this.ficheRepository.save(fiche);
   }
 
-  fiche.statut = FicheStatut.FINALISEE;
-  fiche.finalisateurId = finalisateurId;
-  fiche.dateFinalisation = new Date();
+  // =====================================================
+  // MODIFIER UNE FICHE
+  // =====================================================
 
-  return this.ficheRepository.save(fiche);
-}
-async update(
-  id: string,
-  updateFicheDto: UpdateFicheDto,
-): Promise<Fiche> {
-  const fiche = await this.findOne(id);
+  async update(
+    id: string,
+    updateFicheDto: UpdateFicheDto,
+    user: FicheUserContext,
+  ): Promise<Fiche> {
+    const fiche = await this.findOne(id, user);
 
-  if (
-    fiche.statut !== FicheStatut.EN_ATTENTE &&
-    fiche.statut !== FicheStatut.EN_COURS &&
-    fiche.statut !== FicheStatut.FINALISEE
-  ) {
-    throw new BadRequestException(
-      `La fiche ne peut plus être modifiée lorsque son statut est ${fiche.statut}.`,
-    );
+    if (
+      fiche.statut !== FicheStatut.EN_ATTENTE &&
+      fiche.statut !== FicheStatut.EN_COURS &&
+      fiche.statut !== FicheStatut.FINALISEE
+    ) {
+      throw new BadRequestException(
+        `La fiche ne peut plus être modifiée lorsque son statut est ${fiche.statut}.`,
+      );
+    }
+
+    Object.assign(fiche, updateFicheDto);
+
+    return this.ficheRepository.save(fiche);
   }
 
-  Object.assign(fiche, updateFicheDto);
+  // =====================================================
+  // SUPPRIMER UNE FICHE
+  // =====================================================
 
-  return this.ficheRepository.save(fiche);
-}
-
-  async remove(id: string): Promise<void> {
-    const fiche = await this.findOne(id);
+  async remove(
+    id: string,
+    user: FicheUserContext,
+  ): Promise<void> {
+    const fiche = await this.findOne(id, user);
 
     await this.ficheRepository.remove(fiche);
   }
 
-// =====================================================
-// IMPRIMER
-// FINALISEE → IMPRIMEE
-// =====================================================
+  // =====================================================
+  // IMPRIMER UNE FICHE
+  // FINALISEE → IMPRIMEE
+  // =====================================================
 
-async imprimer(
-  id: string,
-  imprimeurId: number,
-): Promise<Fiche> {
-  const fiche = await this.findOne(id);
+  async imprimer(
+    id: string,
+    user: FicheUserContext,
+  ): Promise<Fiche> {
+    const fiche = await this.findOne(id, user);
 
-  if (fiche.statut !== FicheStatut.FINALISEE) {
-    throw new BadRequestException(
-      `La fiche doit être FINALISEE pour être imprimée. Statut actuel : ${fiche.statut}.`,
+    if (fiche.statut !== FicheStatut.FINALISEE) {
+      throw new BadRequestException(
+        `La fiche doit être FINALISEE pour être imprimée. Statut actuel : ${fiche.statut}.`,
+      );
+    }
+
+    await this.ficheImpressionsService.create(
+      {
+        ficheId: fiche.id,
+        numeroExemplaire: 1,
+      },
+      user.id,
     );
+
+    fiche.statut = FicheStatut.IMPRIMEE;
+
+    return this.ficheRepository.save(fiche);
   }
-
-  await this.ficheImpressionsService.create(
-    {
-      ficheId: fiche.id,
-      numeroExemplaire: 1,
-    },
-    imprimeurId,
-  );
-
-  fiche.statut = FicheStatut.IMPRIMEE;
-
-  return this.ficheRepository.save(fiche);
-}
 }
