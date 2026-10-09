@@ -59,7 +59,8 @@ function navigateTo(
     | 'chauffeurs'
     | 'documents-vehicules'
     | 'documents-chauffeurs'
-    | 'utilisateurs',
+    | 'utilisateurs'
+    | 'fiches',
 ) {
   closeSidebar();
 
@@ -225,15 +226,14 @@ async function logout() {
   <span>Documents chauffeurs</span>
 </button>
           <!-- Fiches -->
+         <!-- Fiches de chargement -->
           <button
             type="button"
-            class="navigation-item disabled"
-            disabled
-            title="Module prochainement disponible"
+            class="navigation-item"
+            @click="navigateTo('fiches')"
           >
             <span class="navigation-icon">F</span>
-            <span>Fiches</span>
-            <small>À venir</small>
+            <span>Fiches de chargement</span>
           </button>
 
           <!-- Passagers -->

@@ -366,7 +366,24 @@ const routes: RouteRecordRaw[] = [
             '../views/RoleHubView.vue'
           ),
       },
-
+      // ========================================================================
+      // FICHES DE CHARGEMENT
+      // ========================================================================
+      {
+        path: 'fiches',
+        name: 'fiches',
+        component: () =>
+          import('../views/fiches/FichesListView.vue'),
+        meta: {
+          roles: [
+            'ADMIN',
+            'RESPONSABLE_GARE',
+            'CONTROLEUR',
+            'AGENT',
+            'AUTORITE_HABILITEE',
+          ] satisfies UserRole[],
+        },
+      },
       // ========================================================================
       // TEST AUTHENTIFICATION JWT
       // ========================================================================
