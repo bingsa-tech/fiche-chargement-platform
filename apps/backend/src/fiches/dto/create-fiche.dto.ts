@@ -10,28 +10,27 @@ export class CreateFicheDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(50)
-  reference: string;
+  reference!: string;
 
   @IsUUID()
   @IsNotEmpty()
-  gareId: string;
+  gareId!: string;
 
   @IsUUID()
   @IsNotEmpty()
-  vehiculeId: string;
+  vehiculeId!: string;
 
   @IsUUID()
   @IsNotEmpty()
-  chauffeurId: string;
+  chauffeurId!: string;
 
   @IsUUID()
   @IsNotEmpty()
-  destinationId: string;
+  destinationId!: string;
 
   @IsUUID()
   @IsOptional()
   itineraireId?: string;
 
-  @IsNotEmpty()
-  createurId: number;
+  
 }
