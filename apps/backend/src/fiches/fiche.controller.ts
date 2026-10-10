@@ -339,7 +339,7 @@ export class FicheController {
   // FINALISEE → IMPRIMEE
   // =====================================================
 
-  
+
   @Post(':id/imprimer')
   @Permission(
     PERMISSION_RESOURCES.FICHES,
@@ -391,7 +391,7 @@ export class FicheController {
     pdf.end();
   }
 
-  
+
   @Get(':id/bordereau-pdf')
   @Permission(
     PERMISSION_RESOURCES.FICHES,

@@ -269,7 +269,7 @@ const routes: RouteRecordRaw[] = [
           ] satisfies UserRole[],
         },
       },
-      
+
       {
         path: 'fiches/:id',
         name: 'fiche-detail',

@@ -91,7 +91,7 @@ export class FicheService {
   // CRÉER UNE FICHE
   // =====================================================
 
-  
+
 async create(
   createFicheDto: CreateFicheDto,
   user: FicheUserContext,
