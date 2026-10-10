@@ -15,25 +15,39 @@ export class FichePassager {
   @PrimaryColumn('uuid', {
     name: 'fiche_id',
   })
-  ficheId: string;
+  ficheId!: string;
 
   @PrimaryColumn('uuid', {
     name: 'passager_id',
   })
-  passagerId: string;
+  passagerId!: string;
 
   @Column('integer', {
     name: 'numero_place',
     nullable: true,
   })
-  numeroPlace: number | null;
+  numeroPlace!: number | null;
+
+  @Column('numeric', {
+  name: 'tarif',
+  precision: 10,
+  scale: 2,
+  nullable: true,
+})
+tarif!: string | null;
+
+@Column('text', {
+  name: 'observations',
+  nullable: true,
+})
+observations!: string | null;
 
   @CreateDateColumn({
     name: 'created_at',
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
   })
-  createdAt: Date;
+  createdAt!: Date;
 
   // =========================
   // RELATIONS
@@ -51,7 +65,7 @@ export class FichePassager {
     name: 'fiche_id',
     referencedColumnName: 'id',
   })
-  fiche: Fiche;
+  fiche!: Fiche;
 
   @ManyToOne(
     () => Passager,
@@ -65,5 +79,5 @@ export class FichePassager {
     name: 'passager_id',
     referencedColumnName: 'id',
   })
-  passager: Passager;
+  passager!: Passager;
 }

@@ -6,6 +6,7 @@ import { FicheImpressionsController } from './fiche-impressions.controller';
 import { FicheImpressionsService } from './fiche-impressions.service';
 
 import { Fiche } from '../fiches/entities/fiche.entity';
+import { BordereauPdfService } from './bordereau-pdf.service';
 
 @Module({
   imports: [
@@ -19,9 +20,11 @@ import { Fiche } from '../fiches/entities/fiche.entity';
   ],
   providers: [
     FicheImpressionsService,
+    BordereauPdfService,
   ],
   exports: [
     FicheImpressionsService,
+    BordereauPdfService,
   ],
 })
 export class FicheImpressionsModule {}

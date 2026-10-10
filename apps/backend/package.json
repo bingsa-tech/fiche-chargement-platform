@@ -28,6 +28,7 @@
     "class-validator": "^0.14.0",
     "passport": "^0.6.0",
     "passport-jwt": "^4.0.1",
+    "pdfkit": "^0.20.2",
     "pg": "^8.11.0",
     "swagger-ui-express": "^5.0.1",
     "typeorm": "^0.3.17"
@@ -37,6 +38,7 @@
     "@nestjs/schematics": "^10.0.0",
     "@nestjs/testing": "^10.0.0",
     "@types/jest": "^30.0.0",
+    "@types/pdfkit": "^0.17.6",
     "jest": "^30.5.1",
     "ts-jest": "^29.4.12",
     "ts-node": "^10.9.1",

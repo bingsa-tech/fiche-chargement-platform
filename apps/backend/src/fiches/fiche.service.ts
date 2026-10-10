@@ -6,15 +6,15 @@ import {
 } from '@nestjs/common';
 
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 
 import { Fiche } from './entities/fiche.entity';
 import { CreateFicheDto } from './dto/create-fiche.dto';
 import { UpdateFicheDto } from './dto/update-fiche.dto';
-
+import { ImprimerFicheDto } from '../fiche-impressions/dto/imprimer-fiche.dto';
 import { FicheStatut } from './enums/fiche-statut.enum';
 import { FicheImpressionsService } from '../fiche-impressions/fiche-impressions.service';
-
+import { FicheImpression } from '../fiche-impressions/entities/fiche-impression.entity';
 type FicheUserContext = {
   id: number;
   username: string;
@@ -24,12 +24,14 @@ type FicheUserContext = {
 
 @Injectable()
 export class FicheService {
-  constructor(
-    @InjectRepository(Fiche)
-    private readonly ficheRepository: Repository<Fiche>,
+ constructor(
+  @InjectRepository(Fiche)
+  private readonly ficheRepository: Repository<Fiche>,
 
-    private readonly ficheImpressionsService: FicheImpressionsService,
-  ) {}
+  private readonly ficheImpressionsService: FicheImpressionsService,
+
+  private readonly dataSource: DataSource,
+) {}
 
   // =====================================================
   // CONTRÔLE D'ACCÈS AUX GARES
@@ -89,20 +91,28 @@ export class FicheService {
   // CRÉER UNE FICHE
   // =====================================================
 
-  async create(
-    createFicheDto: CreateFicheDto,
-    user: FicheUserContext,
-  ): Promise<Fiche> {
-    this.verifierGareCreation(createFicheDto.gareId, user);
+  
+async create(
+  createFicheDto: CreateFicheDto,
+  user: FicheUserContext,
+): Promise<Fiche> {
+  this.verifierGareCreation(createFicheDto.gareId, user);
 
-    const fiche = this.ficheRepository.create({
-      ...createFicheDto,
-      statut: FicheStatut.EN_ATTENTE,
-      createurId: user.id,
-    });
+  const fiche = this.ficheRepository.create({
+    ...createFicheDto,
+    statut: FicheStatut.EN_ATTENTE,
+    createurId: user.id,
+  });
 
-    return this.ficheRepository.save(fiche);
-  }
+  // Enregistrer la fiche : PostgreSQL génère le numéro.
+  const ficheEnregistree = await this.ficheRepository.save(fiche);
+
+  // Relire la fiche depuis la base pour récupérer
+  // le numéro de bordereau généré par PostgreSQL.
+  return this.ficheRepository.findOneByOrFail({
+    id: ficheEnregistree.id,
+  });
+}
 
   // =====================================================
   // CONSULTER TOUTES LES FICHES AUTORISÉES
@@ -160,7 +170,7 @@ export class FicheService {
         createur: true,
         finalisateur: true,
         annulateur: true,
-        fichePassagers: true,
+        fichePassagers: { passager: true, },
       },
     });
 
@@ -262,27 +272,117 @@ export class FicheService {
   // =====================================================
 
   async imprimer(
-    id: string,
-    user: FicheUserContext,
-  ): Promise<Fiche> {
-    const fiche = await this.findOne(id, user);
+  id: string,
+  user: FicheUserContext,
+  dto: ImprimerFicheDto = {},
+): Promise<Fiche> {
+  return this.dataSource.transaction(async (manager) => {
+    const ficheRepository = manager.getRepository(Fiche);
 
-    if (fiche.statut !== FicheStatut.FINALISEE) {
+    const fiche = await ficheRepository.findOne({
+      where: { id },
+      lock: { mode: 'pessimistic_write' },
+    });
+
+    if (!fiche) {
+      throw new NotFoundException(`Fiche ${id} introuvable`);
+    }
+
+    // Vérifier l'accès à la gare et les droits métier.
+    if (!this.peutConsulterToutesLesGares(user)) {
+      const gareUtilisateur = this.exigerGareUtilisateur(user);
+
+      if (fiche.gareId !== gareUtilisateur) {
+        throw new ForbiddenException(
+          'Vous ne pouvez pas imprimer une fiche d’une autre gare.',
+        );
+      }
+    }
+
+    const impressionRepository =
+      manager.getRepository(FicheImpression);
+
+    const impressions = await impressionRepository
+      .createQueryBuilder('impression')
+      .where('impression.ficheId = :ficheId', {
+        ficheId: fiche.id,
+      })
+      .getMany();
+
+    const numeroExemplaireSuivant =
+      impressions.reduce(
+        (max, impression) =>
+          Math.max(max, Number(impression.numeroExemplaire) || 0),
+        0,
+      ) + 1;
+
+    if (fiche.statut === FicheStatut.FINALISEE) {
+      if (numeroExemplaireSuivant !== 1) {
+        throw new BadRequestException(
+          'Une impression existe déjà pour cette fiche. Vérifiez son historique.',
+        );
+      }
+
+      fiche.statut = FicheStatut.IMPRIMEE;
+    } else if (fiche.statut === FicheStatut.IMPRIMEE) {
+  if (numeroExemplaireSuivant <= 1) {
+    throw new BadRequestException(
+      'Historique d’impression incohérent : impossible de réimprimer cette fiche.',
+    );
+  }
+
+  const motif = dto.motifReimpression?.trim();
+
+  if (!motif || motif.length < 5) {
+    throw new BadRequestException(
+      'Un motif de réimpression d’au moins 5 caractères est obligatoire.',
+    );
+  }
+    } else {
       throw new BadRequestException(
-        `La fiche doit être FINALISEE pour être imprimée. Statut actuel : ${fiche.statut}.`,
+        `La fiche doit être FINALISEE pour une première impression ou IMPRIMEE pour une réimpression. Statut actuel : ${fiche.statut}.`,
       );
     }
 
     await this.ficheImpressionsService.create(
       {
         ficheId: fiche.id,
-        numeroExemplaire: 1,
+        numeroExemplaire: numeroExemplaireSuivant,
+        motifReimpression:
+          numeroExemplaireSuivant > 1
+            ? dto.motifReimpression!.trim()
+            : undefined,
       },
       user.id,
+      manager,
     );
 
-    fiche.statut = FicheStatut.IMPRIMEE;
+   await ficheRepository.save(fiche);
 
-    return this.ficheRepository.save(fiche);
-  }
+const ficheComplete = await ficheRepository.findOne({
+  where: { id: fiche.id },
+  relations: {
+    gare: true,
+    vehicule: true,
+    chauffeur: true,
+    destination: true,
+    itineraire: true,
+    createur: true,
+    finalisateur: true,
+    annulateur: true,
+    fichePassagers: {
+      passager: true,
+    },
+  },
+});
+
+if (!ficheComplete) {
+  throw new NotFoundException(
+    `Fiche ${fiche.id} introuvable après impression.`,
+  );
+}
+
+return ficheComplete;
+  });
+}
 }

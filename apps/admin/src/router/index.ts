@@ -1,3 +1,4 @@
+
 import {
   createRouter,
   createWebHistory,
@@ -8,49 +9,10 @@ import {
 import { useAuthStore } from '../auth/auth.store';
 import type { UserRole } from '../auth/role.types';
 
-/**
- * ============================================================================
- * ROUTES DE L'APPLICATION ADMIN
- * ============================================================================
- *
- * Architecture :
- *
- * /login
- *   └── route publique
- *
- * /
- *   └── AdminLayout.vue
- *       ├── /role-hub
- *       ├── /auth-test
- *       ├── /gares
- *       ├── /proprietaires
- *       ├── /utilisateurs
- *       ├── /vehicules
- *       ├── /chauffeurs
- *       ├── /documents/vehicules
- *       ├── /admin/dashboard
- *       ├── /agent/dashboard
- *       ├── /controleur/dashboard
- *       ├── /responsable-gare/dashboard
- *       └── /autorite/dashboard
- *
- * /unauthorized
- *   └── route publique
- *
- * /:pathMatch(.*)*
- *   └── 404
- *
- * IMPORTANT :
- * Le frontend contrôle l'affichage et la navigation.
- * La sécurité réelle reste assurée par le backend NestJS
- * et ses guards/permissions.
- */
-
 const routes: RouteRecordRaw[] = [
-  // ==========================================================================
+  // ============================================================
   // AUTHENTIFICATION
-  // ==========================================================================
-
+  // ============================================================
   {
     path: '/login',
     name: 'login',
@@ -60,23 +22,17 @@ const routes: RouteRecordRaw[] = [
     },
   },
 
-  // ==========================================================================
+  // ============================================================
   // APPLICATION PROTÉGÉE
-  // ==========================================================================
-
+  // ============================================================
   {
     path: '/',
     component: () => import('../layouts/AdminLayout.vue'),
-
     meta: {
       requiresAuth: true,
     },
-
     children: [
-      // ========================================================================
       // ACCUEIL
-      // ========================================================================
-
       {
         path: '',
         name: 'home',
@@ -85,169 +41,113 @@ const routes: RouteRecordRaw[] = [
         },
       },
 
-      // ========================================================================
+      // ========================================================
       // GARES
-      // ========================================================================
-
+      // ========================================================
       {
         path: 'gares',
         name: 'gares',
-        component: () =>
-          import('../views/gares/GaresListView.vue'),
+        component: () => import('../views/gares/GaresListView.vue'),
       },
-
       {
         path: 'gares/new',
         name: 'gare-create',
-        component: () =>
-          import('../views/gares/GareFormView.vue'),
+        component: () => import('../views/gares/GareFormView.vue'),
         meta: {
-          roles: [
-            'ADMIN',
-          ] satisfies UserRole[],
+          roles: ['ADMIN'] satisfies UserRole[],
         },
       },
-
       {
         path: 'gares/:id/edit',
         name: 'gare-edit',
-        component: () =>
-          import('../views/gares/GareFormView.vue'),
+        component: () => import('../views/gares/GareFormView.vue'),
         meta: {
-          roles: [
-            'ADMIN',
-            'RESPONSABLE_GARE',
-          ] satisfies UserRole[],
+          roles: ['ADMIN', 'RESPONSABLE_GARE'] satisfies UserRole[],
         },
       },
 
-      // ========================================================================
+      // ========================================================
       // PROPRIÉTAIRES
-      // ========================================================================
-
+      // ========================================================
       {
         path: 'proprietaires',
         name: 'proprietaires',
         component: () =>
-          import(
-            '../views/proprietaires/ProprietairesListView.vue'
-          ),
+          import('../views/proprietaires/ProprietairesListView.vue'),
       },
-
       {
         path: 'proprietaires/new',
         name: 'proprietaire-create',
         component: () =>
-          import(
-            '../views/proprietaires/ProprietairesFormView.vue'
-          ),
+          import('../views/proprietaires/ProprietairesFormView.vue'),
         meta: {
-          roles: [
-            'ADMIN',
-          ] satisfies UserRole[],
+          roles: ['ADMIN'] satisfies UserRole[],
         },
       },
-
       {
         path: 'proprietaires/:id/edit',
         name: 'proprietaire-edit',
         component: () =>
-          import(
-            '../views/proprietaires/ProprietairesFormView.vue'
-          ),
+          import('../views/proprietaires/ProprietairesFormView.vue'),
         meta: {
-          roles: [
-            'ADMIN',
-            'RESPONSABLE_GARE',
-          ] satisfies UserRole[],
+          roles: ['ADMIN', 'RESPONSABLE_GARE'] satisfies UserRole[],
         },
       },
 
-      // ========================================================================
+      // ========================================================
       // UTILISATEURS
-      // ========================================================================
-
+      // ========================================================
       {
         path: 'utilisateurs',
         name: 'utilisateurs',
         component: () =>
-          import(
-            '../views/utilisateurs/UtilisateurListView.vue'
-          ),
+          import('../views/utilisateurs/UtilisateurListView.vue'),
         meta: {
-          roles: [
-            'ADMIN',
-            'RESPONSABLE_GARE',
-          ] satisfies UserRole[],
+          roles: ['ADMIN', 'RESPONSABLE_GARE'] satisfies UserRole[],
         },
       },
-
       {
         path: 'utilisateurs/nouveau',
         name: 'utilisateur-create',
         component: () =>
-          import(
-            '../views/utilisateurs/UtilisateurFormView.vue'
-          ),
+          import('../views/utilisateurs/UtilisateurFormView.vue'),
         meta: {
-          roles: [
-            'ADMIN',
-            'RESPONSABLE_GARE',
-          ] satisfies UserRole[],
+          roles: ['ADMIN', 'RESPONSABLE_GARE'] satisfies UserRole[],
         },
       },
-
       {
         path: 'utilisateurs/:id/modifier',
         name: 'utilisateur-edit',
         component: () =>
-          import(
-            '../views/utilisateurs/UtilisateurFormView.vue'
-          ),
+          import('../views/utilisateurs/UtilisateurFormView.vue'),
         meta: {
-          roles: [
-            'ADMIN',
-            'RESPONSABLE_GARE',
-          ] satisfies UserRole[],
+          roles: ['ADMIN', 'RESPONSABLE_GARE'] satisfies UserRole[],
         },
       },
 
-      // ========================================================================
+      // ========================================================
       // VÉHICULES
-      // ========================================================================
-
+      // ========================================================
       {
         path: 'vehicules',
         name: 'vehicules',
         component: () =>
-          import(
-            '../views/vehicules/VehiculesListView.vue'
-          ),
+          import('../views/vehicules/VehiculesListView.vue'),
       },
-
       {
         path: 'vehicules/new',
         name: 'vehicule-create',
         component: () =>
-          import(
-            '../views/vehicules/VehiculeFormView.vue'
-          ),
+          import('../views/vehicules/VehiculeFormView.vue'),
         meta: {
-          roles: [
-            'ADMIN',
-            'RESPONSABLE_GARE',
-            'AGENT',
-          ] satisfies UserRole[],
+          roles: ['ADMIN', 'RESPONSABLE_GARE', 'AGENT'] satisfies UserRole[],
         },
       },
-
       {
         path: 'vehicules/:id/edit',
         name: 'vehicule-edit',
         component: () =>
-          import(
-            '../views/vehicules/VehiculeFormView.vue'
-          ),
+          import('../views/vehicules/VehiculeFormView.vue'),
         meta: {
           roles: [
             'ADMIN',
@@ -258,17 +158,14 @@ const routes: RouteRecordRaw[] = [
         },
       },
 
-      // ========================================================================
+      // ========================================================
       // CHAUFFEURS
-      // ========================================================================
-
+      // ========================================================
       {
         path: 'chauffeurs',
         name: 'chauffeurs',
         component: () =>
-          import(
-            '../views/chauffeurs/ChauffeurListView.vue'
-          ),
+          import('../views/chauffeurs/ChauffeurListView.vue'),
         meta: {
           roles: [
             'ADMIN',
@@ -279,30 +176,20 @@ const routes: RouteRecordRaw[] = [
           ] satisfies UserRole[],
         },
       },
-
       {
         path: 'chauffeurs/nouveau',
         name: 'chauffeur-create',
         component: () =>
-          import(
-            '../views/chauffeurs/ChauffeurFormView.vue'
-          ),
+          import('../views/chauffeurs/ChauffeurFormView.vue'),
         meta: {
-          roles: [
-            'ADMIN',
-            'RESPONSABLE_GARE',
-            'AGENT',
-          ] satisfies UserRole[],
+          roles: ['ADMIN', 'RESPONSABLE_GARE', 'AGENT'] satisfies UserRole[],
         },
       },
-
       {
         path: 'chauffeurs/:id/modifier',
         name: 'chauffeur-edit',
         component: () =>
-          import(
-            '../views/chauffeurs/ChauffeurFormView.vue'
-          ),
+          import('../views/chauffeurs/ChauffeurFormView.vue'),
         meta: {
           roles: [
             'ADMIN',
@@ -313,17 +200,14 @@ const routes: RouteRecordRaw[] = [
         },
       },
 
-      // ========================================================================
+      // ========================================================
       // DOCUMENTS VÉHICULES
-      // ========================================================================
-
+      // ========================================================
       {
         path: 'documents/vehicules',
         name: 'documents-vehicules',
         component: () =>
-          import(
-            '../views/documents/DocumentVehiculeListView.vue'
-          ),
+          import('../views/documents/DocumentVehiculeListView.vue'),
         meta: {
           roles: [
             'ADMIN',
@@ -334,46 +218,47 @@ const routes: RouteRecordRaw[] = [
           ] satisfies UserRole[],
         },
       },
-      // ========================================================================
-      // DOCUMENTS CHAUFFEURS
-      // ========================================================================
-      {
-  path: 'documents/chauffeurs',
-  name: 'documents-chauffeurs',
-  component: () =>
-    import(
-      '../views/documents/DocumentChauffeurListView.vue'
-    ),
-  meta: {
-    roles: [
-      'ADMIN',
-      'RESPONSABLE_GARE',
-      'CONTROLEUR',
-      'AGENT',
-      'AUTORITE_HABILITEE',
-    ] satisfies UserRole[],
-  },
-},
-      // ========================================================================
-      // ROLE HUB
-      // ========================================================================
 
+      // ========================================================
+      // DOCUMENTS CHAUFFEURS
+      // ========================================================
       {
-        path: 'role-hub',
-        name: 'role-hub',
+        path: 'documents/chauffeurs',
+        name: 'documents-chauffeurs',
         component: () =>
-          import(
-            '../views/RoleHubView.vue'
-          ),
+          import('../views/documents/DocumentChauffeurListView.vue'),
+        meta: {
+          roles: [
+            'ADMIN',
+            'RESPONSABLE_GARE',
+            'CONTROLEUR',
+            'AGENT',
+            'AUTORITE_HABILITEE',
+          ] satisfies UserRole[],
+        },
       },
-      // ========================================================================
+
+      // ========================================================
       // FICHES DE CHARGEMENT
-      // ========================================================================
+      // La route new est déclarée séparément de la liste.
+      // ========================================================
+      {
+        path: 'fiches/new',
+        name: 'fiche-create',
+        component: () => import('../views/fiches/FicheCreateView.vue'),
+        meta: {
+          roles: [
+            'ADMIN',
+            'RESPONSABLE_GARE',
+            'CONTROLEUR',
+            'AGENT',
+          ] satisfies UserRole[],
+        },
+      },
       {
         path: 'fiches',
         name: 'fiches',
-        component: () =>
-          import('../views/fiches/FichesListView.vue'),
+        component: () => import('../views/fiches/FichesListView.vue'),
         meta: {
           roles: [
             'ADMIN',
@@ -384,157 +269,120 @@ const routes: RouteRecordRaw[] = [
           ] satisfies UserRole[],
         },
       },
-      // ========================================================================
-      // TEST AUTHENTIFICATION JWT
-      // ========================================================================
-
+      
       {
-        path: 'auth-test',
-        name: 'auth-test',
-        component: () =>
-          import(
-            '../views/AuthTestView.vue'
-          ),
-      },
-
-      // ========================================================================
-      // DASHBOARD ADMIN
-      // ========================================================================
-
-      {
-        path: 'admin/dashboard',
-        name: 'admin-dashboard',
-        component: () =>
-          import(
-            '../views/dashboards/AdminDashboard.vue'
-          ),
+        path: 'fiches/:id',
+        name: 'fiche-detail',
+        component: () => import('../views/fiches/FicheDetailView.vue'),
         meta: {
           roles: [
             'ADMIN',
+            'RESPONSABLE_GARE',
+            'CONTROLEUR',
+            'AGENT',
+            'AUTORITE_HABILITEE',
           ] satisfies UserRole[],
         },
       },
 
-      // ========================================================================
-      // DASHBOARD AGENT
-      // ========================================================================
 
+      // ========================================================
+      // ROLE HUB
+      // ========================================================
+      {
+        path: 'role-hub',
+        name: 'role-hub',
+        component: () => import('../views/RoleHubView.vue'),
+      },
+
+      // ========================================================
+      // TEST AUTHENTIFICATION JWT
+      // ========================================================
+      {
+        path: 'auth-test',
+        name: 'auth-test',
+        component: () => import('../views/AuthTestView.vue'),
+      },
+
+      // ========================================================
+      // DASHBOARDS
+      // ========================================================
+      {
+        path: 'admin/dashboard',
+        name: 'admin-dashboard',
+        component: () => import('../views/dashboards/AdminDashboard.vue'),
+        meta: {
+          roles: ['ADMIN'] satisfies UserRole[],
+        },
+      },
       {
         path: 'agent/dashboard',
         name: 'agent-dashboard',
-        component: () =>
-          import(
-            '../views/dashboards/AgentDashboard.vue'
-          ),
+        component: () => import('../views/dashboards/AgentDashboard.vue'),
         meta: {
-          roles: [
-            'AGENT',
-          ] satisfies UserRole[],
+          roles: ['AGENT'] satisfies UserRole[],
         },
       },
-
-      // ========================================================================
-      // DASHBOARD CONTRÔLEUR
-      // ========================================================================
-
       {
         path: 'controleur/dashboard',
         name: 'controleur-dashboard',
         component: () =>
-          import(
-            '../views/dashboards/ControleurDashboard.vue'
-          ),
+          import('../views/dashboards/ControleurDashboard.vue'),
         meta: {
-          roles: [
-            'CONTROLEUR',
-          ] satisfies UserRole[],
+          roles: ['CONTROLEUR'] satisfies UserRole[],
         },
       },
-
-      // ========================================================================
-      // DASHBOARD RESPONSABLE DE GARE
-      // ========================================================================
-
       {
         path: 'responsable-gare/dashboard',
         name: 'responsable-gare-dashboard',
         component: () =>
-          import(
-            '../views/dashboards/ResponsableGareDashboard.vue'
-          ),
+          import('../views/dashboards/ResponsableGareDashboard.vue'),
         meta: {
-          roles: [
-            'RESPONSABLE_GARE',
-          ] satisfies UserRole[],
+          roles: ['RESPONSABLE_GARE'] satisfies UserRole[],
         },
       },
-
-      // ========================================================================
-      // DASHBOARD AUTORITÉ HABILITÉE
-      // ========================================================================
-
       {
         path: 'autorite/dashboard',
         name: 'autorite-dashboard',
-        component: () =>
-          import(
-            '../views/dashboards/AutoriteDashboard.vue'
-          ),
+        component: () => import('../views/dashboards/AutoriteDashboard.vue'),
         meta: {
-          roles: [
-            'AUTORITE_HABILITEE',
-          ] satisfies UserRole[],
+          roles: ['AUTORITE_HABILITEE'] satisfies UserRole[],
         },
       },
     ],
   },
 
-  // ==========================================================================
-  // NON AUTORISÉ
-  // ==========================================================================
-
+  // ============================================================
+  // ACCÈS NON AUTORISÉ
+  // ============================================================
   {
     path: '/unauthorized',
     name: 'unauthorized',
-    component: () =>
-      import(
-        '../views/UnauthorizedView.vue'
-      ),
+    component: () => import('../views/UnauthorizedView.vue'),
     meta: {
       public: true,
     },
   },
 
-  // ==========================================================================
+  // ============================================================
   // PAGE 404
-  // ==========================================================================
-
+  // ============================================================
   {
     path: '/:pathMatch(.*)*',
     name: 'not-found',
-    component: () =>
-      import(
-        '../views/NotFoundView.vue'
-      ),
+    component: () => import('../views/NotFoundView.vue'),
     meta: {
       public: true,
     },
   },
 ];
 
-/**
- * ============================================================================
- * ROUTEUR
- * ============================================================================
- */
-
+// ============================================================
+// CRÉATION DU ROUTEUR
+// ============================================================
 const router = createRouter({
-  history: createWebHistory(
-    import.meta.env.BASE_URL,
-  ),
-
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes,
-
   scrollBehavior() {
     return {
       top: 0,
@@ -542,99 +390,53 @@ const router = createRouter({
   },
 });
 
-/**
- * ============================================================================
- * DASHBOARD PAR RÔLE
- * ============================================================================
- */
-
-function getDashboardRoute(
-  role: UserRole | null,
-): RouteLocationRaw {
+// ============================================================
+// REDIRECTION VERS LE DASHBOARD SELON LE RÔLE
+// ============================================================
+function getDashboardRoute(role: UserRole | null): RouteLocationRaw {
   switch (role) {
     case 'ADMIN':
-      return {
-        name: 'admin-dashboard',
-      };
+      return { name: 'admin-dashboard' };
 
     case 'AGENT':
-      return {
-        name: 'agent-dashboard',
-      };
+      return { name: 'agent-dashboard' };
 
     case 'CONTROLEUR':
-      return {
-        name: 'controleur-dashboard',
-      };
+      return { name: 'controleur-dashboard' };
 
     case 'RESPONSABLE_GARE':
-      return {
-        name: 'responsable-gare-dashboard',
-      };
+      return { name: 'responsable-gare-dashboard' };
 
     case 'AUTORITE_HABILITEE':
-      return {
-        name: 'autorite-dashboard',
-      };
+      return { name: 'autorite-dashboard' };
 
     default:
-      return {
-        name: 'unauthorized',
-      };
+      return { name: 'unauthorized' };
   }
 }
 
-/**
- * ============================================================================
- * GUARD GLOBAL
- * ============================================================================
- *
- * Responsabilités :
- *
- * 1. Restaurer la session depuis localStorage.
- * 2. Bloquer les routes protégées sans authentification.
- * 3. Rediriger un utilisateur déjà connecté qui visite /login.
- * 4. Vérifier le rôle requis par la route.
- *
- * La vérification des permissions métier reste côté backend.
- */
-
+// ============================================================
+// GARDE GLOBAL : SESSION ET AUTORISATION PAR RÔLE
+// ============================================================
 router.beforeEach((to) => {
   const authStore = useAuthStore();
 
-  // ==========================================================================
-  // 1. RESTAURATION DE SESSION
-  // ==========================================================================
-
+  // Restaurer la session si elle n'est pas déjà en mémoire.
   if (!authStore.isAuthenticated) {
     authStore.restoreSession();
   }
 
-  // ==========================================================================
-  // 2. ROUTE PUBLIQUE
-  // ==========================================================================
-
+  // Routes publiques.
   if (to.meta.public) {
-    if (
-      to.name === 'login' &&
-      authStore.isAuthenticated
-    ) {
-      return getDashboardRoute(
-        authStore.role,
-      );
+    if (to.name === 'login' && authStore.isAuthenticated) {
+      return getDashboardRoute(authStore.role);
     }
 
     return true;
   }
 
-  // ==========================================================================
-  // 3. AUTHENTIFICATION REQUISE
-  // ==========================================================================
-
-  if (
-    to.meta.requiresAuth &&
-    !authStore.isAuthenticated
-  ) {
+  // Authentification obligatoire.
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     return {
       name: 'login',
       query: {
@@ -643,34 +445,16 @@ router.beforeEach((to) => {
     };
   }
 
-  // ==========================================================================
-  // 4. AUTORISATION PAR RÔLE
-  // ==========================================================================
-
-  const allowedRoles =
-    to.meta.roles as
-      | UserRole[]
-      | undefined;
+  // Vérification du rôle requis par la route.
+  const allowedRoles = to.meta.roles as UserRole[] | undefined;
 
   if (allowedRoles) {
-    const currentRole =
-      authStore.role;
+    const currentRole = authStore.role;
 
-    if (
-      !currentRole ||
-      !allowedRoles.includes(
-        currentRole,
-      )
-    ) {
-      return {
-        name: 'unauthorized',
-      };
+    if (!currentRole || !allowedRoles.includes(currentRole)) {
+      return { name: 'unauthorized' };
     }
   }
-
-  // ==========================================================================
-  // 5. ROUTE AUTORISÉE
-  // ==========================================================================
 
   return true;
 });

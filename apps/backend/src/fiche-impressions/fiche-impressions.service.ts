@@ -1,10 +1,14 @@
+
 import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import {
+  EntityManager,
+  Repository,
+} from 'typeorm';
 
 import { FicheImpression } from './entities/fiche-impression.entity';
 import { CreateFicheImpressionDto } from './dto/create-fiche-impression.dto';
@@ -28,8 +32,17 @@ export class FicheImpressionsService {
   async create(
     createDto: CreateFicheImpressionDto,
     imprimeurId: number,
+    manager?: EntityManager,
   ): Promise<FicheImpression> {
-    const fiche = await this.ficheRepository.findOne({
+    const ficheRepository = manager
+      ? manager.getRepository(Fiche)
+      : this.ficheRepository;
+
+    const impressionRepository = manager
+      ? manager.getRepository(FicheImpression)
+      : this.ficheImpressionRepository;
+
+    const fiche = await ficheRepository.findOne({
       where: {
         id: createDto.ficheId,
       },
@@ -41,19 +54,16 @@ export class FicheImpressionsService {
       );
     }
 
-    const impression =
-      this.ficheImpressionRepository.create({
-        ficheId: createDto.ficheId,
-        imprimeurId,
-        numeroExemplaire:
-          createDto.numeroExemplaire ?? 1,
-        motifReimpression:
-          createDto.motifReimpression ?? null,
-      });
+    const impression = impressionRepository.create({
+      ficheId: createDto.ficheId,
+      imprimeurId,
+      numeroExemplaire:
+        createDto.numeroExemplaire ?? 1,
+      motifReimpression:
+        createDto.motifReimpression ?? null,
+    });
 
-    return this.ficheImpressionRepository.save(
-      impression,
-    );
+    return impressionRepository.save(impression);
   }
 
   // =====================================================

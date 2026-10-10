@@ -112,3 +112,39 @@ export async function deleteFiche(
 ): Promise<void> {
   await api.delete(`/api/fiches/${id}`);
 }
+export interface FichePassagerDetail {
+  ficheId: string;
+  passagerId: string;
+  numeroPlace: number | null;
+  passager: {
+    id: string;
+    nom: string;
+    prenom: string;
+    numeroCni: string;
+  };
+}
+
+export async function getPassagersFiche(
+  ficheId: string,
+): Promise<FichePassagerDetail[]> {
+  const response = await api.get<FichePassagerDetail[]>(
+    `/api/fiche-passagers/fiche/${ficheId}`,
+  );
+
+  return response.data;
+}
+
+export interface CreateFichePassagerPayload {
+  ficheId: string;
+  passagerId: string;
+  numeroPlace?: number;
+}
+
+export async function associerPassagerAFiche(
+  payload: CreateFichePassagerPayload,
+): Promise<void> {
+  await api.post(
+    '/api/fiche-passagers',
+    payload,
+  );
+}

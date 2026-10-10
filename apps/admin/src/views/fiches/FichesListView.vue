@@ -1,11 +1,25 @@
+
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
+
+import { useAuthStore } from '../../auth/auth.store';
 import { getFiches } from '../../api/fiche.api';
+import { getApiErrorMessage } from '../../api/api-error';
 import type { Fiche } from '../../types/fiche.types';
+
+const router = useRouter();
+const authStore = useAuthStore();
 
 const fiches = ref<Fiche[]>([]);
 const loading = ref(false);
 const errorMessage = ref('');
+
+const canCreateFiche = computed(() =>
+  ['ADMIN', 'RESPONSABLE_GARE', 'CONTROLEUR', 'AGENT'].includes(
+    authStore.role ?? '',
+  ),
+);
 
 const statusLabels: Record<string, string> = {
   BROUILLON: 'Brouillon',
@@ -34,7 +48,7 @@ function formatDate(value: string | null | undefined): string {
   }).format(date);
 }
 
-async function loadFiches() {
+async function loadFiches(): Promise<void> {
   loading.value = true;
   errorMessage.value = '';
 
@@ -42,12 +56,26 @@ async function loadFiches() {
     fiches.value = await getFiches();
   } catch (error: unknown) {
     console.error('Erreur de chargement des fiches', error);
-
-    errorMessage.value =
-      'Impossible de charger les fiches. Vérifie ta session, tes permissions et la disponibilité de l’API.';
+    errorMessage.value = getApiErrorMessage(error);
   } finally {
     loading.value = false;
   }
+}
+
+function createNewFiche(): void {
+  if (!canCreateFiche.value) {
+    router.push({ name: 'unauthorized' });
+    return;
+  }
+
+  router.push({ name: 'fiche-create' });
+}
+
+function openFicheDetail(id: string): void {
+  router.push({
+    name: 'fiche-detail',
+    params: { id },
+  });
 }
 
 onMounted(loadFiches);
@@ -64,14 +92,26 @@ onMounted(loadFiches);
         </p>
       </div>
 
-      <button
-        type="button"
-        class="refresh-button"
-        :disabled="loading"
-        @click="loadFiches"
-      >
-        {{ loading ? 'Chargement…' : 'Actualiser' }}
-      </button>
+      <div class="header-actions">
+        <button
+          v-if="canCreateFiche"
+          type="button"
+          class="create-button"
+          @click="createNewFiche"
+        >
+          <span aria-hidden="true">+</span>
+          Nouvelle fiche
+        </button>
+
+        <button
+          type="button"
+          class="refresh-button"
+          :disabled="loading"
+          @click="loadFiches"
+        >
+          {{ loading ? 'Chargement…' : 'Actualiser' }}
+        </button>
+      </div>
     </header>
 
     <div class="summary">
@@ -79,13 +119,13 @@ onMounted(loadFiches);
       <strong>{{ fiches.length }}</strong>
     </div>
 
-    <p v-if="loading" class="message">
+    <p v-if="loading" class="message" role="status">
       Chargement des fiches…
     </p>
 
     <div v-else-if="errorMessage" class="error-message" role="alert">
       <p>{{ errorMessage }}</p>
-      <button type="button" @click="loadFiches">
+      <button type="button" :disabled="loading" @click="loadFiches">
         Réessayer
       </button>
     </div>
@@ -95,6 +135,15 @@ onMounted(loadFiches);
       <p>
         Aucune fiche n’a été renvoyée par l’API pour cette session.
       </p>
+
+      <button
+        v-if="canCreateFiche"
+        type="button"
+        class="create-button"
+        @click="createNewFiche"
+      >
+        Créer la première fiche
+      </button>
     </div>
 
     <div v-else class="table-container">
@@ -108,19 +157,26 @@ onMounted(loadFiches);
             <th>Destination</th>
             <th>Création</th>
             <th>Statut</th>
+            <th>Actions</th>
           </tr>
         </thead>
 
         <tbody>
           <tr v-for="fiche in fiches" :key="fiche.id">
-            <td class="reference">{{ fiche.reference }}</td>
-
-            <td>
-              {{ fiche.gare?.nomGare ?? fiche.gareId }}
+            <td class="reference">
+              {{ fiche.reference }}
             </td>
 
             <td>
-              {{ fiche.vehicule?.immatriculation ?? fiche.vehiculeId }}
+              {{ fiche.gare?.nomGare ?? fiche.gare?.nom ?? fiche.gareId }}
+            </td>
+
+            <td>
+              {{
+                fiche.vehicule?.immatriculation
+                  ?? fiche.vehicule?.reference
+                  ?? fiche.vehiculeId
+              }}
             </td>
 
             <td>
@@ -132,15 +188,32 @@ onMounted(loadFiches);
             </td>
 
             <td>
-              {{ fiche.destination?.libelle ?? fiche.destinationId }}
+              {{
+                fiche.destination?.nom
+                  ?? fiche.destination?.libelle
+                  ?? fiche.destinationId
+              }}
             </td>
 
-            <td>{{ formatDate(fiche.dateCreation) }}</td>
+            <td>
+              {{ formatDate(fiche.dateCreation) }}
+            </td>
 
             <td>
               <span class="status">
                 {{ statusLabels[fiche.statut] ?? fiche.statut }}
               </span>
+            </td>
+
+            <td>
+              <button
+                type="button"
+                class="detail-button"
+                :aria-label="`Voir les détails de la fiche ${fiche.reference}`"
+                @click="openFicheDetail(fiche.id)"
+              >
+                Voir / Imprimer
+              </button>
             </td>
           </tr>
         </tbody>
@@ -164,6 +237,13 @@ onMounted(loadFiches);
   gap: 16px;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .eyebrow {
   margin: 0 0 6px;
   color: #2563eb;
@@ -182,17 +262,36 @@ h1 {
   color: #6b7280;
 }
 
+.create-button,
 .refresh-button,
 .error-message button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   padding: 10px 16px;
   border: 0;
   border-radius: 8px;
-  background: #2563eb;
   color: white;
   cursor: pointer;
+  font: inherit;
 }
 
-.refresh-button:disabled {
+.create-button {
+  background: #15803d;
+}
+
+.create-button:hover {
+  background: #166534;
+}
+
+.refresh-button,
+.error-message button {
+  background: #2563eb;
+}
+
+.refresh-button:disabled,
+.error-message button:disabled {
   opacity: 0.6;
   cursor: wait;
 }
@@ -229,6 +328,18 @@ h1 {
   color: #991b1b;
 }
 
+.error-message button {
+  margin-top: 8px;
+}
+
+.empty-state h2 {
+  margin-top: 0;
+}
+
+.empty-state p {
+  color: #6b7280;
+}
+
 .table-container {
   overflow-x: auto;
   border: 1px solid #e5e7eb;
@@ -260,6 +371,10 @@ td {
   font-size: 13px;
 }
 
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
 .reference {
   font-weight: 700;
 }
@@ -273,9 +388,39 @@ td {
   font-size: 12px;
 }
 
+.detail-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: 7px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.detail-button:hover {
+  background: #dbeafe;
+}
+
+.detail-button:focus-visible,
+.create-button:focus-visible,
+.refresh-button:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
 @media (max-width: 640px) {
   .page-header {
     flex-direction: column;
+  }
+
+  .header-actions {
+    width: 100%;
   }
 }
 </style>

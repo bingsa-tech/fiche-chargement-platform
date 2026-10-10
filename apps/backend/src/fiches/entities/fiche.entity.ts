@@ -36,7 +36,13 @@ export class Fiche {
     unique: true,
   })
   reference!: string;
-
+ @Column({
+    type: 'varchar',
+    length: 6,
+    name: 'numero_bordereau',
+    unique: true,
+  })
+  numeroBordereau!: string;
   @Column('uuid', { name: 'gare_id' })
   gareId!: string;
 

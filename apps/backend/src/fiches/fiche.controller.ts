@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 
@@ -22,11 +23,12 @@ import {
 import { FicheService } from './fiche.service';
 import { CreateFicheDto } from './dto/create-fiche.dto';
 import { UpdateFicheDto } from './dto/update-fiche.dto';
-
+import { ImprimerFicheDto } from '../fiche-impressions/dto/imprimer-fiche.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permission } from '../auth/decorators/permission.decorator';
-
+import { Response } from 'express';
+import { BordereauPdfService } from '../fiche-impressions/bordereau-pdf.service';
 import {
   PERMISSION_ACTIONS,
   PERMISSION_RESOURCES,
@@ -39,6 +41,7 @@ import {
 export class FicheController {
   constructor(
     private readonly ficheService: FicheService,
+    private readonly bordereauPdfService: BordereauPdfService,
   ) {}
 
   // =====================================================
@@ -336,13 +339,14 @@ export class FicheController {
   // FINALISEE → IMPRIMEE
   // =====================================================
 
+  
   @Post(':id/imprimer')
   @Permission(
     PERMISSION_RESOURCES.FICHES,
     PERMISSION_ACTIONS.UPDATE,
   )
   @ApiOperation({
-    summary: 'Imprimer une fiche',
+    summary: 'Imprimer le bordereau de route officiel en PDF',
   })
   @ApiParam({
     name: 'id',
@@ -350,31 +354,72 @@ export class FicheController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Fiche imprimée avec succès',
+    description: 'Bordereau PDF généré et impression enregistrée',
+    content: {
+      'application/pdf': {},
+    },
   })
   @ApiResponse({
     status: 400,
-    description: 'La fiche ne peut pas être imprimée dans son état actuel',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Utilisateur non authentifié',
+    description: 'Statut invalide ou motif de réimpression manquant',
   })
   @ApiResponse({
     status: 403,
     description: 'Permission insuffisante ou accès à la gare refusé',
   })
-  @ApiResponse({
-    status: 404,
-    description: 'Fiche introuvable',
-  })
-  imprimer(
+  async imprimer(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Req() request: any,
-  ) {
-    return this.ficheService.imprimer(
+    @Body() dto: ImprimerFicheDto,
+    @Res() response: Response,
+  ): Promise<void> {
+    const fiche = await this.ficheService.imprimer(
+      id,
+      request.user,
+      dto,
+    );
+
+    const pdf = this.bordereauPdfService.generer(fiche);
+
+    response.setHeader('Content-Type', 'application/pdf');
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="bordereau-${fiche.numeroBordereau}-exemplaire.pdf"`,
+    );
+
+    pdf.pipe(response);
+    pdf.end();
+  }
+
+  
+  @Get(':id/bordereau-pdf')
+  @Permission(
+    PERMISSION_RESOURCES.FICHES,
+    PERMISSION_ACTIONS.READ,
+  )
+  @ApiOperation({
+    summary: 'Télécharger le bordereau de route en PDF',
+  })
+  async telechargerBordereauPdf(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Req() request: any,
+    @Res() response: Response,
+  ): Promise<void> {
+    const fiche = await this.ficheService.findOne(
       id,
       request.user,
     );
+
+    const pdf = this.bordereauPdfService.generer(fiche);
+
+    response.setHeader('Content-Type', 'application/pdf');
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="bordereau-${fiche.numeroBordereau}.pdf"`,
+    );
+
+    pdf.pipe(response);
+    pdf.end();
   }
+
 }

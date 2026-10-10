@@ -12,19 +12,19 @@ import { FichePassager } from '../../fiche-passagers/entities/fiche-passager.ent
 @Entity('passager', { schema: 'public' })
 export class Passager {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({
     type: 'varchar',
     length: 100,
   })
-  nom: string;
+  nom!: string;
 
   @Column({
     type: 'varchar',
     length: 100,
   })
-  prenom: string;
+  prenom!: string;
 
   @Column({
     type: 'varchar',
@@ -32,25 +32,31 @@ export class Passager {
     unique: true,
     name: 'numero_cni',
   })
-  numeroCni: string;
+  numeroCni!: string;
+  @Column({
+  type: 'varchar',
+  length: 30,
+  nullable: true,
+})
+telephone!: string | null;
 
   @CreateDateColumn({
     name: 'created_at',
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
   })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({
     name: 'updated_at',
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
   })
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @OneToMany(
     () => FichePassager,
     (fichePassager) => fichePassager.passager,
   )
-  fichePassagers: FichePassager[];
+  fichePassagers!: FichePassager[];
 }
