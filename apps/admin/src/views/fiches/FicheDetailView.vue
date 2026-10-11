@@ -374,7 +374,7 @@ onMounted(chargerFiche);
         </div>
 
         <div v-if="addingPassenger" class="passenger-form no-print">
-          <h3>Nouveau passager</h3>
+          <h3>Ajouter un passager</h3>
           <p
             v-if="passagerEnAttenteAssociation"
             class="warning-message"

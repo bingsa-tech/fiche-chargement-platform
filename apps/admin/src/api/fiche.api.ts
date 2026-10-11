@@ -140,8 +140,8 @@ export async function getPassagersFiche(
 export interface CreateFichePassagerPayload {
   ficheId: string;
   passagerId: string;
-  numeroPlace?: number | string;
-  tarif?: number | string;
+  numeroPlace?: number;
+  tarif?: number ;
   observations?: string;
 }
 
