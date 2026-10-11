@@ -1,8 +1,6 @@
-
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-
 import { getApiErrorMessage } from '../../api/api-error';
 import {
   getFiche,
@@ -10,60 +8,77 @@ import {
   associerPassagerAFiche,
 } from '../../api/fiche.api';
 import { createPassager } from '../../api/passagers.api';
-
 import type { Fiche } from '../../types/fiche.types';
 import type { FichePassagerDetail } from '../../api/fiche.api';
 import type { Passager } from '../../api/passagers.api';
 
 const route = useRoute();
 const router = useRouter();
-
 const fiche = ref<Fiche | null>(null);
 const passagers = ref<FichePassagerDetail[]>([]);
-
 const loading = ref(true);
 const saving = ref(false);
 const addingPassenger = ref(false);
-
 const errorMessage = ref('');
 const successMessage = ref('');
 const associationWarning = ref('');
-
 const ficheId = computed(() => String(route.params.id ?? ''));
 
 const nouveauPassager = reactive({
   nom: '',
   prenom: '',
   numeroCni: '',
+  telephone: '',
   numeroPlace: '',
+  tarif: '',
+  observations: '',
 });
 
-// Permet de réessayer l'association sans recréer le passager
-// si le premier appel API a réussi mais que le second a échoué.
+/**
+ * Si la création du passager réussit mais que son association échoue,
+ * on conserve le passager pour éviter de le créer deux fois.
+ */
 const passagerEnAttenteAssociation = ref<Passager | null>(null);
 
 const dateCreation = computed(() => {
   if (!fiche.value?.dateCreation) return '—';
-
-  return new Date(fiche.value.dateCreation).toLocaleString('fr-CA');
+  const date = new Date(fiche.value.dateCreation);
+  return Number.isNaN(date.getTime())
+    ? '—'
+    : date.toLocaleString('fr-CA');
 });
+
+const totalTarifs = computed(() =>
+  passagers.value?.reduce(
+    (total, item) => total + Number(item.tarif ?? 0),
+    0,
+  ),
+);
+
+function formaterTarif(tarif: string | number | null | undefined): string {
+  if (tarif === null || tarif === undefined || tarif === '') {
+    return '—';
+  }
+  const valeur = Number(tarif);
+  if (!Number.isFinite(valeur)) return '—';
+  return valeur.toLocaleString('fr-FR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+}
 
 async function chargerFiche() {
   loading.value = true;
   errorMessage.value = '';
-
   try {
     const id = ficheId.value;
-
     if (!id) {
       throw new Error('Identifiant de fiche manquant.');
     }
-
     const [ficheChargee, passagersCharges] = await Promise.all([
       getFiche(id),
       getPassagersFiche(id),
     ]);
-
     fiche.value = ficheChargee;
     passagers.value = passagersCharges;
   } catch (error: unknown) {
@@ -80,30 +95,32 @@ function ouvrirSaisiePassager() {
   addingPassenger.value = true;
 }
 
-function annulerSaisiePassager() {
-  if (saving.value) return;
-
-  // Si un passager a déjà été créé, conserver la saisie
-  // pour permettre de réessayer son association.
-  if (passagerEnAttenteAssociation.value) {
-    associationWarning.value =
-      'Un passager a déjà été créé et reste à associer à cette fiche.';
-    return;
-  }
-
+function reinitialiserFormulaire() {
   nouveauPassager.nom = '';
   nouveauPassager.prenom = '';
   nouveauPassager.numeroCni = '';
+  nouveauPassager.telephone = '';
   nouveauPassager.numeroPlace = '';
+  nouveauPassager.tarif = '';
+  nouveauPassager.observations = '';
+}
 
+function annulerSaisiePassager() {
+  if (saving.value) return;
+  if (passagerEnAttenteAssociation.value) {
+    associationWarning.value =
+      'Le passager a déjà été créé, mais son association à cette fiche reste à effectuer. ' +
+      'Réessayez l’enregistrement pour terminer l’association.';
+    return;
+  }
+  reinitialiserFormulaire();
   addingPassenger.value = false;
   errorMessage.value = '';
   associationWarning.value = '';
 }
 
-async function enregistrerPassager() {
+async function enregistrerPassager(): Promise<void> {
   if (saving.value) return;
-
   errorMessage.value = '';
   successMessage.value = '';
   associationWarning.value = '';
@@ -111,19 +128,36 @@ async function enregistrerPassager() {
   const nom = nouveauPassager.nom.trim();
   const prenom = nouveauPassager.prenom.trim();
   const numeroCni = nouveauPassager.numeroCni.trim();
-  const placeSaisie = nouveauPassager.numeroPlace.trim();
+  const telephone = nouveauPassager.telephone.trim();
+  
+  // Correction sécurisée pour éviter l'erreur .trim() is not a function
 
+const placeSaisie = String(nouveauPassager.numeroPlace ?? '').trim();
+const tarifSaisi = String(nouveauPassager.tarif ?? '').trim();
+
+  const observations = nouveauPassager.observations.trim();
+
+  // 1. Vérifier les champs obligatoires.
   if (!nom || !prenom || !numeroCni) {
     errorMessage.value =
       'Le nom, le prénom et le numéro de CNI sont obligatoires.';
     return;
   }
+  if (telephone.length > 30) {
+    errorMessage.value =
+      'Le numéro de téléphone ne doit pas dépasser 30 caractères.';
+    return;
+  }
+  if (observations.length > 1000) {
+    errorMessage.value =
+      'Les observations ne doivent pas dépasser 1 000 caractères.';
+    return;
+  }
 
+  // 2. Valider le numéro de place.
   let numeroPlace: number | undefined;
-
   if (placeSaisie !== '') {
     numeroPlace = Number(placeSaisie);
-
     if (!Number.isInteger(numeroPlace) || numeroPlace < 1) {
       errorMessage.value =
         'Le numéro de place doit être un entier supérieur ou égal à 1.';
@@ -131,53 +165,69 @@ async function enregistrerPassager() {
     }
   }
 
-  if (!ficheId.value) {
-    errorMessage.value = 'Identifiant de fiche manquant.';
+  // 3. Valider le tarif.
+  let tarif: number | undefined;
+  if (tarifSaisi !== '') {
+    tarif = Number(tarifSaisi);
+    if (!Number.isFinite(tarif) || tarif < 0) {
+      errorMessage.value =
+        'Le tarif doit être un nombre positif ou égal à zéro.';
+      return;
+    }
+    if (Math.round(tarif * 100) !== tarif * 100) {
+      errorMessage.value =
+        'Le tarif ne peut pas comporter plus de deux décimales.';
+      return;
+    }
+  }
+
+  // 4. Vérifier l'identifiant de la fiche.
+  if (!ficheId.value || ficheId.value === 'undefined') {
+    errorMessage.value =
+      'Identifiant de fiche manquant. Vérifie l’URL de la fiche.';
     return;
   }
 
   saving.value = true;
-
   try {
-    // Étape 1 : créer le passager si cela n'a pas déjà réussi.
     let passager = passagerEnAttenteAssociation.value;
-
     if (!passager) {
       passager = await createPassager({
         nom,
         prenom,
         numeroCni,
+        ...(telephone ? { telephone } : {}),
       });
-
       passagerEnAttenteAssociation.value = passager;
     }
 
-    // Étape 2 : associer le passager à la fiche.
     await associerPassagerAFiche({
       ficheId: ficheId.value,
       passagerId: passager.id,
       ...(numeroPlace !== undefined ? { numeroPlace } : {}),
+      ...(tarif !== undefined ? { tarif } : {}),
+      ...(observations ? { observations } : {}),
     });
 
-    // Étape 3 : recharger les données enregistrées.
-    passagers.value = await getPassagersFiche(ficheId.value);
-
     passagerEnAttenteAssociation.value = null;
-
-    nouveauPassager.nom = '';
-    nouveauPassager.prenom = '';
-    nouveauPassager.numeroCni = '';
-    nouveauPassager.numeroPlace = '';
-
+    reinitialiserFormulaire();
     addingPassenger.value = false;
-    successMessage.value = 'Le passager a été enregistré et associé à la fiche.';
+    successMessage.value =
+      'Le passager et les informations de son trajet ont été enregistrés.';
+
+    try {
+      passagers.value = await getPassagersFiche(ficheId.value);
+    } catch {
+      errorMessage.value =
+        'Le passager a été enregistré, mais la liste n’a pas pu être actualisée. ' +
+        'Recharge la fiche pour vérifier les données.';
+    }
   } catch (error: unknown) {
     if (passagerEnAttenteAssociation.value) {
       associationWarning.value =
         'Le passager a été créé, mais son association à la fiche a échoué. ' +
-        'Vérifiez l’erreur puis réessayez : le passager ne sera pas créé une seconde fois.';
+        'Réessaie pour terminer l’association sans recréer le passager.';
     }
-
     errorMessage.value = getApiErrorMessage(error);
   } finally {
     saving.value = false;
@@ -196,14 +246,15 @@ onMounted(chargerFiche);
     <div class="actions no-print">
       <button
         class="btn-secondary"
+        type="button"
         @click="router.push({ name: 'fiches' })"
       >
         ← Retour aux fiches
       </button>
-
       <button
         v-if="fiche"
         class="btn-primary"
+        type="button"
         @click="imprimerPdf"
       >
         Imprimer / Enregistrer en PDF
@@ -213,28 +264,28 @@ onMounted(chargerFiche);
     <div v-if="loading" class="message">
       Chargement de la fiche…
     </div>
-
     <div v-else-if="errorMessage && !fiche" class="error-message no-print">
       <p>{{ errorMessage }}</p>
-      <button class="btn-secondary" @click="chargerFiche">
+      <button
+        class="btn-secondary"
+        type="button"
+        @click="chargerFiche"
+      >
         Réessayer
       </button>
     </div>
 
     <article v-else-if="fiche" class="fiche-document">
-      <!-- En-tête administratif provisoire -->
       <header class="administrative-header">
         <div class="logo-placeholder" aria-label="Emplacement du logo">
           LOGO
           <small>À insérer</small>
         </div>
-
         <div class="administration-title">
           <p class="administration-name">ADMINISTRATION COMPÉTENTE</p>
           <p>SERVICE / DÉLÉGATION : À COMPLÉTER</p>
           <p class="document-subtitle">DOCUMENT ADMINISTRATIF</p>
         </div>
-
         <div class="document-reference">
           <span>Référence</span>
           <strong>{{ fiche.reference }}</strong>
@@ -250,18 +301,15 @@ onMounted(chargerFiche);
       <div v-if="successMessage" class="success-message no-print">
         {{ successMessage }}
       </div>
-
       <div v-if="errorMessage && fiche" class="error-message no-print">
         {{ errorMessage }}
       </div>
-
       <div v-if="associationWarning" class="warning-message no-print">
         {{ associationWarning }}
       </div>
 
       <section class="section">
         <h2>1. Informations générales</h2>
-
         <div class="info-grid">
           <div>
             <span class="field-label">Gare</span>
@@ -269,17 +317,14 @@ onMounted(chargerFiche);
               {{ fiche.gare?.nomGare ?? fiche.gare?.nom ?? '—' }}
             </strong>
           </div>
-
           <div>
             <span class="field-label">Date de création</span>
             <strong>{{ dateCreation }}</strong>
           </div>
-
           <div>
             <span class="field-label">Statut</span>
             <strong>{{ fiche.statut }}</strong>
           </div>
-
           <div>
             <span class="field-label">Destination</span>
             <strong>{{ fiche.destination?.nom ?? '—' }}</strong>
@@ -289,7 +334,6 @@ onMounted(chargerFiche);
 
       <section class="section">
         <h2>2. Véhicule et chauffeur</h2>
-
         <div class="info-grid">
           <div>
             <span class="field-label">Immatriculation</span>
@@ -297,7 +341,6 @@ onMounted(chargerFiche);
               {{ fiche.vehicule?.immatriculation ?? '—' }}
             </strong>
           </div>
-
           <div>
             <span class="field-label">Chauffeur</span>
             <strong>
@@ -308,7 +351,6 @@ onMounted(chargerFiche);
               }}
             </strong>
           </div>
-
           <div>
             <span class="field-label">Itinéraire</span>
             <strong>
@@ -321,10 +363,10 @@ onMounted(chargerFiche);
       <section class="section passengers-section">
         <div class="section-heading">
           <h2>3. Liste des passagers</h2>
-
           <button
             v-if="!addingPassenger"
             class="btn-primary no-print"
+            type="button"
             @click="ouvrirSaisiePassager"
           >
             + Ajouter un passager
@@ -333,11 +375,12 @@ onMounted(chargerFiche);
 
         <div v-if="addingPassenger" class="passenger-form no-print">
           <h3>Nouveau passager</h3>
-
-          <p v-if="passagerEnAttenteAssociation" class="warning-message">
-            Le passager a déjà été créé. Réessayez son association à la fiche.
+          <p
+            v-if="passagerEnAttenteAssociation"
+            class="warning-message"
+          >
+            Le passager existe déjà. Réessayez son association à la fiche.
           </p>
-
           <div class="form-grid">
             <label>
               Nom *
@@ -350,7 +393,6 @@ onMounted(chargerFiche);
                 required
               />
             </label>
-
             <label>
               Prénom *
               <input
@@ -362,7 +404,6 @@ onMounted(chargerFiche);
                 required
               />
             </label>
-
             <label>
               Numéro de CNI *
               <input
@@ -373,7 +414,17 @@ onMounted(chargerFiche);
                 required
               />
             </label>
-
+            <label>
+              Téléphone
+              <input
+                v-model="nouveauPassager.telephone"
+                type="tel"
+                maxlength="30"
+                autocomplete="tel"
+                placeholder="Numéro de téléphone"
+                :disabled="saving || !!passagerEnAttenteAssociation"
+              />
+            </label>
             <label>
               Numéro de place
               <input
@@ -385,19 +436,40 @@ onMounted(chargerFiche);
                 :disabled="saving"
               />
             </label>
+            <label>
+              Tarif (FCFA)
+              <input
+                v-model="nouveauPassager.tarif"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Prix du trajet"
+                :disabled="saving"
+              />
+            </label>
+            <label class="observations-field">
+              Observations
+              <textarea
+                v-model="nouveauPassager.observations"
+                maxlength="1000"
+                rows="3"
+                placeholder="Remarques éventuelles"
+                :disabled="saving"
+              ></textarea>
+            </label>
           </div>
-
           <div class="form-actions">
             <button
               class="btn-primary"
+              type="button"
               :disabled="saving"
               @click="enregistrerPassager"
             >
               {{ saving ? 'Enregistrement…' : 'Enregistrer le passager' }}
             </button>
-
             <button
               class="btn-secondary"
+              type="button"
               :disabled="saving"
               @click="annulerSaisiePassager"
             >
@@ -415,9 +487,11 @@ onMounted(chargerFiche);
                 <th>Prénom</th>
                 <th>N° de place</th>
                 <th>N° CNI</th>
+                <th>Téléphone</th>
+                <th>Tarif (FCFA)</th>
+                <th>Observations</th>
               </tr>
             </thead>
-
             <tbody>
               <tr
                 v-for="(item, index) in passagers"
@@ -428,14 +502,29 @@ onMounted(chargerFiche);
                 <td>{{ item.passager?.prenom ?? '—' }}</td>
                 <td>{{ item.numeroPlace ?? '—' }}</td>
                 <td>{{ item.passager?.numeroCni ?? '—' }}</td>
+                <td>{{ item.passager?.telephone || '—' }}</td>
+                <td>{{ formaterTarif(item.tarif) }}</td>
+                <td class="observations-cell">
+                  {{ item.observations || '—' }}
+                </td>
               </tr>
-
               <tr v-if="passagers.length === 0">
-                <td colspan="5" class="empty-row">
+                <td colspan="8" class="empty-row">
                   Aucun passager associé à cette fiche.
                 </td>
               </tr>
             </tbody>
+            <tfoot v-if="passagers.length > 0">
+              <tr>
+                <td colspan="6" class="total-label">
+                  TOTAL DES TARIFS
+                </td>
+                <td class="total-value">
+                  {{ formaterTarif(totalTarifs) }}
+                </td>
+                <td>FCFA</td>
+              </tr>
+            </tfoot>
           </table>
         </div>
 
@@ -443,19 +532,22 @@ onMounted(chargerFiche);
           Nombre total de passagers :
           <strong>{{ passagers.length }}</strong>
         </p>
+        <p class="passager-count">
+          Total des tarifs :
+          <strong>{{ formaterTarif(totalTarifs) }} FCFA</strong>
+        </p>
       </section>
 
       <footer class="document-footer">
         <div>
           <p>Signature du responsable</p>
           <div class="signature-line"></div>
-          <p class="signature-name">Nom et qualité : __________________</p>
+          <p class="signature-name">Nom et qualité :</p>
         </div>
-
         <div>
           <p>Signature du chauffeur</p>
           <div class="signature-line"></div>
-          <p class="signature-name">Nom : __________________________</p>
+          <p class="signature-name">Nom :</p>
         </div>
       </footer>
 
@@ -468,7 +560,7 @@ onMounted(chargerFiche);
 
 <style scoped>
 .detail-page {
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 24px;
   color: #1f2937;
@@ -545,7 +637,6 @@ button:disabled {
   border-radius: 8px;
 }
 
-/* En-tête administratif : mentions à confirmer */
 .administrative-header {
   display: grid;
   grid-template-columns: 100px minmax(0, 1fr) 180px;
@@ -584,8 +675,8 @@ button:disabled {
 }
 
 .administration-name {
-  font-weight: 800;
   font-size: 13px;
+  font-weight: 800;
 }
 
 .document-subtitle {
@@ -680,7 +771,8 @@ button:disabled {
   font-weight: 600;
 }
 
-.form-grid input {
+.form-grid input,
+.form-grid textarea {
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
@@ -691,6 +783,14 @@ button:disabled {
   color: #1f2937;
   font: inherit;
   font-weight: 400;
+}
+
+.form-grid textarea {
+  resize: vertical;
+}
+
+.observations-field {
+  grid-column: 1 / -1;
 }
 
 .form-actions {
@@ -707,19 +807,38 @@ button:disabled {
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 th,
 td {
-  padding: 10px 8px;
+  padding: 9px 8px;
   border: 1px solid #d1d5db;
   text-align: left;
   overflow-wrap: anywhere;
+  vertical-align: top;
 }
 
 th {
   background: #f3f4f6;
+}
+
+.observations-cell {
+  min-width: 120px;
+  white-space: pre-wrap;
+}
+
+tfoot {
+  font-weight: 700;
+  background: #f3f4f6;
+}
+
+.total-label {
+  text-align: right;
+}
+
+.total-value {
+  white-space: nowrap;
 }
 
 .empty-row {
@@ -765,34 +884,30 @@ th {
   .detail-page {
     padding: 12px;
   }
-
   .fiche-document {
     padding: 16px;
   }
-
   .administrative-header {
     grid-template-columns: 70px minmax(0, 1fr);
   }
-
   .document-reference {
     grid-column: 1 / -1;
     text-align: left;
   }
-
   .administration-title {
     text-align: left;
   }
-
   .info-grid,
   .form-grid {
     grid-template-columns: 1fr;
   }
-
+  .observations-field {
+    grid-column: auto;
+  }
   .section-heading,
   .actions {
     flex-wrap: wrap;
   }
-
   .document-footer {
     gap: 20px;
   }
@@ -800,59 +915,50 @@ th {
 
 @media print {
   @page {
-    size: A4 portrait;
-    margin: 12mm;
+    size: A4 landscape;
+    margin: 10mm;
   }
-
   .no-print {
     display: none !important;
   }
-
   .detail-page {
     max-width: none;
     padding: 0;
     margin: 0;
   }
-
   .fiche-document {
     padding: 0;
     border: 0;
     border-radius: 0;
   }
-
   .administrative-header {
     grid-template-columns: 80px minmax(0, 1fr) 145px;
     gap: 10px;
   }
-
   .logo-placeholder {
     min-height: 65px;
   }
-
   .document-title h1 {
     font-size: 20px;
   }
-
   .section {
     margin-top: 20px;
   }
-
   .section h2 {
     break-after: avoid;
   }
-
   table {
-    break-inside: auto;
+    font-size: 10px;
   }
-
+  thead {
+    display: table-header-group;
+  }
   tr {
     break-inside: avoid;
   }
-
   .document-footer {
     break-inside: avoid;
   }
-
   .document-bottom-note {
     color: #4b5563;
   }

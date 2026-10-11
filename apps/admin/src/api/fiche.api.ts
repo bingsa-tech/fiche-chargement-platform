@@ -116,11 +116,14 @@ export interface FichePassagerDetail {
   ficheId: string;
   passagerId: string;
   numeroPlace: number | null;
+  tarif: number | string | null;
+  observations: string | null;
   passager: {
     id: string;
     nom: string;
     prenom: string;
     numeroCni: string;
+    telephone: string | null;
   };
 }
 
@@ -137,7 +140,9 @@ export async function getPassagersFiche(
 export interface CreateFichePassagerPayload {
   ficheId: string;
   passagerId: string;
-  numeroPlace?: number;
+  numeroPlace?: number | string;
+  tarif?: number | string;
+  observations?: string;
 }
 
 export async function associerPassagerAFiche(

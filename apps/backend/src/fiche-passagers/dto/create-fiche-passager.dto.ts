@@ -1,12 +1,19 @@
+
 import {
   IsInt,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
+  IsString,
   IsUUID,
+  MaxLength,
   Min,
 } from 'class-validator';
 
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  ApiProperty,
+  ApiPropertyOptional,
+} from '@nestjs/swagger';
 
 export class CreateFichePassagerDto {
   @ApiProperty({
@@ -15,7 +22,7 @@ export class CreateFichePassagerDto {
   })
   @IsUUID()
   @IsNotEmpty()
-  ficheId: string;
+  ficheId!: string;
 
   @ApiProperty({
     description: 'Identifiant du passager',
@@ -23,7 +30,7 @@ export class CreateFichePassagerDto {
   })
   @IsUUID()
   @IsNotEmpty()
-  passagerId: string;
+  passagerId!: string;
 
   @ApiPropertyOptional({
     description: 'Numéro de place du passager',
@@ -34,4 +41,20 @@ export class CreateFichePassagerDto {
   @IsInt()
   @Min(1)
   numeroPlace?: number;
+
+ @ApiPropertyOptional({ example: 5000, minimum: 0 })
+@IsOptional()
+@IsNumber({ maxDecimalPlaces: 2 })
+@Min(0)
+tarif?: number;
+
+  @ApiPropertyOptional({
+    description: 'Observations concernant le trajet',
+    example: 'Bagage supplémentaire',
+    maxLength: 1000,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  observations?: string;
 }

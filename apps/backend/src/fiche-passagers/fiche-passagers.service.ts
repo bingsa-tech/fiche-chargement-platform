@@ -78,8 +78,16 @@ export class FichePassagersService {
       );
     }
 
-    const association =
-      this.fichePassagerRepository.create(createDto);
+  const association = this.fichePassagerRepository.create({
+  ficheId: createDto.ficheId,
+  passagerId: createDto.passagerId,
+  numeroPlace: createDto.numeroPlace ?? null,
+  tarif:
+    createDto.tarif !== undefined && createDto.tarif !== null
+      ? String(createDto.tarif)
+      : null,
+  observations: createDto.observations ?? null,
+});
 
     return this.fichePassagerRepository.save(association);
   }

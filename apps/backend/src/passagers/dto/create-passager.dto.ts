@@ -1,29 +1,31 @@
+
 import {
   IsNotEmpty,
+  IsOptional,
   IsString,
   MaxLength,
 } from 'class-validator';
 
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreatePassagerDto {
   @ApiProperty({
-    example: 'Ndiaye',
+    example: 'assistant',
     description: 'Nom du passager',
   })
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  nom: string;
+  nom!: string;
 
   @ApiProperty({
-    example: 'Moussa',
+    example: 'biloloo',
     description: 'Prénom du passager',
   })
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  prenom: string;
+  prenom!: string;
 
   @ApiProperty({
     example: '123456789',
@@ -32,5 +34,14 @@ export class CreatePassagerDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  numeroCni: string;
+  numeroCni!: string;
+  
+  @ApiPropertyOptional({
+    example: '+237699000000',
+    description: 'Numéro de téléphone du passager',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  telephone?: string;
 }

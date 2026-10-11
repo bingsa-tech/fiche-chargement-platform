@@ -5,6 +5,7 @@ export interface CreatePassagerPayload {
   nom: string;
   prenom: string;
   numeroCni: string;
+  telephone?: string;
 }
 
 export interface Passager {
@@ -12,6 +13,7 @@ export interface Passager {
   nom: string;
   prenom: string;
   numeroCni: string;
+  telephone: string | null;
 }
 
 export async function createPassager(

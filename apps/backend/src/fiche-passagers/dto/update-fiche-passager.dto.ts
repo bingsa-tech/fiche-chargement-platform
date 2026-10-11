@@ -1,6 +1,9 @@
 import {
   IsInt,
+  IsNumber,
   IsOptional,
+  IsString,
+  MaxLength,
   Min,
 } from 'class-validator';
 
@@ -16,4 +19,24 @@ export class UpdateFichePassagerDto {
   @IsInt()
   @Min(1)
   numeroPlace?: number;
+
+  @ApiPropertyOptional({
+    description: 'Tarif payé par le passager en FCFA',
+    example: 5000,
+    minimum: 0,
+  })
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  tarif?: number;
+
+  @ApiPropertyOptional({
+    description: 'Observations concernant le trajet',
+    example: 'Bagage supplémentaire',
+    maxLength: 1000,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  observations?: string;
 }

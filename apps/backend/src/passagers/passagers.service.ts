@@ -31,7 +31,12 @@ export class PassagersService {
       );
     }
 
-    const passager = this.passagerRepository.create(createPassagerDto);
+const passager = this.passagerRepository.create({
+  nom: createPassagerDto.nom,
+  prenom: createPassagerDto.prenom,
+  numeroCni: createPassagerDto.numeroCni,
+  telephone: createPassagerDto.telephone?.trim() || null,
+});
 
     return await this.passagerRepository.save(passager);
   }
