@@ -33,17 +33,13 @@ export class Passager {
     name: 'numero_cni',
   })
   numeroCni!: string;
+
   @Column({
-  type: 'varchar',
-  length: 30,
-  nullable: true,
-})
-@Column({
-  type: 'varchar',
-  length: 30,
-  nullable: true,
-})
-telephone!: string | null;
+    type: 'varchar',
+    length: 30,
+    nullable: true,
+  })
+  telephone!: string | null;
 
   @CreateDateColumn({
     name: 'created_at',
