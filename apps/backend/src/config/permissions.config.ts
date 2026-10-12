@@ -306,7 +306,7 @@ export const PERMISSIONS = {
     ],
     DELETE: [
       ROLE_CODES.ADMIN,
-      ROLE_CODES.RESPONSABLE_GARE,
+
     ],
     FINALIZE: [
       ROLE_CODES.ADMIN,

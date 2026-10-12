@@ -1,10 +1,12 @@
-```vue
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { useAuthStore } from '../../auth/auth.store';
-import { getFiches } from '../../api/fiche.api';
+import {
+  getFiches,
+  deleteFiche,
+} from '../../api/fiche.api';
 import { getApiErrorMessage } from '../../api/api-error';
 import type { Fiche } from '../../types/fiche.types';
 
@@ -14,11 +16,18 @@ const authStore = useAuthStore();
 const fiches = ref<Fiche[]>([]);
 const loading = ref(false);
 const errorMessage = ref('');
+const deleteErrorMessage = ref('');
+const deletingFicheId = ref<string | null>(null);
 
 const canCreateFiche = computed(() =>
   ['ADMIN', 'RESPONSABLE_GARE', 'CONTROLEUR', 'AGENT'].includes(
     authStore.role ?? '',
   ),
+);
+
+// Seul le rôle ADMIN peut afficher l'action de suppression.
+const canDeleteFiche = computed(
+  () => authStore.role === 'ADMIN',
 );
 
 const statusLabels: Record<string, string> = {
@@ -78,6 +87,48 @@ function openFicheDetail(id: string): void {
   });
 }
 
+async function removeFiche(fiche: Fiche): Promise<void> {
+  // Vérification du rôle avant toute requête de suppression.
+  if (!canDeleteFiche.value) {
+    router.push({ name: 'unauthorized' });
+    return;
+  }
+
+  if (deletingFicheId.value !== null) {
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `Voulez-vous vraiment supprimer la fiche "${fiche.reference}" ?\n\n` +
+      'Cette action peut être irréversible.',
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  deletingFicheId.value = fiche.id;
+  deleteErrorMessage.value = '';
+
+  try {
+    await deleteFiche(fiche.id);
+
+    // Retirer la fiche uniquement après la réussite de la requête.
+    fiches.value = fiches.value.filter(
+      (item) => item.id !== fiche.id,
+    );
+  } catch (error: unknown) {
+    console.error(
+      'Erreur lors de la suppression de la fiche',
+      error,
+    );
+
+    deleteErrorMessage.value = getApiErrorMessage(error);
+  } finally {
+    deletingFicheId.value = null;
+  }
+}
+
 onMounted(loadFiches);
 </script>
 
@@ -106,13 +157,21 @@ onMounted(loadFiches);
         <button
           type="button"
           class="refresh-button"
-          :disabled="loading"
+          :disabled="loading || deletingFicheId !== null"
           @click="loadFiches"
         >
           {{ loading ? 'Chargement…' : 'Actualiser' }}
         </button>
       </div>
     </header>
+
+    <p
+      v-if="deleteErrorMessage"
+      class="delete-error"
+      role="alert"
+    >
+      {{ deleteErrorMessage }}
+    </p>
 
     <div class="summary">
       <span>Total des fiches reçues</span>
@@ -125,13 +184,19 @@ onMounted(loadFiches);
 
     <div v-else-if="errorMessage" class="error-message" role="alert">
       <p>{{ errorMessage }}</p>
-      <button type="button" :disabled="loading" @click="loadFiches">
+
+      <button
+        type="button"
+        :disabled="loading"
+        @click="loadFiches"
+      >
         Réessayer
       </button>
     </div>
 
     <div v-else-if="fiches.length === 0" class="empty-state">
       <h2>Aucune fiche disponible</h2>
+
       <p>
         Aucune fiche n’a été renvoyée par l’API pour cette session.
       </p>
@@ -206,14 +271,31 @@ onMounted(loadFiches);
             </td>
 
             <td>
-              <button
-                type="button"
-                class="detail-button"
-                :aria-label="`Voir les détails de la fiche ${fiche.reference}`"
-                @click="openFicheDetail(fiche.id)"
-              >
-                Voir / Imprimer
-              </button>
+              <div class="row-actions">
+                <button
+                  type="button"
+                  class="detail-button"
+                  :aria-label="`Voir les détails de la fiche ${fiche.reference}`"
+                  @click="openFicheDetail(fiche.id)"
+                >
+                  Voir / Imprimer
+                </button>
+
+                <button
+                  v-if="canDeleteFiche"
+                  type="button"
+                  class="delete-button"
+                  :disabled="deletingFicheId !== null"
+                  :aria-label="`Supprimer la fiche ${fiche.reference}`"
+                  @click="removeFiche(fiche)"
+                >
+                  {{
+                    deletingFicheId === fiche.id
+                      ? 'Suppression…'
+                      : 'Supprimer'
+                  }}
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -323,9 +405,21 @@ h1 {
   color: #6b7280;
 }
 
-.error-message {
-  border-color: #fecaca;
+.error-message,
+.delete-error {
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  background: #fff;
   color: #991b1b;
+}
+
+.error-message {
+  padding: 20px;
+}
+
+.delete-error {
+  margin: 0;
+  padding: 12px 16px;
 }
 
 .error-message button {
@@ -388,26 +482,52 @@ tbody tr:last-child td {
   font-size: 12px;
 }
 
-.detail-button {
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.detail-button,
+.delete-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 8px 12px;
-  border: 1px solid #bfdbfe;
   border-radius: 7px;
-  background: #eff6ff;
-  color: #1d4ed8;
   cursor: pointer;
   font: inherit;
   font-size: 12px;
   font-weight: 600;
 }
 
+.detail-button {
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
 .detail-button:hover {
   background: #dbeafe;
 }
 
+.delete-button {
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.delete-button:hover:not(:disabled) {
+  background: #fee2e2;
+}
+
+.delete-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
 .detail-button:focus-visible,
+.delete-button:focus-visible,
 .create-button:focus-visible,
 .refresh-button:focus-visible {
   outline: 2px solid #2563eb;
@@ -421,6 +541,11 @@ tbody tr:last-child td {
 
   .header-actions {
     width: 100%;
+  }
+
+  .row-actions {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 </style>
