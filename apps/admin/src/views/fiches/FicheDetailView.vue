@@ -120,7 +120,7 @@ function annulerSaisiePassager() {
 }
 
 async function enregistrerPassager(): Promise<void> {
-  console.log('>>> [DEBUG] 1. Clic détecté sur Enregistrer le passager');
+  
   if (saving.value) return;
   errorMessage.value = '';
   successMessage.value = '';
@@ -138,7 +138,7 @@ async function enregistrerPassager(): Promise<void> {
   if (!nom || !prenom || !numeroCni) {
     errorMessage.value =
       'Le nom, le prénom et le numéro de CNI sont obligatoires.';
-    console.log('>>> [DEBUG] Validation échouée : champs obligatoires manquants');
+   
     return;
   }
   if (telephone.length > 30) {
@@ -201,8 +201,7 @@ async function enregistrerPassager(): Promise<void> {
 
 
       passager = await createPassager(payloadPassager);
-      console.log('>>> [DEBUG] 4. Passager créé avec succès, réponse reçue :', passager);
-      passagerEnAttenteAssociation.value = passager;
+      
     }
 
     const payloadAssociation = {
@@ -213,10 +212,9 @@ async function enregistrerPassager(): Promise<void> {
       ...(observations ? { observations } : {}),
     };
 
-    console.log('>>> [DEBUG] 5. Envoi requête association fiche-passager :', payloadAssociation);
+    
     await associerPassagerAFiche(payloadAssociation);
-    console.log('>>> [DEBUG] 6. Association réussie !');
-
+    
     passagerEnAttenteAssociation.value = null;
     reinitialiserFormulaire();
     addingPassenger.value = false;
