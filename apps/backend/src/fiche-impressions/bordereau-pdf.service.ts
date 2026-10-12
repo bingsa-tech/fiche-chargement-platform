@@ -113,14 +113,18 @@ export class BordereauPdfService {
     );
 
     doc.text(
-      `Immatriculation : ${fiche.vehicule?.plaqueImmatriculation ?? ''}`,
+      `Immatriculation : ${
+        fiche.vehicule?.plaqueImmatriculation ?? ''
+      }`,
       left,
       infoY + 20,
       { width: colWidth - 8 },
     );
 
     doc.text(
-      `Chauffeur : ${fiche.chauffeur?.nom ?? ''} ${fiche.chauffeur?.prenom ?? ''}`,
+      `Chauffeur : ${fiche.chauffeur?.nom ?? ''} ${
+        fiche.chauffeur?.prenom ?? ''
+      }`,
       left + colWidth,
       infoY + 20,
       { width: colWidth },
@@ -186,13 +190,19 @@ export class BordereauPdfService {
       const item = fiche.fichePassagers?.[i];
       const passager = item?.passager;
 
+      // Le tarif peut provenir de PostgreSQL sous forme de nombre
+      // ou de chaîne numérique, selon le mapping de l'entité.
+      const tarifBrut = item?.tarif;
+
       const tarif =
-        item?.tarif !== null && item?.tarif !== undefined &&
-        item.tarif !== ''
-          ? Number(item.tarif)
+        tarifBrut !== null &&
+        tarifBrut !== undefined &&
+        String(tarifBrut).trim() !== '' &&
+        Number.isFinite(Number(tarifBrut))
+          ? Number(tarifBrut)
           : null;
 
-      if (tarif !== null && Number.isFinite(tarif)) {
+      if (tarif !== null) {
         total += tarif;
       }
 
@@ -203,7 +213,7 @@ export class BordereauPdfService {
           : '',
         passager?.numeroCni ?? '',
         passager?.telephone ?? '',
-        tarif !== null && Number.isFinite(tarif)
+        tarif !== null
           ? tarif.toLocaleString('fr-FR')
           : '',
         item?.observations ?? '',
@@ -214,7 +224,7 @@ export class BordereauPdfService {
       columns.forEach((column, index) => {
         doc.rect(x, y, column.width, rowHeight).stroke();
 
-        doc.text(values[index], x + 3, y + 7, {
+        doc.text(String(values[index] ?? ''), x + 3, y + 7, {
           width: column.width - 6,
           height: rowHeight - 5,
           ellipsis: true,
@@ -252,11 +262,13 @@ export class BordereauPdfService {
       { width: colWidth, align: 'center' },
     );
 
-    doc.moveTo(left + 15, signatureY + 55)
+    doc
+      .moveTo(left + 15, signatureY + 55)
       .lineTo(left + colWidth - 15, signatureY + 55)
       .stroke();
 
-    doc.moveTo(left + colWidth + 15, signatureY + 55)
+    doc
+      .moveTo(left + colWidth + 15, signatureY + 55)
       .lineTo(right - 15, signatureY + 55)
       .stroke();
 

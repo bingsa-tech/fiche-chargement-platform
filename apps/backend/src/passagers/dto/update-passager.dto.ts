@@ -34,4 +34,13 @@ export class UpdatePassagerDto {
   @IsNotEmpty()
   @MaxLength(100)
   numeroCni?: string;
+
+  @ApiPropertyOptional({
+    example: '+237699000000',
+    description: 'Numéro de téléphone du passager',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  telephone?: string;
 }
