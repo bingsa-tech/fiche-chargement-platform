@@ -29,18 +29,18 @@ export class FichePassager {
   numeroPlace!: number | null;
 
   @Column('numeric', {
-  name: 'tarif',
-  precision: 10,
-  scale: 2,
-  nullable: true,
-})
-tarif!: string | null;
+    name: 'tarif',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+  })
+  tarif!: number | null;
 
-@Column('text', {
-  name: 'observations',
-  nullable: true,
-})
-observations!: string | null;
+  @Column('text', {
+    name: 'observations',
+    nullable: true,
+  })
+  observations!: string | null;
 
   @CreateDateColumn({
     name: 'created_at',

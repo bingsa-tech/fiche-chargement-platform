@@ -148,8 +148,11 @@ export interface CreateFichePassagerPayload {
 export async function associerPassagerAFiche(
   payload: CreateFichePassagerPayload,
 ): Promise<void> {
-  await api.post(
-    '/api/fiche-passagers',
-    payload,
-  );
+  try {
+    // Si votre instance Axios possède déjà baseURL: 'http://localhost:3000/api',
+    // utilisez simplement '/fiche-passagers'. Sinon, gardez '/api/fiche-passagers'.
+    await api.post('/api/fiche-passagers', payload);
+  } catch (error: unknown) {
+    throw error; // On laisse remonter l'erreur pour qu'elle soit attrapée par le composant Vue
+  }
 }

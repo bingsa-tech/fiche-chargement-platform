@@ -1,4 +1,3 @@
-
 import {
   ConflictException,
   ForbiddenException,
@@ -59,39 +58,42 @@ export class FichePassagersService {
     return fiche;
   }
 
- async create(
-  createDto: CreateFichePassagerDto,
-  user: FichePassagerUser,
-): Promise<FichePassager> {
-  await this.verifierAccesFiche(createDto.ficheId, user);
+  async create(
+    createDto: CreateFichePassagerDto,
+    user: FichePassagerUser,
+  ): Promise<FichePassager> {
 
-  const existing = await this.fichePassagerRepository.findOne({
-    where: {
+
+    await this.verifierAccesFiche(createDto.ficheId, user);
+
+    const existing = await this.fichePassagerRepository.findOne({
+      where: {
+        ficheId: createDto.ficheId,
+        passagerId: createDto.passagerId,
+      },
+    });
+
+    if (existing) {
+      throw new ConflictException(
+        'Ce passager est déjà associé à cette fiche',
+      );
+    }
+
+    const association = this.fichePassagerRepository.create({
       ficheId: createDto.ficheId,
       passagerId: createDto.passagerId,
-    },
-  });
+      numeroPlace: createDto.numeroPlace ?? null,
 
-  if (existing) {
-    throw new ConflictException(
-      'Ce passager est déjà associé à cette fiche',
-    );
+      // CORRECTION ICI : Conserver le tarif en nombre (ou null) s'il s'agit d'une colonne numérique en base
+      tarif:
+        createDto.tarif !== undefined && createDto.tarif !== null
+          ? Number(createDto.tarif)
+          : null,
+      observations: createDto.observations ?? null,
+    });
+
+    return this.fichePassagerRepository.save(association);
   }
-
-  const association = this.fichePassagerRepository.create({
-    ficheId: createDto.ficheId,
-    passagerId: createDto.passagerId,
-    numeroPlace: createDto.numeroPlace ?? null,
-    tarif:
-      createDto.tarif !== undefined && createDto.tarif !== null
-        ? String(createDto.tarif)
-        : null,
-    observations: createDto.observations ?? null,
-  });
-
-  return this.fichePassagerRepository.save(association);
-}
-
 
   async findAll(
     user: FichePassagerUser,

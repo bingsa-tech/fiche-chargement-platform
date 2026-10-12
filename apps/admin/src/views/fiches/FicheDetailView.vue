@@ -2,14 +2,14 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { getApiErrorMessage } from '../../api/api-error';
+import { getFiche } from '../../api/fiche.api';
+import { createPassager } from '../../api/passagers.api';
 import {
-  getFiche,
   getPassagersFiche,
   associerPassagerAFiche,
-} from '../../api/fiche.api';
-import { createPassager } from '../../api/passagers.api';
+} from '../../api/fiche-passager.api';
 import type { Fiche } from '../../types/fiche.types';
-import type { FichePassagerDetail } from '../../api/fiche.api';
+import type { FichePassagerDetail } from '../../api/fiche-passager.api';
 import type { Passager } from '../../api/passagers.api';
 
 const route = useRoute();
@@ -120,6 +120,7 @@ function annulerSaisiePassager() {
 }
 
 async function enregistrerPassager(): Promise<void> {
+  console.log('>>> [DEBUG] 1. Clic détecté sur Enregistrer le passager');
   if (saving.value) return;
   errorMessage.value = '';
   successMessage.value = '';
@@ -129,18 +130,15 @@ async function enregistrerPassager(): Promise<void> {
   const prenom = nouveauPassager.prenom.trim();
   const numeroCni = nouveauPassager.numeroCni.trim();
   const telephone = nouveauPassager.telephone.trim();
-  
-  // Correction sécurisée pour éviter l'erreur .trim() is not a function
-
-const placeSaisie = String(nouveauPassager.numeroPlace ?? '').trim();
-const tarifSaisi = String(nouveauPassager.tarif ?? '').trim();
-
+  const placeSaisie = String(nouveauPassager.numeroPlace ?? '').trim();
+  const tarifSaisi = String(nouveauPassager.tarif ?? '').trim();
   const observations = nouveauPassager.observations.trim();
 
   // 1. Vérifier les champs obligatoires.
   if (!nom || !prenom || !numeroCni) {
     errorMessage.value =
       'Le nom, le prénom et le numéro de CNI sont obligatoires.';
+    console.log('>>> [DEBUG] Validation échouée : champs obligatoires manquants');
     return;
   }
   if (telephone.length > 30) {
@@ -188,26 +186,36 @@ const tarifSaisi = String(nouveauPassager.tarif ?? '').trim();
     return;
   }
 
+
   saving.value = true;
+
   try {
     let passager = passagerEnAttenteAssociation.value;
     if (!passager) {
-      passager = await createPassager({
+      const payloadPassager = {
         nom,
         prenom,
         numeroCni,
         ...(telephone ? { telephone } : {}),
-      });
+      };
+
+
+      passager = await createPassager(payloadPassager);
+      console.log('>>> [DEBUG] 4. Passager créé avec succès, réponse reçue :', passager);
       passagerEnAttenteAssociation.value = passager;
     }
 
-    await associerPassagerAFiche({
+    const payloadAssociation = {
       ficheId: ficheId.value,
       passagerId: passager.id,
       ...(numeroPlace !== undefined ? { numeroPlace } : {}),
       ...(tarif !== undefined ? { tarif } : {}),
       ...(observations ? { observations } : {}),
-    });
+    };
+
+    console.log('>>> [DEBUG] 5. Envoi requête association fiche-passager :', payloadAssociation);
+    await associerPassagerAFiche(payloadAssociation);
+    console.log('>>> [DEBUG] 6. Association réussie !');
 
     passagerEnAttenteAssociation.value = null;
     reinitialiserFormulaire();
@@ -223,6 +231,7 @@ const tarifSaisi = String(nouveauPassager.tarif ?? '').trim();
         'Recharge la fiche pour vérifier les données.';
     }
   } catch (error: unknown) {
+    console.error('>>> [DEBUG ERREUR API] :', error);
     if (passagerEnAttenteAssociation.value) {
       associationWarning.value =
         'Le passager a été créé, mais son association à la fiche a échoué. ' +

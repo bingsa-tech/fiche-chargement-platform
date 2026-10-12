@@ -1,4 +1,3 @@
-
 import {
   IsInt,
   IsNotEmpty,
@@ -9,6 +8,8 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
+
+import { Type } from 'class-transformer'; // <--- Import indispensable
 
 import {
   ApiProperty,
@@ -38,15 +39,17 @@ export class CreateFichePassagerDto {
     minimum: 1,
   })
   @IsOptional()
+  @Type(() => Number) // <--- Convertit la string en number
   @IsInt()
   @Min(1)
   numeroPlace?: number;
 
- @ApiPropertyOptional({ example: 5000, minimum: 0 })
-@IsOptional()
-@IsNumber({ maxDecimalPlaces: 2 })
-@Min(0)
-tarif?: number;
+  @ApiPropertyOptional({ example: 5000, minimum: 0 })
+  @IsOptional()
+  @Type(() => Number) // <--- Convertit la string en number
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  tarif?: number;
 
   @ApiPropertyOptional({
     description: 'Observations concernant le trajet',
