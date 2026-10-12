@@ -6,6 +6,7 @@ import { useAuthStore } from '../../auth/auth.store';
 import {
   getFiches,
   deleteFiche,
+  telechargerFichePdf,
 } from '../../api/fiche.api';
 import { getApiErrorMessage } from '../../api/api-error';
 import type { Fiche } from '../../types/fiche.types';
@@ -126,6 +127,29 @@ async function removeFiche(fiche: Fiche): Promise<void> {
     deleteErrorMessage.value = getApiErrorMessage(error);
   } finally {
     deletingFicheId.value = null;
+  }
+}
+
+async function genererPdf(ficheId: string) {
+  let url: string | null = null;
+
+  try {
+    const blob = await telechargerFichePdf(ficheId);
+    url = URL.createObjectURL(blob);
+
+    const lien = document.createElement('a');
+    lien.href = url;
+    lien.download = `bordereau-${ficheId}.pdf`;
+    document.body.appendChild(lien);
+    lien.click();
+    lien.remove();
+  } catch (error: unknown) {
+    console.error('Erreur de téléchargement PDF :', error);
+    alert('Impossible de télécharger le bordereau PDF.');
+  } finally {
+    if (url) {
+      URL.revokeObjectURL(url);
+    }
   }
 }
 
@@ -279,6 +303,14 @@ onMounted(loadFiches);
                   @click="openFicheDetail(fiche.id)"
                 >
                   Voir / Imprimer
+                </button>
+
+                <button
+                  type="button"
+                  class="pdf-button"
+                  @click="genererPdf(fiche.id)"
+                >
+                  Générer le PDF
                 </button>
 
                 <button
@@ -489,6 +521,7 @@ tbody tr:last-child td {
 }
 
 .detail-button,
+.pdf-button,
 .delete-button {
   display: inline-flex;
   align-items: center;
@@ -511,6 +544,16 @@ tbody tr:last-child td {
   background: #dbeafe;
 }
 
+.pdf-button {
+  border: 1px solid #e9d5ff;
+  background: #f3e8ff;
+  color: #7e22ce;
+}
+
+.pdf-button:hover {
+  background: #e9d5ff;
+}
+
 .delete-button {
   border: 1px solid #fecaca;
   background: #fef2f2;
@@ -527,6 +570,7 @@ tbody tr:last-child td {
 }
 
 .detail-button:focus-visible,
+.pdf-button:focus-visible,
 .delete-button:focus-visible,
 .create-button:focus-visible,
 .refresh-button:focus-visible {

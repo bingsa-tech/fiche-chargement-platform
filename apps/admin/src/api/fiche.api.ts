@@ -156,3 +156,12 @@ export async function associerPassagerAFiche(
     throw error; // On laisse remonter l'erreur pour qu'elle soit attrapée par le composant Vue
   }
 }
+
+export async function telechargerFichePdf(id: string): Promise<Blob> {
+  const response = await api.get(
+    `/api/fiches/${id}/bordereau-pdf`,
+    { responseType: 'blob' },
+  );
+
+  return response.data as Blob;
+}
