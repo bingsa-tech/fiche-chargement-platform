@@ -1,3 +1,4 @@
+
 import {
   Injectable,
   ForbiddenException,
@@ -10,6 +11,7 @@ import { Gare } from '../gares/entities/gare.entity';
 import { Vehicule } from '../vehicules/entities/vehicule.entity';
 import { Chauffeur } from '../chauffeurs/entities/chauffeur.entity';
 import { Fiche } from '../fiches/entities/fiche.entity';
+
 @Injectable()
 export class DashboardStatsService {
   constructor(
@@ -24,56 +26,103 @@ export class DashboardStatsService {
 
     @InjectRepository(Chauffeur)
     private readonly chauffeurRepo: Repository<Chauffeur>,
+
     @InjectRepository(Fiche)
-    private readonly ficheRepo: Repository<Fiche>
+    private readonly ficheRepo: Repository<Fiche>,
   ) {}
 
   async getStatsForUser(user: {
-  id: number;
-  username: string;
-  role: string;
-  gareId: string | null;
-}) {
-  // Statistiques globales réservées aux rôles autorisés.
-  if (
-    user.role === 'ADMIN' ||
-    user.role === 'AUTORITE_HABILITEE'
-  ) {
+    id: number;
+    username: string;
+    role: string;
+    gareId: string | null;
+  }) {
+    // 1. Statistiques globales
+    if (
+      user.role === 'ADMIN' ||
+      user.role === 'AUTORITE_HABILITEE'
+    ) {
+      const [
+        utilisateurs,
+        gares,
+        vehicules,
+        chauffeurs,
+        fiches,
+      ] = await Promise.all([
+        this.utilisateurRepo.count(),
+        this.gareRepo.count(),
+        this.vehiculeRepo.count(),
+        this.chauffeurRepo.count(),
+        this.ficheRepo.count(),
+      ]);
+
+      return {
+        isGlobal: true,
+        utilisateurs,
+        gares,
+        vehicules,
+        chauffeurs,
+        fiches,
+      };
+    }
+
+    // 2. Les autres rôles doivent avoir une gare
+    if (!user.gareId) {
+      throw new ForbiddenException(
+        "Aucune gare n'est assignée à votre compte.",
+      );
+    }
+
+    // 3. Autoriser uniquement les rôles prévus
+    const rolesParGare = [
+      'AGENT',
+      'CONTROLEUR',
+      'RESPONSABLE_GARE',
+    ];
+
+    if (!rolesParGare.includes(user.role)) {
+      throw new ForbiddenException(
+        "Votre rôle ne permet pas de consulter ces statistiques.",
+      );
+    }
+
+    // 4. Compter les données de la gare
+    const gareId = user.gareId;
+
     const [
       utilisateurs,
-      gares,
+      fiches,
       vehicules,
       chauffeurs,
-      fiches
     ] = await Promise.all([
-      this.utilisateurRepo.count(),
-      this.gareRepo.count(),
-      this.vehiculeRepo.count(),
-      this.chauffeurRepo.count(),
-      this.ficheRepo.count(),
+      this.utilisateurRepo.count({
+        where: { gareId },
+      }),
+
+      this.ficheRepo.count({
+        where: { gareId },
+      }),
+
+      this.ficheRepo
+        .createQueryBuilder('fiche')
+        .select('COUNT(DISTINCT fiche.vehiculeId)', 'total')
+        .where('fiche.gareId = :gareId', { gareId })
+        .getRawOne<{ total: string }>(),
+
+      this.ficheRepo
+        .createQueryBuilder('fiche')
+        .select('COUNT(DISTINCT fiche.chauffeurId)', 'total')
+        .where('fiche.gareId = :gareId', { gareId })
+        .getRawOne<{ total: string }>(),
     ]);
 
     return {
-      isGlobal: true,
+      isGlobal: false,
       utilisateurs,
-      gares,
-      vehicules,
-      chauffeurs,
-      fiches
+      gares: 1,
+      vehicules: Number(vehicules?.total ?? 0),
+      chauffeurs: Number(chauffeurs?.total ?? 0),
+      fiches,
     };
   }
-
-  // Les autres rôles nécessitent une gare affectée.
-  if (!user.gareId) {
-    throw new ForbiddenException(
-      "Aucune gare n'est assignée à votre compte pour afficher les statistiques.",
-    );
-  }
-
-  // Ne pas retourner de faux chiffres :
-  // les filtres par gare doivent être implémentés
-  // selon les relations réelles des entités.
-  throw new ForbiddenException(
-    "Les statistiques filtrées par gare ne sont pas encore configurées.",
-  );
-}}
+}

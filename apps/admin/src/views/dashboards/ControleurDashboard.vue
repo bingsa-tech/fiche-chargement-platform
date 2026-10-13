@@ -1,16 +1,38 @@
+
 <script setup lang="ts">
+import { ref, onMounted } from 'vue';
 
 import { useAuthStore } from '../../auth/auth.store';
-
+import { getDashboardStats } from '../../api/stats.api';
+import type { DashboardStats } from '../../types/stats.types';
 
 const authStore = useAuthStore();
 
+const stats = ref<DashboardStats | null>(null);
+const loading = ref(true);
+const errorMessage = ref('');
 
+onMounted(async () => {
+  try {
+    stats.value = await getDashboardStats();
+  } catch (error: unknown) {
+    console.error(
+      'Erreur de chargement des statistiques du contrôleur :',
+      error,
+    );
+
+    errorMessage.value =
+      'Impossible de charger les statistiques de votre gare.';
+  } finally {
+    loading.value = false;
+  }
+});
 </script>
 
 <template>
   <main class="dashboard">
     <section class="dashboard-container">
+      <!-- En-tête -->
       <header class="dashboard-header">
         <div>
           <p class="eyebrow">Espace contrôle</p>
@@ -25,13 +47,13 @@ const authStore = useAuthStore();
             </strong>
           </p>
         </div>
-
-        
       </header>
 
+      <!-- Informations utilisateur -->
       <section class="user-card">
         <div>
           <span class="label">Utilisateur</span>
+
           <strong>
             {{ authStore.user?.prenom }}
             {{ authStore.user?.nom }}
@@ -40,46 +62,84 @@ const authStore = useAuthStore();
 
         <div>
           <span class="label">Email</span>
-          <strong>{{ authStore.user?.email }}</strong>
+
+          <strong>
+            {{ authStore.user?.email ?? 'Non renseigné' }}
+          </strong>
         </div>
 
         <div>
           <span class="label">Rôle</span>
+
           <strong>{{ authStore.role }}</strong>
         </div>
 
         <div>
           <span class="label">Gare</span>
-          <strong>{{ authStore.user?.gareId ?? 'Non affectée' }}</strong>
+
+          <strong>
+            {{ authStore.user?.gareId ?? 'Non affectée' }}
+          </strong>
         </div>
       </section>
 
-      <section class="stats-grid">
+      <!-- Chargement -->
+      <p
+        v-if="loading"
+        class="feedback"
+        role="status"
+      >
+        Chargement des statistiques...
+      </p>
+
+      <!-- Erreur API -->
+      <p
+        v-else-if="errorMessage"
+        class="error-message"
+        role="alert"
+      >
+        {{ errorMessage }}
+      </p>
+
+      <!-- Statistiques réelles -->
+      <section
+        v-else-if="stats"
+        class="stats-grid"
+      >
         <article class="stat-card">
-          <span class="stat-label">Fiches à contrôler</span>
-          <strong>0</strong>
-          <p>À venir</p>
+          <span class="stat-label">Fiches de la gare</span>
+
+          <strong>{{ stats.fiches }}</strong>
+
+          <p>Fiches enregistrées dans votre gare</p>
         </article>
 
         <article class="stat-card">
-          <span class="stat-label">Contrôles</span>
-          <strong>0</strong>
-          <p>À venir</p>
+          <span class="stat-label">Véhicules</span>
+
+          <strong>{{ stats.vehicules }}</strong>
+
+          <p>Véhicules référencés dans les fiches</p>
         </article>
 
         <article class="stat-card">
-          <span class="stat-label">Alertes</span>
-          <strong>0</strong>
-          <p>À venir</p>
+          <span class="stat-label">Chauffeurs</span>
+
+          <strong>{{ stats.chauffeurs }}</strong>
+
+          <p>Chauffeurs référencés dans les fiches</p>
         </article>
 
         <article class="stat-card">
-          <span class="stat-label">Anomalies</span>
-          <strong>0</strong>
-          <p>À venir</p>
+          <span class="stat-label">Utilisateurs</span>
+
+          <strong>{{ stats.utilisateurs }}</strong>
+
+          <p>Utilisateurs affectés à votre gare</p>
         </article>
       </section>
 
+      <!-- Modules de contrôle -->
       <section class="modules-card">
         <p class="eyebrow">Contrôle</p>
 
@@ -167,7 +227,7 @@ h1 {
 
 .user-card {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 20px;
   padding: 24px;
   margin-bottom: 24px;
@@ -177,6 +237,7 @@ h1 {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
 
 .label,
@@ -187,17 +248,18 @@ h1 {
 
 .user-card strong {
   color: #111827;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 20px;
   margin-bottom: 24px;
 }
 
 .stat-card {
+  min-width: 0;
   padding: 22px;
 }
 
@@ -212,6 +274,19 @@ h1 {
   margin: 0;
   color: #9ca3af;
   font-size: 13px;
+}
+
+.feedback {
+  padding: 16px;
+  color: #374151;
+}
+
+.error-message {
+  padding: 16px;
+  margin-bottom: 24px;
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #b91c1c;
 }
 
 .modules-card {
@@ -229,7 +304,7 @@ h1 {
 
 .module-list {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   margin-top: 24px;
 }
@@ -249,24 +324,10 @@ h1 {
   font-size: 13px;
 }
 
-.logout-button {
-  padding: 10px 18px;
-  border: none;
-  border-radius: 8px;
-  background: #dc2626;
-  color: white;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.logout-button:hover {
-  background: #b91c1c;
-}
-
 @media (max-width: 900px) {
   .user-card,
   .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
