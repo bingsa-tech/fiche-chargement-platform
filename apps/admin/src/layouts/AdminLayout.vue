@@ -1,77 +1,54 @@
+
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { RouterLink, RouterView, useRouter } from 'vue-router';
 
 import { useAuthStore } from '../auth/auth.store';
+import HeaderView from '../components/HeaderView.vue';
+import FooterView from '../components/FooterView.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
 
 const sidebarOpen = ref(false);
 
-/**
- * Informations utilisateur
- */
 const userFullName = computed(() => {
   const user = authStore.user;
 
-  if (!user) {
-    return 'Utilisateur';
-  }
+  if (!user) return 'Utilisateur';
 
   return `${user.prenom ?? ''} ${user.nom ?? ''}`.trim() || 'Utilisateur';
 });
 
-const userRole = computed(() => {
-  return authStore.role ?? 'ROLE_INCONNU';
-});
+const userRole = computed(() => authStore.role ?? 'ROLE_INCONNU');
+const userEmail = computed(() => authStore.user?.email ?? '');
+const userGare = computed(() => authStore.user?.gareId ?? 'Non affectée');
 
-const userEmail = computed(() => {
-  return authStore.user?.email ?? '';
-});
-
-const userGare = computed(() => {
-  return authStore.user?.gareId ?? 'Non affectée';
-});
-
-const canManageUsers = computed(() => {
-  return (
+const canManageUsers = computed(
+  () =>
     authStore.role === 'ADMIN' ||
-    authStore.role === 'RESPONSABLE_GARE'
-  );
-});
+    authStore.role === 'RESPONSABLE_GARE',
+);
 
-/**
- * Fermer le menu mobile
- */
 function closeSidebar() {
   sidebarOpen.value = false;
 }
 
-/**
- * Navigation des modules disponibles
- */
-function navigateTo(
-  routeName:
-    | 'gares'
-    | 'proprietaires'
-    | 'vehicules'
-    | 'chauffeurs'
-    | 'documents-vehicules'
-    | 'documents-chauffeurs'
-    | 'utilisateurs'
-    | 'fiches',
-) {
-  closeSidebar();
+type RouteName =
+  | 'gares'
+  | 'proprietaires'
+  | 'vehicules'
+  | 'chauffeurs'
+  | 'documents-vehicules'
+  | 'documents-chauffeurs'
+  | 'utilisateurs'
+  | 'fiches';
 
-  router.push({
-    name: routeName,
-  });
+function navigateTo(routeName: RouteName) {
+  closeSidebar();
+  void router.push({ name: routeName });
 }
 
-/**
- * Déconnexion
- */
 async function logout() {
   closeSidebar();
 
@@ -80,14 +57,13 @@ async function logout() {
   } catch (error) {
     console.error('Erreur lors de la déconnexion', error);
   } finally {
-    router.push({ name: 'login' });
+    await router.push({ name: 'login' });
   }
 }
 </script>
 
 <template>
   <div class="admin-layout">
-
     <!-- Overlay mobile -->
     <div
       v-if="sidebarOpen"
@@ -95,18 +71,14 @@ async function logout() {
       @click="closeSidebar"
     ></div>
 
-    <!-- Sidebar -->
+    <!-- Menu latéral -->
     <aside
       class="sidebar"
       :class="{ 'sidebar-open': sidebarOpen }"
     >
-
-      <!-- En-tête sidebar -->
       <div class="sidebar-header">
         <div class="brand">
-          <div class="brand-logo">
-            FC
-          </div>
+          <div class="brand-logo">FC</div>
 
           <div class="brand-text">
             <strong>Fiche Chargement</strong>
@@ -124,17 +96,9 @@ async function logout() {
         </button>
       </div>
 
-      <!-- Navigation -->
       <nav class="navigation">
-
-        <!-- =========================
-             PRINCIPAL
-        ========================== -->
-
         <div class="navigation-section">
-          <span class="navigation-title">
-            Principal
-          </span>
+          <span class="navigation-title">Principal</span>
 
           <RouterLink
             :to="{ name: 'role-hub' }"
@@ -147,16 +111,9 @@ async function logout() {
           </RouterLink>
         </div>
 
-        <!-- =========================
-             GESTION
-        ========================== -->
-
         <div class="navigation-section">
-          <span class="navigation-title">
-            Gestion
-          </span>
+          <span class="navigation-title">Gestion</span>
 
-          <!-- Utilisateurs -->
           <button
             v-if="canManageUsers"
             type="button"
@@ -167,7 +124,6 @@ async function logout() {
             <span>Utilisateurs</span>
           </button>
 
-          <!-- Gares -->
           <button
             type="button"
             class="navigation-item"
@@ -177,7 +133,6 @@ async function logout() {
             <span>Gares</span>
           </button>
 
-          <!-- Propriétaires -->
           <button
             type="button"
             class="navigation-item"
@@ -187,7 +142,6 @@ async function logout() {
             <span>Propriétaires</span>
           </button>
 
-          <!-- Véhicules -->
           <button
             type="button"
             class="navigation-item"
@@ -197,7 +151,6 @@ async function logout() {
             <span>Véhicules</span>
           </button>
 
-          <!-- Chauffeurs -->
           <button
             type="button"
             class="navigation-item"
@@ -207,7 +160,6 @@ async function logout() {
             <span>Chauffeurs</span>
           </button>
 
-          <!-- Documents véhicules -->
           <button
             type="button"
             class="navigation-item"
@@ -216,17 +168,16 @@ async function logout() {
             <span class="navigation-icon">DV</span>
             <span>Documents véhicules</span>
           </button>
-          <!-- Documents chauffeurs -->
-<button
-  type="button"
-  class="navigation-item"
-  @click="navigateTo('documents-chauffeurs')"
->
-  <span class="navigation-icon">DC</span>
-  <span>Documents chauffeurs</span>
-</button>
-          <!-- Fiches -->
-         <!-- Fiches de chargement -->
+
+          <button
+            type="button"
+            class="navigation-item"
+            @click="navigateTo('documents-chauffeurs')"
+          >
+            <span class="navigation-icon">DC</span>
+            <span>Documents chauffeurs</span>
+          </button>
+
           <button
             type="button"
             class="navigation-item"
@@ -236,7 +187,6 @@ async function logout() {
             <span>Fiches de chargement</span>
           </button>
 
-          <!-- Passagers -->
           <button
             type="button"
             class="navigation-item disabled"
@@ -249,16 +199,9 @@ async function logout() {
           </button>
         </div>
 
-        <!-- =========================
-             SUPERVISION
-        ========================== -->
-
         <div class="navigation-section">
-          <span class="navigation-title">
-            Supervision
-          </span>
+          <span class="navigation-title">Supervision</span>
 
-          <!-- Alertes -->
           <button
             type="button"
             class="navigation-item disabled"
@@ -270,7 +213,6 @@ async function logout() {
             <small>À venir</small>
           </button>
 
-          <!-- Audit -->
           <button
             type="button"
             class="navigation-item disabled"
@@ -284,7 +226,6 @@ async function logout() {
         </div>
       </nav>
 
-      <!-- Déconnexion -->
       <div class="sidebar-footer">
         <button
           type="button"
@@ -297,41 +238,32 @@ async function logout() {
       </div>
     </aside>
 
-    <!-- Zone principale -->
+    <!-- Contenu principal -->
     <div class="main-area">
+      <!-- Header officiel avec logo FOPTRAC -->
+      <HeaderView subtitle="Administration" />
 
-      <!-- Topbar -->
+      <!-- Barre utilisateur -->
       <header class="topbar">
         <button
           type="button"
           class="menu-button"
           aria-label="Ouvrir le menu"
+          :aria-expanded="sidebarOpen"
           @click="sidebarOpen = true"
         >
           ☰
         </button>
 
-        <div class="topbar-title">
-          <span>Plateforme de gestion</span>
-        </div>
-
-        <div class="user-summary">
-          <div class="user-avatar">
-            {{ userFullName.charAt(0).toUpperCase() }}
-          </div>
-
-          <div class="user-info">
-            <strong>{{ userFullName }}</strong>
-            <span>{{ userRole }}</span>
-          </div>
-        </div>
+     
       </header>
 
-      <!-- Contenu -->
       <main class="content">
-
-        <!-- Contexte utilisateur -->
-        <div class="content-user-context">
+        <!-- Informations de session -->
+        <section
+          class="content-user-context"
+          aria-label="Informations du compte connecté"
+        >
           <div>
             <span class="context-label">Compte</span>
             <strong>{{ userFullName }}</strong>
@@ -339,7 +271,7 @@ async function logout() {
 
           <div>
             <span class="context-label">Email</span>
-            <strong>{{ userEmail }}</strong>
+            <strong>{{ userEmail || 'Non renseigné' }}</strong>
           </div>
 
           <div>
@@ -351,51 +283,48 @@ async function logout() {
             <span class="context-label">Rôle</span>
             <strong>{{ userRole }}</strong>
           </div>
-        </div>
+        </section>
 
-        <!-- Vue courante -->
-        <RouterView />
+        <!-- Les pages enfants s'affichent ici -->
+        <div class="page-content">
+          <RouterView />
+        </div>
       </main>
+
+      <!-- Footer officiel avec logo FOPTRAC -->
+      <FooterView />
     </div>
   </div>
 </template>
 
 <style scoped>
-/* =========================
-   LAYOUT PRINCIPAL
-========================= */
-
 .admin-layout {
   min-height: 100vh;
   display: flex;
   background: #f4f6f8;
+  color: #111827;
 }
-
-/* =========================
-   SIDEBAR
-========================= */
 
 .sidebar {
   position: fixed;
   z-index: 100;
-  top: 0;
-  left: 0;
+  inset: 0 auto 0 0;
   width: 260px;
   height: 100vh;
   display: flex;
   flex-direction: column;
   background: #111827;
   color: white;
-  transform: translateX(0);
+  box-sizing: border-box;
   transition: transform 0.25s ease;
 }
 
 .sidebar-header {
+  min-height: 76px;
+  padding: 0 16px 0 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 76px;
-  padding: 0 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -413,6 +342,7 @@ async function logout() {
   justify-content: center;
   border-radius: 9px;
   background: #2563eb;
+  color: white;
   font-size: 14px;
   font-weight: 800;
 }
@@ -420,7 +350,7 @@ async function logout() {
 .brand-text {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
 .brand-text strong {
@@ -441,10 +371,6 @@ async function logout() {
   cursor: pointer;
 }
 
-/* =========================
-   NAVIGATION
-========================= */
-
 .navigation {
   flex: 1;
   overflow-y: auto;
@@ -458,7 +384,7 @@ async function logout() {
 .navigation-title {
   display: block;
   margin: 0 10px 8px;
-  color: #6b7280;
+  color: #9ca3af;
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
@@ -467,12 +393,12 @@ async function logout() {
 
 .navigation-item {
   width: 100%;
+  min-height: 42px;
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 42px;
   margin-bottom: 4px;
-  padding: 0 10px;
+  padding: 8px 10px;
   border: none;
   border-radius: 8px;
   background: transparent;
@@ -482,6 +408,7 @@ async function logout() {
   box-sizing: border-box;
   cursor: pointer;
   font: inherit;
+  font-size: 13px;
 }
 
 .navigation-item:hover:not(:disabled) {
@@ -501,6 +428,7 @@ async function logout() {
 
 .navigation-icon {
   width: 24px;
+  flex-shrink: 0;
   text-align: center;
   font-size: 13px;
   font-weight: 700;
@@ -514,10 +442,6 @@ async function logout() {
   color: #9ca3af;
   font-size: 10px;
 }
-
-/* =========================
-   SIDEBAR FOOTER
-========================= */
 
 .sidebar-footer {
   padding: 14px;
@@ -544,29 +468,25 @@ async function logout() {
   color: white;
 }
 
-/* =========================
-   MAIN AREA
-========================= */
-
 .main-area {
   width: calc(100% - 260px);
+  min-width: 0;
   min-height: 100vh;
   margin-left: 260px;
+  display: flex;
+  flex-direction: column;
 }
 
-/* =========================
-   TOPBAR
-========================= */
-
 .topbar {
-  height: 76px;
+  min-height: 76px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding: 0 28px;
+  padding: 12px 28px;
   background: white;
   border-bottom: 1px solid #e5e7eb;
+  box-sizing: border-box;
 }
 
 .topbar-title {
@@ -594,6 +514,7 @@ async function logout() {
 .user-avatar {
   width: 38px;
   height: 38px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -606,7 +527,7 @@ async function logout() {
 .user-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
 .user-info strong {
@@ -619,17 +540,16 @@ async function logout() {
   font-size: 11px;
 }
 
-/* =========================
-   CONTENT
-========================= */
-
 .content {
+  flex: 1;
+  min-width: 0;
   padding: 28px;
+  box-sizing: border-box;
 }
 
 .content-user-context {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
   margin-bottom: 24px;
   padding: 18px 20px;
@@ -639,10 +559,10 @@ async function logout() {
 }
 
 .content-user-context > div {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 5px;
-  min-width: 0;
 }
 
 .context-label {
@@ -653,16 +573,14 @@ async function logout() {
 }
 
 .content-user-context strong {
-  overflow: hidden;
+  overflow-wrap: anywhere;
   color: #111827;
   font-size: 13px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-/* =========================
-   MOBILE
-========================= */
+.page-content {
+  min-width: 0;
+}
 
 .sidebar-overlay {
   display: none;
@@ -670,7 +588,11 @@ async function logout() {
 
 @media (max-width: 1000px) {
   .content-user-context {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .content {
+    padding: 20px;
   }
 }
 
@@ -705,7 +627,7 @@ async function logout() {
   }
 
   .topbar {
-    padding: 0 18px;
+    padding: 12px 18px;
   }
 
   .topbar-title {
@@ -715,15 +637,15 @@ async function logout() {
   .user-info {
     display: none;
   }
-
-  .content {
-    padding: 20px;
-  }
 }
 
 @media (max-width: 560px) {
   .content-user-context {
     grid-template-columns: 1fr;
+  }
+
+  .content {
+    padding: 14px;
   }
 }
 </style>

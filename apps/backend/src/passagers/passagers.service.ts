@@ -19,6 +19,7 @@ export class PassagersService {
 
   // CREATE
   async create(createPassagerDto: CreatePassagerDto): Promise<Passager> {
+
     const existing = await this.passagerRepository.findOne({
       where: {
         numeroCni: createPassagerDto.numeroCni,

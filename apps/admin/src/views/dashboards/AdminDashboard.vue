@@ -1,302 +1,457 @@
 <script setup lang="ts">
-//import { useRouter } from 'vue-router';
+import { ref, computed, onMounted } from 'vue';
 import { useAuthStore } from '../../auth/auth.store';
+import { getDashboardStats } from '../../api/stats.api';
 
-//const router = useRouter();
 const authStore = useAuthStore();
 
-//function logout() {
-//  authStore.logout();
-//
-//  router.push({
-//    name: 'login',
-//  });
-//}
+/**
+ * Informations utilisateur dynamiques
+ */
+const userFullName = computed(() => {
+  const user = authStore.user;
+  if (!user) return 'Utilisateur';
+  return `${user.prenom ?? ''} ${user.nom ?? ''}`.trim() || 'Utilisateur';
+});
+
+const userRole = computed(() => authStore.role ?? 'ROLE_INCONNU');
+const userEmail = computed(() => authStore.user?.email ?? 'Non renseigné');
+const userGare = computed(() => authStore.user?.gareId ?? 'Non affectée');
+
+// Variables réactives pour les statistiques
+const totalUtilisateurs = ref(0);
+const totalGares = ref(0);
+const totalVehicules = ref(0);
+const totalChauffeurs = ref(0);
+const isLoading = ref(true);
+
+const fetchDashboardStats = async () => {
+  try {
+    isLoading.value = true;
+    const stats = await getDashboardStats();
+    totalUtilisateurs.value = stats.utilisateurs ?? 0;
+    totalGares.value = stats.gares ?? 0;
+    totalVehicules.value = stats.vehicules ?? 0;
+    totalChauffeurs.value = stats.chauffeurs ?? 0;
+  } catch (error) {
+    console.error("Erreur lors du chargement des statistiques du dashboard", error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+onMounted(() => {
+  fetchDashboardStats();
+});
+
+const statistics = computed(() => [
+  {
+    label: 'Utilisateurs',
+    description: 'Comptes de la plateforme',
+    value: totalUtilisateurs.value,
+    icon: 'U',
+    color: 'blue',
+  },
+  {
+    label: 'Gares',
+    description: 'Points de gestion',
+    value: totalGares.value,
+    icon: 'G',
+    color: 'green',
+  },
+  {
+    label: 'Véhicules',
+    description: 'Parc automobile',
+    value: totalVehicules.value,
+    icon: 'V',
+    color: 'orange',
+  },
+  {
+    label: 'Chauffeurs',
+    description: 'Personnel de conduite',
+    value: totalChauffeurs.value,
+    icon: 'C',
+    color: 'purple',
+  },
+]);
+
+const modules = [
+  {
+    title: 'Gestion des utilisateurs',
+    description: 'Comptes, rôles et accès à la plateforme.',
+    status: 'À connecter à l’API',
+    icon: 'U',
+  },
+  {
+    title: 'Gestion des gares',
+    description: 'Organisation et administration des gares.',
+    status: 'Module existant',
+    icon: 'G',
+  },
+  {
+    title: 'Supervision du système',
+    description: 'Suivi du fonctionnement de la plateforme.',
+    status: 'À venir',
+    icon: 'S',
+  },
+  {
+    title: 'Journal d’audit',
+    description: 'Consultation des opérations et événements.',
+    status: 'À venir',
+    icon: 'A',
+  },
+];
 </script>
 
 <template>
   <main class="dashboard">
-    <section class="dashboard-container">
-      <header class="dashboard-header">
-        <div>
-          <p class="eyebrow">Espace administration</p>
+    <!-- Panneau de bienvenue -->
+    
+   
+    <!-- Statistiques -->
+    <section class="statistics-section" aria-labelledby="statistics-title">
+      <div class="section-heading">
+        <span class="data-badge">Nos Indicateurs Statistiques</span>
+      </div>
 
-          <h1>Dashboard Administrateur</h1>
-
-          <p class="welcome">
-            Bienvenue
-            <strong>
-              {{ authStore.user?.prenom }}
-              {{ authStore.user?.nom }}
-            </strong>
-          </p>
-        </div>
-
-        <!-- <button type="button" class="logout-button" @click="logout">
-          Se déconnecter
-        </button> -->
-      </header>
-
-      <section class="user-card">
-        <div>
-          <span class="label">Utilisateur</span>
-          <strong>
-            {{ authStore.user?.prenom }}
-            {{ authStore.user?.nom }}
-          </strong>
-        </div>
-
-        <div>
-          <span class="label">Email</span>
-          <strong>{{ authStore.user?.email }}</strong>
-        </div>
-
-        <div>
-          <span class="label">Rôle</span>
-          <strong>{{ authStore.role }}</strong>
-        </div>
-
-        <div>
-          <span class="label">Gare</span>
-          <strong>{{ authStore.user?.gareId ?? 'Non affectée' }}</strong>
-        </div>
-      </section>
-
-      <section class="stats-grid">
-        <article class="stat-card">
-          <span class="stat-label">Utilisateurs</span>
-          <strong>0</strong>
-          <p>À connecter à l'API</p>
-        </article>
-
-        <article class="stat-card">
-          <span class="stat-label">Gares</span>
-          <strong>0</strong>
-          <p>À connecter à l'API</p>
-        </article>
-
-        <article class="stat-card">
-          <span class="stat-label">Véhicules</span>
-          <strong>0</strong>
-          <p>Module à venir</p>
-        </article>
-
-        <article class="stat-card">
-          <span class="stat-label">Chauffeurs</span>
-          <strong>0</strong>
-          <p>Module à venir</p>
-        </article>
-      </section>
-
-      <section class="modules-card">
-        <div>
-          <p class="eyebrow">Administration</p>
-          <h2>Modules de gestion</h2>
-          <p>
-            Les fonctionnalités métier seront intégrées progressivement
-            dans cet espace.
-          </p>
-        </div>
-
-        <div class="module-list">
-          <div class="module-item">
-            <strong>Gestion des utilisateurs</strong>
-            <span>À venir</span>
+      <div class="statistics-grid">
+        <article
+          v-for="stat in statistics"
+          :key="stat.label"
+          class="stat-card"
+        >
+          <div class="stat-top">
+            <div class="stat-icon" :class="`icon-${stat.color}`">
+              {{ stat.icon }}
+            </div>
+            <span class="stat-value-badge" aria-hidden="true">
+              {{ isLoading ? '...' : stat.value }}
+            </span>
           </div>
 
-          <div class="module-item">
-            <strong>Gestion des gares</strong>
-            <span>À venir</span>
-          </div>
-
-          <div class="module-item">
-            <strong>Supervision du système</strong>
-            <span>À venir</span>
-          </div>
-
-          <div class="module-item">
-            <strong>Journal d'audit</strong>
-            <span>À venir</span>
-          </div>
-        </div>
-      </section>
+          <h3>{{ stat.label }}</h3>
+          <p>{{ stat.description }}</p>
+          <span class="stat-placeholder">
+            {{ isLoading ? 'Chargement...' : 'Synchronisé avec la BD' }}
+          </span>
+        </article>
+      </div>
     </section>
+
+    <!-- Modules -->
+    <section class="modules-section" aria-labelledby="modules-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="modules-title" class="data-badge">Administration et supervision</h2>
+        </div>
+      </div>
+
+      <div class="modules-grid">
+        <article
+          v-for="module in modules"
+          :key="module.title"
+          class="module-card"
+        >
+          <div class="module-icon">
+            {{ module.icon }}
+          </div>
+
+          <div class="module-body">
+            <h3>{{ module.title }}</h3>
+            <p>{{ module.description }}</p>
+
+            <span
+              class="module-status"
+              :class="{
+                'status-ready': module.status === 'Module existant',
+                'status-pending': module.status !== 'Module existant',
+              }"
+            >
+              <span class="status-dot"></span>
+              {{ module.status }}
+            </span>
+          </div>
+
+          <span class="module-arrow" aria-hidden="true">›</span>
+        </article>
+      </div>
+    </section>
+
+    <p class="dashboard-note">
+      Les statistiques sont récupérées en temps réel depuis la base de données.
+    </p>
   </main>
 </template>
 
 <style scoped>
 .dashboard {
-  min-height: 100vh;
-  padding: 32px;
-  background: #f4f6f8;
-}
-
-.dashboard-container {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1440px;
   margin: 0 auto;
+  padding: 0;
+  color: #172033;
+  box-sizing: border-box;
 }
 
-.dashboard-header {
+.welcome-panel {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 24px;
-  margin-bottom: 28px;
+  padding: 32px;
+  margin-bottom: 32px;
+  border: 1px solid #dce7fb;
+  border-radius: 18px;
+  background: linear-gradient(120deg, #eff6ff 0%, #ffffff 75%);
 }
 
-.eyebrow {
-  margin: 0 0 6px;
-  color: #2563eb;
-  font-size: 13px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+.welcome-content {
+  max-width: 760px;
 }
 
-h1 {
+.welcome-eyebrow {
+  display: inline-block;
+  margin-bottom: 12px;
+  color: #2459b8;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.welcome-panel h1 {
   margin: 0;
-  color: #111827;
-  font-size: 32px;
+  color: #172554;
+  font-size: clamp(25px, 3vw, 34px);
+  line-height: 1.25;
+  letter-spacing: -0.8px;
 }
 
-.welcome {
-  margin: 10px 0 0;
-  color: #6b7280;
+.welcome-panel p {
+  max-width: 620px;
+  margin: 12px 0 0;
+  color: #586780;
+  font-size: 14px;
+  line-height: 1.7;
 }
 
-.user-card,
-.modules-card,
-.stat-card {
-  background: white;
-  border-radius: 14px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
-}
-
-.user-card {
+.welcome-avatar {
+  width: 76px;
+  height: 76px;
+  flex-shrink: 0;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  padding: 24px;
-  margin-bottom: 24px;
+  place-items: center;
+  border: 4px solid white;
+  border-radius: 22px;
+  background: #2459b8;
+  color: white;
+  box-shadow: 0 8px 20px rgba(37, 89, 184, 0.18);
+  font-size: 23px;
+  font-weight: 800;
 }
 
-.user-card > div {
+.account-section,
+.statistics-section,
+.modules-section {
+  margin-bottom: 32px;
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.account-card {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid #e3e8f0;
+  border-radius: 14px;
+  background: white;
+}
+
+.account-item {
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-}
-
-.label,
-.stat-label {
-  color: #6b7280;
-  font-size: 13px;
-}
-
-.user-card strong {
-  color: #111827;
-  word-break: break-word;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  margin-bottom: 24px;
-}
-
-.stat-card {
+  gap: 9px;
   padding: 22px;
 }
 
-.stat-card strong {
-  display: block;
-  margin: 8px 0;
-  color: #111827;
-  font-size: 30px;
+.account-item + .account-item {
+  border-left: 1px solid #edf0f5;
+}
+
+.detail-label {
+  color: #7a8699;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.account-item strong {
+  color: #263349;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.data-badge {
+  padding: 7px 11px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.statistics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.stat-card {
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid #e3e8f0;
+  border-radius: 15px;
+  background: white;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  border-color: #cbd8ec;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.06);
+}
+
+.stat-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 19px;
+}
+
+.stat-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.icon-blue { background: #eaf2ff; color: #2563eb; }
+.icon-green { background: #e8f8ef; color: #16834a; }
+.icon-orange { background: #fff3e7; color: #c66b14; }
+.icon-purple { background: #f1eafe; color: #7c3aed; }
+
+.stat-value-badge {
+  color: #172033;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.stat-card h3 {
+  margin: 0 0 7px;
+  color: #263349;
+  font-size: 15px;
 }
 
 .stat-card p {
-  margin: 0;
-  color: #9ca3af;
-  font-size: 13px;
+  min-height: 36px;
+  margin: 0 0 16px;
+  color: #7a8699;
+  font-size: 12px;
+  line-height: 1.6;
 }
 
-.modules-card {
-  padding: 28px;
-}
-
-.modules-card h2 {
-  margin: 0 0 8px;
-  color: #111827;
-}
-
-.modules-card > div:first-child > p:last-child {
-  margin-top: 0;
-  color: #6b7280;
-}
-
-.module-list {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-top: 24px;
-}
-
-.module-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  padding: 16px;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-}
-
-.module-item span {
-  color: #6b7280;
-  font-size: 13px;
-}
-
-.logout-button {
-  padding: 10px 18px;
-  border: none;
-  border-radius: 8px;
-  background: #dc2626;
-  color: white;
+.stat-placeholder {
+  display: inline-block;
+  padding-top: 11px;
+  border-top: 1px solid #edf0f5;
+  color: #7a8699;
+  font-size: 11px;
   font-weight: 600;
-  cursor: pointer;
 }
 
-.logout-button:hover {
-  background: #b91c1c;
+.modules-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
 }
 
-@media (max-width: 900px) {
-  .user-card,
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+.module-card {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 20px;
+  border: 1px solid #e3e8f0;
+  border-radius: 14px;
+  background: white;
 }
 
-@media (max-width: 640px) {
-  .dashboard {
-    padding: 20px;
-  }
+.module-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 800;
+  background: #f0f4fa;
+  color: #405777;
+}
 
-  .dashboard-header {
+.module-body { flex: 1; min-width: 0; }
+.module-body h3 { margin: 1px 0 7px; color: #263349; font-size: 14px; }
+.module-body p { margin: 0 0 14px; color: #7a8699; font-size: 12px; line-height: 1.6; }
+
+.module-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.status-ready { color: #16834a; }
+.status-pending { color: #8a6b29; }
+.status-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.module-arrow { color: #a0aabc; font-size: 25px; }
+
+.dashboard-note {
+  margin: 0 0 12px;
+  padding: 14px 16px;
+  border: 1px solid #e3e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 12px;
+}
+
+@media (max-width: 1100px) {
+  .statistics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .welcome-panel {
+    padding: 24px;
     flex-direction: column;
+    align-items: flex-start;
   }
-
-  .user-card,
-  .stats-grid,
-  .module-list {
-    grid-template-columns: 1fr;
+  .account-card { grid-template-columns: 1fr; }
+  .account-item + .account-item {
+    border-top: 1px solid #edf0f5;
+    border-left: none;
   }
-
-  h1 {
-    font-size: 26px;
-  }
+  .modules-grid { grid-template-columns: 1fr; }
 }
 </style>
-

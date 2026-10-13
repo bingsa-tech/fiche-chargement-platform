@@ -19,6 +19,8 @@ import { TestRolesModule } from './test-roles/test-roles.module';
 import { ProprietairesModule } from './proprietaires/proprietaires.module';
 import { FicheImpressionsModule } from './fiche-impressions/fiche-impressions.module';
 
+import { DashboardStatsModule } from './dashboard-stats/dashboard-stats.module';
+
 
 @Module({
   imports: [
@@ -67,6 +69,8 @@ import { FicheImpressionsModule } from './fiche-impressions/fiche-impressions.mo
     TestRolesModule,
     ProprietairesModule,
     FicheImpressionsModule,
+    
+    DashboardStatsModule,
   ],
 })
 export class AppModule {}

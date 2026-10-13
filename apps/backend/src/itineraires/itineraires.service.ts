@@ -109,4 +109,19 @@ export class ItinerairesService {
 
     await this.itineraireRepository.remove(itineraire);
   }
+  async diagnosticConnexion(): Promise<unknown> {
+  return this.itineraireRepository.query(`
+    SELECT
+      current_database() AS base,
+      current_user AS utilisateur,
+      current_schema() AS schema,
+      inet_server_addr() AS adresse_serveur,
+      inet_server_port() AS port_serveur,
+      EXISTS (
+        SELECT 1
+        FROM public.destination
+        WHERE id = $1::uuid
+      ) AS destination_existe
+  `, ['d3ed83fe-1a92-4e9a-b99d-a1bb77b9a6ef']);
+}
 }
