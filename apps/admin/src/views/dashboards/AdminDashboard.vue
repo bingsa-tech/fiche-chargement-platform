@@ -105,8 +105,35 @@ const modules = [
 
 <template>
   <main class="dashboard">
-    <!-- Panneau de bienvenue -->
-    
+    <!-- Panneau de bienvenue (Utilise userFullName) -->
+    <section class="welcome-panel">
+      <div class="welcome-content">
+        <span class="welcome-eyebrow">ESPACE ADMINISTRATION</span>
+        <h1>Bienvenue, {{ userFullName }}</h1>
+        <p>Gérez et supervisez l'ensemble des activités, gares et ressources de la plateforme en temps réel.</p>
+      </div>
+      <div class="welcome-avatar">
+        {{ userFullName.charAt(0).toUpperCase() }}
+      </div>
+    </section>
+
+    <!-- Détails du compte (Utilise userRole, userEmail et userGare) -->
+    <section class="account-section">
+      <div class="account-card">
+        <div class="account-item">
+          <span class="detail-label">RÔLE ACTUEL</span>
+          <strong>{{ userRole }}</strong>
+        </div>
+        <div class="account-item">
+          <span class="detail-label">EMAIL</span>
+          <strong>{{ userEmail }}</strong>
+        </div>
+        <div class="account-item">
+          <span class="detail-label">GARE RATTACHÉE</span>
+          <strong>{{ userGare }}</strong>
+        </div>
+      </div>
+    </section>
    
     <!-- Statistiques -->
     <section class="statistics-section" aria-labelledby="statistics-title">
@@ -411,47 +438,5 @@ const modules = [
   color: #405777;
 }
 
-.module-body { flex: 1; min-width: 0; }
-.module-body h3 { margin: 1px 0 7px; color: #263349; font-size: 14px; }
-.module-body p { margin: 0 0 14px; color: #7a8699; font-size: 12px; line-height: 1.6; }
 
-.module-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 11px;
-  font-weight: 650;
-}
-
-.status-ready { color: #16834a; }
-.status-pending { color: #8a6b29; }
-.status-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-.module-arrow { color: #a0aabc; font-size: 25px; }
-
-.dashboard-note {
-  margin: 0 0 12px;
-  padding: 14px 16px;
-  border: 1px solid #e3e8f0;
-  border-radius: 10px;
-  background: #f8fafc;
-  color: #64748b;
-  font-size: 12px;
-}
-
-@media (max-width: 1100px) {
-  .statistics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (max-width: 760px) {
-  .welcome-panel {
-    padding: 24px;
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .account-card { grid-template-columns: 1fr; }
-  .account-item + .account-item {
-    border-top: 1px solid #edf0f5;
-    border-left: none;
-  }
-  .modules-grid { grid-template-columns: 1fr; }
-}
 </style>
