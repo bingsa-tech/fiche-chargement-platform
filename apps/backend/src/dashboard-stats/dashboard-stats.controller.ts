@@ -1,16 +1,19 @@
 import { Controller, Get, Req, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { DashboardStatsService } from './dashboard-stats.service';
- import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'; // Votre guard existant
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
+@ApiTags('Dashboard Stats')
+@ApiBearerAuth()
 @Controller('dashboard-stats')
- @UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard)
 export class DashboardStatsController {
-  constructor(private readonly statsService: DashboardStatsService) {}
+  constructor(
+    private readonly statsService: DashboardStatsService,
+  ) {}
 
   @Get()
   async getMyStats(@Req() req) {
-    // req.user contient le payload du token JWT (id, role_id, gare_id, etc.)
-    const user = req.user; 
-    return await this.statsService.getStatsForUser(user);
+    return this.statsService.getStatsForUser(req.user);
   }
 }

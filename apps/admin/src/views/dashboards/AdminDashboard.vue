@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { useAuthStore } from '../../auth/auth.store';
 import { getDashboardStats } from '../../api/stats.api';
+//import { useAuthStore } from '../../auth/auth.store';
 
-const authStore = useAuthStore();
+
+//const authStore = useAuthStore();
 
 /**
- * Informations utilisateur dynamiques
+ * Informations utilisateur dynamiques (utilisées dans le template)
  */
-const userFullName = computed(() => {
+/* const userFullName = computed(() => {
   const user = authStore.user;
   if (!user) return 'Utilisateur';
   return `${user.prenom ?? ''} ${user.nom ?? ''}`.trim() || 'Utilisateur';
@@ -17,12 +18,13 @@ const userFullName = computed(() => {
 const userRole = computed(() => authStore.role ?? 'ROLE_INCONNU');
 const userEmail = computed(() => authStore.user?.email ?? 'Non renseigné');
 const userGare = computed(() => authStore.user?.gareId ?? 'Non affectée');
-
+ */
 // Variables réactives pour les statistiques
 const totalUtilisateurs = ref(0);
 const totalGares = ref(0);
 const totalVehicules = ref(0);
 const totalChauffeurs = ref(0);
+const totalFiches = ref(0);
 const isLoading = ref(true);
 
 const fetchDashboardStats = async () => {
@@ -33,6 +35,7 @@ const fetchDashboardStats = async () => {
     totalGares.value = stats.gares ?? 0;
     totalVehicules.value = stats.vehicules ?? 0;
     totalChauffeurs.value = stats.chauffeurs ?? 0;
+    totalFiches.value = stats.fiches ?? 0;
   } catch (error) {
     console.error("Erreur lors du chargement des statistiques du dashboard", error);
   } finally {
@@ -73,6 +76,13 @@ const statistics = computed(() => [
     icon: 'C',
     color: 'purple',
   },
+  {
+    label: 'Fiches',
+    description: 'Documents de gestion',
+    value: totalFiches.value,
+    icon: 'F',
+    color: 'red',
+  },
 ]);
 
 const modules = [
@@ -105,35 +115,11 @@ const modules = [
 
 <template>
   <main class="dashboard">
-    <!-- Panneau de bienvenue (Utilise userFullName) -->
-    <section class="welcome-panel">
-      <div class="welcome-content">
-        <span class="welcome-eyebrow">ESPACE ADMINISTRATION</span>
-        <h1>Bienvenue, {{ userFullName }}</h1>
-        <p>Gérez et supervisez l'ensemble des activités, gares et ressources de la plateforme en temps réel.</p>
-      </div>
-      <div class="welcome-avatar">
-        {{ userFullName.charAt(0).toUpperCase() }}
-      </div>
-    </section>
+    <!-- Panneau de bienvenue -->
+    
+    
 
-    <!-- Détails du compte (Utilise userRole, userEmail et userGare) -->
-    <section class="account-section">
-      <div class="account-card">
-        <div class="account-item">
-          <span class="detail-label">RÔLE ACTUEL</span>
-          <strong>{{ userRole }}</strong>
-        </div>
-        <div class="account-item">
-          <span class="detail-label">EMAIL</span>
-          <strong>{{ userEmail }}</strong>
-        </div>
-        <div class="account-item">
-          <span class="detail-label">GARE RATTACHÉE</span>
-          <strong>{{ userGare }}</strong>
-        </div>
-      </div>
-    </section>
+  
    
     <!-- Statistiques -->
     <section class="statistics-section" aria-labelledby="statistics-title">
@@ -337,7 +323,7 @@ const modules = [
 
 .statistics-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 18px;
 }
 
@@ -378,7 +364,10 @@ const modules = [
 .icon-green { background: #e8f8ef; color: #16834a; }
 .icon-orange { background: #fff3e7; color: #c66b14; }
 .icon-purple { background: #f1eafe; color: #7c3aed; }
-
+.icon-red {
+  background: #fee2e2;
+  color: #dc2626;
+}
 .stat-value-badge {
   color: #172033;
   font-size: 20px;
@@ -438,5 +427,47 @@ const modules = [
   color: #405777;
 }
 
+.module-body { flex: 1; min-width: 0; }
+.module-body h3 { margin: 1px 0 7px; color: #263349; font-size: 14px; }
+.module-body p { margin: 0 0 14px; color: #7a8699; font-size: 12px; line-height: 1.6; }
 
+.module-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.status-ready { color: #16834a; }
+.status-pending { color: #8a6b29; }
+.status-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.module-arrow { color: #a0aabc; font-size: 25px; }
+
+.dashboard-note {
+  margin: 0 0 12px;
+  padding: 14px 16px;
+  border: 1px solid #e3e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 12px;
+}
+
+@media (max-width: 1100px) {
+  .statistics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .welcome-panel {
+    padding: 24px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .account-card { grid-template-columns: 1fr; }
+  .account-item + .account-item {
+    border-top: 1px solid #edf0f5;
+    border-left: none;
+  }
+  .modules-grid { grid-template-columns: 1fr; }
+}
 </style>
