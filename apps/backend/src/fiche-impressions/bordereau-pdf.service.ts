@@ -2,7 +2,8 @@
 import { Injectable } from '@nestjs/common';
 import PDFDocument = require('pdfkit');
 import type PDFKit from 'pdfkit';
-
+import * as path from 'node:path';
+import * as fs from 'node:fs';
 import { Fiche } from '../fiches/entities/fiche.entity';
 
 @Injectable()
@@ -23,9 +24,27 @@ export class BordereauPdfService {
     const right = doc.page.width - 32;
     const contentWidth = right - left;
     const colWidth = contentWidth / 2;
+    // Logo officiel de la Fédération
+const logoPath = path.join(
+  __dirname,
+  'assets',
+  'logo-Fede.png',
+);
 
+if (fs.existsSync(logoPath)) {
+  doc.image(logoPath, doc.page.width / 2 - 30, 32, {
+    fit: [60, 60],
+    align: 'center',
+    valign: 'center',
+  });
+}
     // En-tête bilingue
-    doc.font('Helvetica-Bold').fontSize(9);
+    doc.font('Helvetica-Bold')
+  .fontSize(14)
+  .fillColor('red')
+ ;
+
+doc.fillColor('black');
 
     doc.text('RÉPUBLIQUE DU CAMEROUN', left, 30, {
       width: 220,
@@ -52,21 +71,22 @@ export class BordereauPdfService {
     doc.fontSize(7);
 
     doc.text(
-      'Syndicat National des Chauffeurs professionnels des Transports du Cameroun',
+      'Federation Des Organisations Socio-Professionnelles Du Transport Routier Du Cameroun ',
+
       left,
       60,
       { width: 220, align: 'center' },
     );
 
     doc.text(
-      'National Union of professional Drivers Transportation Cameroon',
+      'Federation of Socio-Professional Organizations of Road Transport of Cameroon',
       right - 220,
       60,
       { width: 220, align: 'center' },
     );
 
     doc.text(
-      'Tél : +237 699 44 74 13 / 655 89 50 89 / 695 41 66 60',
+      'Tél : +237 655 895 089',
       left,
       78,
       { width: 250, align: 'center' },

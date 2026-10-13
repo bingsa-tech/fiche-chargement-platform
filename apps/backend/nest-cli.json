@@ -1,8 +1,15 @@
+
 {
   "$schema": "https://json.schemastore.org/nest-cli",
   "collection": "@nestjs/schematics",
   "sourceRoot": "src",
   "compilerOptions": {
-    "deleteOutDir": true
+    "deleteOutDir": true,
+    "assets": [
+      {
+        "include": "fiche-impressions/assets/**/*",
+        "outDir": "dist/src"
+      }
+    ]
   }
 }
