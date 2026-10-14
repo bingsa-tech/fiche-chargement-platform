@@ -42,7 +42,8 @@ type RouteName =
   | 'documents-vehicules'
   | 'documents-chauffeurs'
   | 'utilisateurs'
-  | 'fiches';
+  | 'fiches'
+  | 'passagers';
 
 function navigateTo(routeName: RouteName) {
   closeSidebar();
@@ -189,13 +190,13 @@ async function logout() {
 
           <button
             type="button"
-            class="navigation-item disabled"
-            disabled
+            class="navigation-item"
+            @click="navigateTo('passagers')"
             title="Module prochainement disponible"
           >
             <span class="navigation-icon">P</span>
             <span>Passagers</span>
-            <small>À venir</small>
+            
           </button>
         </div>
 

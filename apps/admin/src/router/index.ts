@@ -284,6 +284,15 @@ const routes: RouteRecordRaw[] = [
           ] satisfies UserRole[],
         },
       },
+      {
+    path: '/passagers',
+    name: 'passagers',
+    component: () => import('../views/passagers/PassagersView.vue'),
+    meta: {
+      requiresAuth: true, // Si votre route est protégée par authentification
+      // title: 'Gestion des Passagers'
+    },
+  },
 
 
       // ========================================================
