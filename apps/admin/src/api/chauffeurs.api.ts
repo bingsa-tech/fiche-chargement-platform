@@ -6,71 +6,56 @@ import type {
   UpdateChauffeurPayload,
 } from '../types/chauffeur.types';
 
+const CHAUFFEURS_ENDPOINT = 'api/chauffeurs';
+
 /**
  * Récupère la liste complète des chauffeurs.
  */
 export async function getChauffeurs(): Promise<Chauffeur[]> {
-  const response = await api.get<Chauffeur[]>('/chauffeurs');
-
+  const response = await api.get<Chauffeur[]>(CHAUFFEURS_ENDPOINT);
   return response.data;
 }
 
 /**
  * Récupère un chauffeur par son identifiant.
- *
- * La réponse contient également ses documents
- * dans `documentChauffeurs`.
  */
-export async function getChauffeur(
-  id: string,
-): Promise<Chauffeur> {
+export async function getChauffeur(id: string): Promise<Chauffeur> {
   const response = await api.get<Chauffeur>(
-    `/chauffeurs/${id}`,
+    `${CHAUFFEURS_ENDPOINT}/${id}`,
   );
-
   return response.data;
 }
 
 /**
  * Crée un chauffeur avec son document initial obligatoire.
- *
- * Le backend effectue la création du chauffeur
- * et du document dans une transaction.
  */
 export async function createChauffeur(
   payload: CreateChauffeurPayload,
 ): Promise<Chauffeur> {
   const response = await api.post<Chauffeur>(
-    '/chauffeurs',
+    CHAUFFEURS_ENDPOINT,
     payload,
   );
-
   return response.data;
 }
 
 /**
  * Met à jour les informations du chauffeur.
- *
- * Le document n'est pas modifié par cet endpoint.
- * Les documents sont gérés via l'API Documents.
  */
 export async function updateChauffeur(
   id: string,
   payload: UpdateChauffeurPayload,
 ): Promise<Chauffeur> {
   const response = await api.patch<Chauffeur>(
-    `/chauffeurs/${id}`,
+    `${CHAUFFEURS_ENDPOINT}/${id}`,
     payload,
   );
-
   return response.data;
 }
 
 /**
  * Supprime un chauffeur.
  */
-export async function deleteChauffeur(
-  id: string,
-): Promise<void> {
-  await api.delete(`/chauffeurs/${id}`);
+export async function deleteChauffeur(id: string): Promise<void> {
+  await api.delete(`${CHAUFFEURS_ENDPOINT}/${id}`);
 }

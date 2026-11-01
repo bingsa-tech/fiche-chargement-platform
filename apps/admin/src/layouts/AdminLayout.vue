@@ -43,8 +43,15 @@ type RouteName =
   | 'documents-chauffeurs'
   | 'utilisateurs'
   | 'fiches'
-  | 'passagers';
+  | 'alertes'
+  | 'passagers'
+  | 'audit';
 
+  const canViewAudit = computed(
+  () =>
+    authStore.role === 'ADMIN' ||
+    authStore.role === 'RESPONSABLE_GARE',
+);
 function navigateTo(routeName: RouteName) {
   closeSidebar();
   void router.push({ name: routeName });
@@ -205,25 +212,23 @@ async function logout() {
 
           <button
             type="button"
-            class="navigation-item disabled"
-            disabled
-            title="Module prochainement disponible"
+            class="navigation-item"
+            @click="navigateTo('alertes')"
           >
             <span class="navigation-icon">!</span>
             <span>Alertes</span>
-            <small>À venir</small>
+            
           </button>
 
           <button
-            type="button"
-            class="navigation-item disabled"
-            disabled
-            title="Module prochainement disponible"
-          >
-            <span class="navigation-icon">A</span>
-            <span>Audit</span>
-            <small>À venir</small>
-          </button>
+  v-if="canViewAudit"
+  type="button"
+  class="navigation-item"
+  @click="navigateTo('audit')"
+>
+  <span class="navigation-icon">A</span>
+  <span>Journal d'audit</span>
+</button>
         </div>
       </nav>
 

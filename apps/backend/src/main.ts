@@ -1,5 +1,7 @@
+
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import cookieParser from 'cookie-parser';
 import {
   DocumentBuilder,
   SwaggerModule,
@@ -7,19 +9,37 @@ import {
 
 import { AppModule } from './app.module';
 
-async function bootstrap() {
+async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
 
-  // Autoriser le frontend Vue et Flutter Web à communiquer
-  // avec l'API et à envoyer/recevoir les cookies HttpOnly.
+  // =====================================================
+  // 1. PRÉFIXE GLOBAL API
+  // =====================================================
+  app.setGlobalPrefix('api');
+
+  // =====================================================
+  // 2. MIDDLEWARE COOKIES
+  // =====================================================
+  app.use(cookieParser());
+
+  // =====================================================
+  // 3. CONFIGURATION CORS
+  // =====================================================
   app.enableCors({
     origin: [
       'http://localhost:5173',
-      'http://localhost:8085',
       'https://fiche-chargement-platform-frontend.onrender.com',
     ],
     credentials: true,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    methods: [
+      'GET',
+      'HEAD',
+      'PUT',
+      'PATCH',
+      'POST',
+      'DELETE',
+      'OPTIONS',
+    ],
     allowedHeaders: [
       'Content-Type',
       'Accept',
@@ -27,13 +47,23 @@ async function bootstrap() {
     ],
   });
 
+  // =====================================================
+  // 4. VALIDATION GLOBALE DES DTO
+  // =====================================================
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
+      forbidNonWhitelisted: true,
       transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
     }),
   );
 
+  // =====================================================
+  // 5. CONFIGURATION SWAGGER
+  // =====================================================
   const config = new DocumentBuilder()
     .setTitle('API Fiche de Chargement')
     .setDescription(
@@ -48,18 +78,22 @@ async function bootstrap() {
     config,
   );
 
-  SwaggerModule.setup(
-    'api/docs',
-    app,
-    document,
+  SwaggerModule.setup('api/docs', app, document);
+
+  // =====================================================
+  // 6. DÉMARRAGE DU SERVEUR
+  // =====================================================
+  const port = Number(process.env.PORT) || 8085;
+
+  await app.listen(port, '0.0.0.0');
+
+  console.log(
+    `Serveur NestJS actif sur http://localhost:${port}`,
   );
 
- const port = Number(process.env.PORT) || 8085;
-
-await app.listen(port, '0.0.0.0');
-
-console.log(`Serveur NestJS actif sur http://localhost:${port}`);
+  console.log(
+    `Documentation Swagger : http://localhost:${port}/api/docs`,
+  );
 }
 
 bootstrap();
-

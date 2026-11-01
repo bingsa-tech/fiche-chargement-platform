@@ -1,4 +1,3 @@
-
 import {
   Injectable,
   UnauthorizedException,
@@ -11,9 +10,6 @@ import { UtilisateursService } from '../../utilisateurs/utilisateur.service';
 
 interface JwtPayload {
   sub: number;
-  username?: string;
-  role?: string;
-  gareId?: string | null;
 }
 
 @Injectable()
@@ -36,32 +32,38 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: JwtPayload) {
-    if (!payload?.sub) {
-      throw new UnauthorizedException(
-        'Jeton JWT invalide : identifiant utilisateur manquant.',
-      );
-    }
-
-    const utilisateur = await this.utilisateursService.findOne(
-      payload.sub,
+ async validate(payload: JwtPayload) {
+  if (!Number.isInteger(payload?.sub) || payload.sub <= 0) {
+    throw new UnauthorizedException(
+      'Jeton JWT invalide : identifiant utilisateur manquant.',
     );
-
-    if (!utilisateur) {
-      throw new UnauthorizedException('Utilisateur introuvable');
-    }
-
-    if (!utilisateur.role?.code) {
-      throw new UnauthorizedException(
-        'Aucun rôle valide associé à cet utilisateur.',
-      );
-    }
-
-    return {
-      id: utilisateur.id,
-      username: utilisateur.username,
-      role: utilisateur.role.code,
-      gareId: utilisateur.gareId,
-    };
   }
+
+  const utilisateur = await this.utilisateursService.findOne(
+    payload.sub,
+  );
+
+  if (!utilisateur) {
+    throw new UnauthorizedException('Utilisateur introuvable.');
+  }
+
+  if (!utilisateur.role?.code) {
+    throw new UnauthorizedException(
+      'Aucun rôle valide associé à cet utilisateur.',
+    );
+  }
+
+  if (!utilisateur.actif || utilisateur.bloque) {
+    throw new UnauthorizedException(
+      'Utilisateur désactivé ou bloqué.',
+    );
+  }
+
+  return {
+    sub: utilisateur.id,
+    username: utilisateur.username,
+    role: utilisateur.role.code,
+    gareId: utilisateur.gareId,
+  };
+}
 }

@@ -4,6 +4,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   ValidateNested,
 } from 'class-validator';
@@ -28,6 +29,10 @@ export class CreateChauffeurDto {
   @MaxLength(30)
   telephone?: string;
 
+  @IsOptional()
+  @IsUUID()
+  gareId?: string;
+  
   @IsEnum(ChauffeurStatut)
   statut!: ChauffeurStatut;
 

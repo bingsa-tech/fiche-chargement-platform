@@ -13,7 +13,7 @@ import { DocumentVehicule } from '../../documents/entities/document-vehicule.ent
 import { Fiche } from '../../fiches/entities/fiche.entity';
 import { Proprietaire } from '../../proprietaires/entities/proprietaire.entity';
 import { VehiculeStatut } from '../enums/vehicule-statut.enum';
-
+import { Gare } from '../../gares/entities/gare.entity';
 @Entity('vehicule', { schema: 'public' })
 export class Vehicule {
   @PrimaryGeneratedColumn('uuid')
@@ -113,4 +113,21 @@ export class Vehicule {
     (fiche) => fiche.vehicule,
   )
   fiches!: Fiche[];
+
+  @OneToMany(
+    () => Fiche,
+    (fiche) => fiche.chauffeur,
+  )
+  fiche!: Fiche[];
+
+@ManyToOne(() => Gare, (gare) => gare.vehicules, {
+  nullable: false,
+  onDelete: 'RESTRICT',
+  onUpdate: 'RESTRICT',
+})
+@JoinColumn({ name: 'gare_id', referencedColumnName: 'id' })
+gare!: Gare;
+
+@Column({ name: 'gare_id', type: 'uuid', nullable: false })
+gareId!: string;
 }

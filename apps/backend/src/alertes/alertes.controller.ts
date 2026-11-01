@@ -7,27 +7,37 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 
 import {
+  ApiBearerAuth,
   ApiOperation,
   ApiParam,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Permission } from '../auth/decorators/permission.decorator';
+
 import { AlertesService } from './alertes.service';
 import { CreateAlerteDto } from './dto/create-alerte.dto';
 import { UpdateAlerteDto } from './dto/update-alerte.dto';
 
 @ApiTags('Alertes')
-@Controller('api/alertes')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+@Controller('alertes')
 export class AlertesController {
   constructor(
     private readonly alertesService: AlertesService,
   ) {}
 
   @Post()
+  @Permission('alertes', 'CREATE')
   @ApiOperation({
     summary: 'Créer une alerte documentaire',
   })
@@ -40,6 +50,7 @@ export class AlertesController {
   }
 
   @Get()
+  @Permission('alertes', 'READ')
   @ApiOperation({
     summary: 'Lister toutes les alertes',
   })
@@ -52,6 +63,7 @@ export class AlertesController {
   }
 
   @Get(':id')
+  @Permission('alertes', 'READ')
   @ApiOperation({
     summary: 'Récupérer une alerte',
   })
@@ -67,13 +79,12 @@ export class AlertesController {
     status: 404,
     description: 'Alerte introuvable.',
   })
-  findOne(
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.alertesService.findOne(id);
   }
 
   @Patch(':id')
+  @Permission('alertes', 'UPDATE')
   @ApiOperation({
     summary: 'Modifier une alerte',
   })
@@ -85,13 +96,11 @@ export class AlertesController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateAlerteDto: UpdateAlerteDto,
   ) {
-    return this.alertesService.update(
-      id,
-      updateAlerteDto,
-    );
+    return this.alertesService.update(id, updateAlerteDto);
   }
 
   @Patch(':id/lue')
+  @Permission('alertes', 'PROCESS')
   @ApiOperation({
     summary: 'Marquer une alerte comme lue',
   })
@@ -99,13 +108,17 @@ export class AlertesController {
     name: 'id',
     description: 'UUID de l’alerte',
   })
+  @ApiResponse({
+    status: 200,
+    description: 'Alerte marquée comme lue.',
+  })
   marquerCommeLue(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body('utilisateurLecture') utilisateurLecture: number,
+    @Req() req: { user: { id: number } },
   ) {
     return this.alertesService.marquerCommeLue(
       id,
-      utilisateurLecture,
+      req.user.id,
     );
   }
 
@@ -121,9 +134,7 @@ export class AlertesController {
     status: 200,
     description: 'Alerte supprimée.',
   })
-  remove(
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
+  remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.alertesService.remove(id);
   }
 }

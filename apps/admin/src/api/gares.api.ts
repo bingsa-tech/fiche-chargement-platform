@@ -10,7 +10,7 @@ import type {
  * Récupère toutes les gares.
  */
 export async function getGares(): Promise<Gare[]> {
-  const response = await api.get<Gare[]>('/gares');
+  const response = await api.get<Gare[]>('api/gares');
 
   return response.data;
 }
@@ -22,7 +22,7 @@ export async function getGare(
   id: string,
 ): Promise<Gare> {
   const response = await api.get<Gare>(
-    `/gares/${id}`,
+    `api/gares/${id}`,
   );
 
   return response.data;
@@ -35,7 +35,7 @@ export async function createGare(
   payload: CreateGarePayload,
 ): Promise<Gare> {
   const response = await api.post<Gare>(
-    '/gares',
+    'api/gares',
     payload,
   );
 
@@ -50,7 +50,7 @@ export async function updateGare(
   payload: UpdateGarePayload,
 ): Promise<Gare> {
   const response = await api.patch<Gare>(
-    `/gares/${id}`,
+    `api/gares/${id}`,
     payload,
   );
 
@@ -65,5 +65,5 @@ export async function updateGare(
 export async function deleteGare(
   id: string,
 ): Promise<void> {
-  await api.delete(`/gares/${id}`);
+  await api.delete(`api/gares/${id}`);
 }

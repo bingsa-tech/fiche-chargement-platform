@@ -1,3 +1,4 @@
+
 import {
   Body,
   Controller,
@@ -8,8 +9,10 @@ import {
   Param,
   Patch,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { CreateChauffeurDto } from './dto/create-chauffeur.dto';
@@ -24,6 +27,17 @@ import {
   PERMISSION_ACTIONS,
 } from '../config/permissions.config';
 
+type UtilisateurAuthentifie = {
+  id: number;
+  username: string;
+  role: string;
+  gareId: string | null;
+};
+
+type RequeteAuthentifiee = Request & {
+  user: UtilisateurAuthentifie;
+};
+
 @ApiTags('Chauffeurs')
 @ApiBearerAuth()
 @Controller('chauffeurs')
@@ -33,11 +47,8 @@ export class ChauffeursController {
     private readonly chauffeursService: ChauffeursService,
   ) {}
 
-  // ============================================================
   // POST /chauffeurs
-  // Création d'un chauffeur + son document obligatoire
-  // ============================================================
-
+  // ADMIN choisit la gare ; les autres rôles utilisent leur gare.
   @Post()
   @Permission(
     PERMISSION_RESOURCES.CHAUFFEURS,
@@ -45,29 +56,25 @@ export class ChauffeursController {
   )
   create(
     @Body() createChauffeurDto: CreateChauffeurDto,
+    @Req() req: RequeteAuthentifiee,
   ) {
     return this.chauffeursService.create(
       createChauffeurDto,
+      req.user,
     );
   }
 
-  // ============================================================
   // GET /chauffeurs
-  // ============================================================
-
   @Get()
   @Permission(
     PERMISSION_RESOURCES.CHAUFFEURS,
     PERMISSION_ACTIONS.READ,
   )
-  findAll() {
-    return this.chauffeursService.findAll();
+  findAll(@Req() req: RequeteAuthentifiee) {
+    return this.chauffeursService.findAll(req.user);
   }
 
-  // ============================================================
   // GET /chauffeurs/:id
-  // ============================================================
-
   @Get(':id')
   @Permission(
     PERMISSION_RESOURCES.CHAUFFEURS,
@@ -75,14 +82,12 @@ export class ChauffeursController {
   )
   findOne(
     @Param('id') id: string,
+    @Req() req: RequeteAuthentifiee,
   ) {
-    return this.chauffeursService.findOne(id);
+    return this.chauffeursService.findOne(id, req.user);
   }
 
-  // ============================================================
   // PATCH /chauffeurs/:id
-  // ============================================================
-
   @Patch(':id')
   @Permission(
     PERMISSION_RESOURCES.CHAUFFEURS,
@@ -91,17 +96,16 @@ export class ChauffeursController {
   update(
     @Param('id') id: string,
     @Body() updateChauffeurDto: UpdateChauffeurDto,
+    @Req() req: RequeteAuthentifiee,
   ) {
     return this.chauffeursService.update(
       id,
       updateChauffeurDto,
+      req.user,
     );
   }
 
-  // ============================================================
   // DELETE /chauffeurs/:id
-  // ============================================================
-
   @Delete(':id')
   @Permission(
     PERMISSION_RESOURCES.CHAUFFEURS,
@@ -110,7 +114,8 @@ export class ChauffeursController {
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(
     @Param('id') id: string,
+    @Req() req: RequeteAuthentifiee,
   ) {
-    return this.chauffeursService.remove(id);
+    return this.chauffeursService.remove(id, req.user);
   }
 }

@@ -16,7 +16,14 @@ import {
 import { Permission } from './decorators/permission.decorator';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { PermissionsGuard } from './guards/permissions.guard';
-
+type RequeteAuthentifiee = Request & {
+  user: {
+    id: number;
+    username: string;
+    role: string;
+    gareId: string | null;
+  };
+};
 @Controller('api/test-permissions')
 @ApiTags('Test Permissions')
 @ApiBearerAuth()
@@ -73,7 +80,7 @@ testVehiculeUpdate() {
   @Get('protected')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-testProtected(@Req() req: Request) {
+testProtected(@Req() req: RequeteAuthentifiee) {
     return {
       message: 'Authentification JWT valide',
       user: req.user,
@@ -83,7 +90,7 @@ testProtected(@Req() req: Request) {
  @Get('short-token')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-testShortToken(@Req() req: Request) {
+testShortToken(@Req() req: RequeteAuthentifiee) {
     const user = req.user as {
       id: number;
       username: string;
@@ -110,4 +117,5 @@ testShortToken(@Req() req: Request) {
     };
   }
 }
+
 

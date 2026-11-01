@@ -1,0 +1,24 @@
+---- Architectures-----
+
+project/fiche-chargement-plateform/apps/admin
+apps/admin/src/
+│
+├── api/
+│   └── audit.api.ts
+│
+├── features/
+│   └── audit/
+│       ├── components/
+│       │   ├── AuditFilters.vue
+│       │   ├── AuditTable.vue
+│       │   ├── AuditDetails.vue
+│       │   └── AuditStats.vue
+│       │
+│       ├── types/
+│       │   └── audit.types.ts
+│       │
+│       └── views/
+│           └── AuditView.vue
+│
+└── router/
+    └── index.ts

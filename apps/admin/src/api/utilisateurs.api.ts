@@ -11,7 +11,7 @@ import type {
  */
 export async function getUtilisateurs(): Promise<Utilisateur[]> {
   const response = await api.get<Utilisateur[]>(
-    '/utilisateurs',
+    'api/utilisateurs',
   );
 
   return response.data;
@@ -24,7 +24,7 @@ export async function getUtilisateur(
   id: number,
 ): Promise<Utilisateur> {
   const response = await api.get<Utilisateur>(
-    `/utilisateurs/${id}`,
+    `api/utilisateurs/${id}`,
   );
 
   return response.data;
@@ -37,7 +37,7 @@ export async function createUtilisateur(
   payload: CreateUtilisateurPayload,
 ): Promise<Utilisateur> {
   const response = await api.post<Utilisateur>(
-    '/utilisateurs',
+    'api/utilisateurs',
     payload,
   );
 
@@ -52,7 +52,7 @@ export async function updateUtilisateur(
   payload: UpdateUtilisateurPayload,
 ): Promise<Utilisateur> {
   const response = await api.patch<Utilisateur>(
-    `/utilisateurs/${id}`,
+    `api/utilisateurs/${id}`,
     payload,
   );
 
@@ -65,5 +65,5 @@ export async function updateUtilisateur(
 export async function deleteUtilisateur(
   id: number,
 ): Promise<void> {
-  await api.delete(`/utilisateurs/${id}`);
+  await api.delete(`api/utilisateurs/${id}`);
 }

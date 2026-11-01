@@ -7,7 +7,7 @@ import type { DashboardStats } from '../types/stats.types';
  */
 export async function getDashboardStats(): Promise<DashboardStats> {
   const response = await api.get<DashboardStats>(
-    '/dashboard-stats',
+    'api/dashboard-stats',
   );
 
   return response.data;

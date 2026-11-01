@@ -217,6 +217,7 @@ export const PERMISSIONS = {
   /**
    * ALERTES
    */
+ 
   [PERMISSION_RESOURCES.ALERTES]: {
     READ: [
       ROLE_CODES.ADMIN,
@@ -225,6 +226,13 @@ export const PERMISSIONS = {
       ROLE_CODES.AGENT,
       ROLE_CODES.AUTORITE_HABILITEE,
     ],
+
+    CREATE: [
+      ROLE_CODES.ADMIN,
+      ROLE_CODES.RESPONSABLE_GARE,
+      ROLE_CODES.AGENT,
+    ],
+
     PROCESS: [
       ROLE_CODES.ADMIN,
       ROLE_CODES.RESPONSABLE_GARE,
@@ -380,7 +388,7 @@ export const PERMISSIONS = {
     READ: [
       ROLE_CODES.ADMIN,
       ROLE_CODES.RESPONSABLE_GARE,
-      ROLE_CODES.AUTORITE_HABILITEE,
+      
     ],
   },
 

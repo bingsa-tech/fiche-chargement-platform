@@ -7,14 +7,16 @@ import { DocumentVehicule } from '../documents/entities/document-vehicule.entity
 import { Vehicule } from './entities/vehicule.entity';
 import { VehiculesController } from './vehicules.controller';
 import { VehiculesService } from './vehicules.service';
-
+import { AuditModule } from '../audit/audit.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       Vehicule,
       Proprietaire,
       DocumentVehicule,
+      
     ]),
+    AuditModule,
   ],
   controllers: [VehiculesController],
   providers: [VehiculesService],

@@ -37,7 +37,7 @@ import {
 
 @ApiTags('Documents')
 @ApiBearerAuth()
-@Controller('api/documents')
+@Controller('documents')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class DocumentsController {
   constructor(

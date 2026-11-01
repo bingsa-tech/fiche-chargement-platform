@@ -14,7 +14,7 @@ export async function getProprietaires(): Promise<
 > {
   const response =
     await api.get<Proprietaire[]>(
-      '/proprietaires',
+      'api/proprietaires',
     );
 
   return response.data;
@@ -28,7 +28,7 @@ export async function getProprietaire(
 ): Promise<Proprietaire> {
   const response =
     await api.get<Proprietaire>(
-      `/proprietaires/${id}`,
+      `api/proprietaires/${id}`,
     );
 
   return response.data;
@@ -42,7 +42,7 @@ export async function createProprietaire(
 ): Promise<Proprietaire> {
   const response =
     await api.post<Proprietaire>(
-      '/proprietaires',
+      'api/proprietaires',
       payload,
     );
 
@@ -58,7 +58,7 @@ export async function updateProprietaire(
 ): Promise<Proprietaire> {
   const response =
     await api.patch<Proprietaire>(
-      `/proprietaires/${id}`,
+      `api/proprietaires/${id}`,
       payload,
     );
 
@@ -72,6 +72,6 @@ export async function deleteProprietaire(
   id: string,
 ): Promise<void> {
   await api.delete(
-    `/proprietaires/${id}`,
+    `api/proprietaires/${id}`,
   );
 }

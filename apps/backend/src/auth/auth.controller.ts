@@ -16,7 +16,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
@@ -26,7 +26,7 @@ const REFRESH_COOKIE_NAME = 'refresh_token';
 const REFRESH_COOKIE_MAX_AGE =
   7 * 24 * 60 * 60 * 1000;
 
-@Controller('api/auth')
+@Controller('auth')
 @ApiTags('Authentification')
 export class AuthController {
   constructor(

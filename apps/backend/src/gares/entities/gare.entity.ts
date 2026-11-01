@@ -10,7 +10,8 @@ import {
 import { Fiche } from '../../fiches/entities/fiche.entity';
 import { Utilisateur } from '../../utilisateurs/entities/utilisateur.entity';
 import { GareStatut } from '../enums/gare-statut.enum';
-
+import { Chauffeur } from '../../chauffeurs/entities/chauffeur.entity';
+import { Vehicule } from '../../vehicules/entities/vehicule.entity';
 @Entity('gare', { schema: 'public' })
 export class Gare {
   @PrimaryGeneratedColumn('uuid')
@@ -86,4 +87,16 @@ longitude!: number | null;
     (utilisateur) => utilisateur.gare,
   )
   utilisateurs!: Utilisateur[];
+
+  @OneToMany(
+  () => Chauffeur,
+  (chauffeur) => chauffeur.gare,
+)
+chauffeurs!: Chauffeur[];
+
+@OneToMany(
+  () => Vehicule,
+  (vehicule) => vehicule.gare,
+)
+vehicules!: Vehicule[];
 }

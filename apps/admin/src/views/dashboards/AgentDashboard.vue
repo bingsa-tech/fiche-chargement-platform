@@ -26,18 +26,15 @@ onMounted(async () => {
 
 <template>
   <main class="dashboard">
+    
     <section class="dashboard-container">
       <header class="dashboard-header">
         <div>
-          <p class="eyebrow">Espace opérationnel</p>
-          <h1>Dashboard Agent</h1>
-
+          <p class="eyebrow">Tableau de bord</p>
+          <h1>Bienvenue sur votre espace agent</h1>
           <p class="welcome">
-            Bienvenue
-            <strong>
-              {{ authStore.user?.prenom }}
-              {{ authStore.user?.nom }}
-            </strong>
+            Vous pouvez consulter vos statistiques et accéder aux modules
+            opérationnels.
           </p>
         </div>
       </header>
@@ -50,12 +47,10 @@ onMounted(async () => {
             {{ authStore.user?.nom }}
           </strong>
         </div>
-
         <div>
           <span class="label">Email</span>
           <strong>{{ authStore.user?.email ?? 'Non renseigné' }}</strong>
         </div>
-
         <div>
           <span class="label">Rôle</span>
           <strong>{{ authStore.role }}</strong>

@@ -1,9 +1,7 @@
 import {
   IsDateString,
   IsEnum,
-  IsInt,
   IsNotEmpty,
-  IsOptional,
   IsString,
   IsUUID,
   MaxLength,
@@ -11,46 +9,34 @@ import {
 
 import { AlerteProprietaireType } from '../enums/alerte-proprietaire-type.enum';
 import { AlerteType } from '../enums/alerte-type.enum';
-import { AlerteStatut } from '../enums/alerte-statut.enum';
 
 export class CreateAlerteDto {
   @IsNotEmpty()
   @IsString()
   @MaxLength(50)
-  typeDocument: string;
+  typeDocument!: string;
 
   @IsNotEmpty()
   @IsUUID()
-  documentId: string;
+  documentId!: string;
 
+  @IsNotEmpty()
   @IsEnum(AlerteProprietaireType)
-  proprietaireType: AlerteProprietaireType;
+  proprietaireType!: AlerteProprietaireType;
 
   @IsNotEmpty()
   @IsUUID()
-  proprietaireId: string;
+  proprietaireId!: string;
 
   @IsNotEmpty()
   @IsDateString()
-  dateDeclenchement: string;
+  dateDeclenchement!: string;
 
   @IsNotEmpty()
   @IsDateString()
-  dateExpiration: string;
+  dateExpiration!: string;
 
-
-
+  @IsNotEmpty()
   @IsEnum(AlerteType)
-  typeAlerte: AlerteType;
-
-  @IsEnum(AlerteStatut)
-  statut: AlerteStatut;
-
-  @IsOptional()
-  @IsDateString()
-  dateLecture?: string;
-
-  @IsOptional()
-  @IsInt()
-  utilisateurLecture?: number;
+  typeAlerte!: AlerteType;
 }

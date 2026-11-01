@@ -27,7 +27,7 @@ import { ImprimerFicheDto } from '../fiche-impressions/dto/imprimer-fiche.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permission } from '../auth/decorators/permission.decorator';
-import { Response } from 'express';
+import type { Response } from 'express';
 import { BordereauPdfService } from '../fiche-impressions/bordereau-pdf.service';
 import {
   PERMISSION_ACTIONS,
@@ -36,7 +36,7 @@ import {
 
 @ApiTags('Fiches')
 @ApiBearerAuth()
-@Controller('api/fiches')
+@Controller('fiches')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class FicheController {
   constructor(

@@ -15,7 +15,7 @@ import type {
  */
 export async function getVehicules(): Promise<Vehicule[]> {
   const response = await api.get<Vehicule[]>(
-    '/vehicules',
+    'api/vehicules',
   );
 
   return response.data;
@@ -32,7 +32,7 @@ export async function getVehicule(
   id: string,
 ): Promise<Vehicule> {
   const response = await api.get<Vehicule>(
-    `/vehicules/${id}`,
+    `api/vehicules/${id}`,
   );
 
   return response.data;
@@ -74,7 +74,7 @@ export async function updateVehicule(
   payload: UpdateVehiculePayload,
 ): Promise<Vehicule> {
   const response = await api.patch<Vehicule>(
-    `/vehicules/${id}`,
+    `api/vehicules/${id}`,
     payload,
   );
 
@@ -90,5 +90,5 @@ export async function updateVehicule(
 export async function deleteVehicule(
   id: string,
 ): Promise<void> {
-  await api.delete(`/vehicules/${id}`);
+  await api.delete(`api/vehicules/${id}`);
 }

@@ -285,15 +285,36 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-    path: '/passagers',
-    name: 'passagers',
-    component: () => import('../views/passagers/PassagersView.vue'),
-    meta: {
-      requiresAuth: true, // Si votre route est protégée par authentification
-      // title: 'Gestion des Passagers'
-    },
-  },
-
+        path: 'alertes',
+        name: 'alertes',
+        component: () => import('../views/alertes/AlertesView.vue'),
+        meta: {
+          roles: [
+            'ADMIN',
+            'RESPONSABLE_GARE',
+            'CONTROLEUR',
+            'AGENT',
+            'AUTORITE_HABILITEE',
+          ] satisfies UserRole[],
+        },
+      },
+      {
+        path: 'audit',
+        name: 'audit',
+        component: () => import('../views/audit/AuditView.vue'),
+        meta: {
+          roles: ['ADMIN', 'RESPONSABLE_GARE'] satisfies UserRole[],
+        },
+      },
+      {
+        path: '/passagers',
+        name: 'passagers',
+        component: () => import('../views/passagers/PassagersView.vue'),
+        meta: {
+          requiresAuth: true, // Si votre route est protégée par authentification
+          // title: 'Gestion des Passagers'
+        },
+      },
 
       // ========================================================
       // ROLE HUB

@@ -35,7 +35,7 @@ onMounted(() => {
   fetchPassagers();
 });
 
-// Filtrer les passagers par nom, prénom ou CNI (Typage explicite de 'p: Passager')
+// Filtrer les passagers par nom, prénom ou CNI
 const filteredPassagers = computed(() => {
   if (!searchQuery.value.trim()) return passagers.value;
   const query = searchQuery.value.toLowerCase();
@@ -130,34 +130,37 @@ const handleDelete = async (id: string) => {
     <div class="table-card">
       <div v-if="isLoading" class="loading-state">Chargement des passagers...</div>
       
-      <table v-else class="data-table">
-        <thead>
-          <tr>
-            <th>Nom & Prénom</th>
-            <th>Numéro CNI</th>
-            <th>Téléphone</th>
-            <th>Date d'enregistrement</th>
-            <th class="text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="p in filteredPassagers" :key="p.id">
-            <td>
-              <strong class="passager-name">{{ p.nom }} {{ p.prenom }}</strong>
-            </td>
-            <td><code>{{ p.numeroCni }}</code></td>
-            <td>{{ p.telephone || 'Non renseigné' }}</td>
-            <td>{{ new Date(p.createdAt).toLocaleDateString() }}</td>
-            <td class="text-right actions-cell">
-              <button @click="openEditModal(p)" class="btn-icon btn-edit" title="Modifier">Modifier</button>
-              <button @click="handleDelete(p.id)" class="btn-icon btn-delete" title="Supprimer">Supprimer</button>
-            </td>
-          </tr>
-          <tr v-if="filteredPassagers.length === 0">
-            <td colspan="5" class="empty-state">Aucun passager trouvé. (La création se fait automatiquement via les fiches).</td>
-          </tr>
-        </tbody>
-      </table>
+      <!-- Conteneur avec scroll horizontal pour éviter les débordements -->
+      <div v-else class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Nom & Prénom</th>
+              <th>Numéro CNI</th>
+              <th>Téléphone</th>
+              <th>Date d'enregistrement</th>
+              <th class="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="p in filteredPassagers" :key="p.id">
+              <td>
+                <strong class="passager-name">{{ p.nom }} {{ p.prenom }}</strong>
+              </td>
+              <td><code>{{ p.numeroCni }}</code></td>
+              <td>{{ p.telephone || 'Non renseigné' }}</td>
+              <td>{{ new Date(p.createdAt).toLocaleDateString() }}</td>
+              <td class="text-right actions-cell">
+                <button @click="openEditModal(p)" class="btn-icon btn-edit" title="Modifier">Modifier</button>
+                <button @click="handleDelete(p.id)" class="btn-icon btn-delete" title="Supprimer">Supprimer</button>
+              </td>
+            </tr>
+            <tr v-if="filteredPassagers.length === 0">
+              <td colspan="5" class="empty-state">Aucun passager trouvé. (La création se fait automatiquement via les fiches).</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- Modal de Modification (Update) -->
@@ -202,6 +205,8 @@ const handleDelete = async (id: string) => {
   max-width: 1440px;
   margin: 0 auto;
   color: #172033;
+  box-sizing: border-box;
+  padding: 0 16px;
 }
 .page-header {
   margin-bottom: 24px;
@@ -238,9 +243,11 @@ const handleDelete = async (id: string) => {
   align-items: center;
   margin-bottom: 18px;
   gap: 16px;
+  flex-wrap: wrap;
 }
 .search-input {
   flex: 1;
+  min-width: 240px;
   max-width: 400px;
   padding: 10px 14px;
   border: 1px solid #cbd5e1;
@@ -254,6 +261,7 @@ const handleDelete = async (id: string) => {
   background: #f1f5f9;
   padding: 6px 12px;
   border-radius: 20px;
+  white-space: nowrap;
 }
 .table-card {
   background: white;
@@ -262,11 +270,20 @@ const handleDelete = async (id: string) => {
   overflow: hidden;
   box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
 }
+
+/* Nouveau conteneur scrollable horizontalement pour contrer les débordements */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .data-table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
   font-size: 14px;
+  white-space: nowrap; /* Empêche le texte de se couper bizarrement sur les petites lignes */
 }
 .data-table th {
   background: #f8fafc;
@@ -282,7 +299,12 @@ const handleDelete = async (id: string) => {
 }
 .passager-name { color: #0f172a; }
 .text-right { text-align: right; }
-.actions-cell { display: flex; gap: 8px; justify-content: flex-end; }
+.actions-cell { 
+  display: flex; 
+  gap: 8px; 
+  justify-content: flex-end; 
+  white-space: nowrap;
+}
 
 .btn-icon {
   padding: 6px 12px;
@@ -302,6 +324,7 @@ const handleDelete = async (id: string) => {
   text-align: center;
   color: #64748b;
   font-style: italic;
+  white-space: normal;
 }
 
 /* Modal styles */
@@ -312,6 +335,7 @@ const handleDelete = async (id: string) => {
   display: grid;
   place-items: center;
   z-index: 1000;
+  padding: 16px;
 }
 .modal-card {
   background: white;
@@ -320,12 +344,13 @@ const handleDelete = async (id: string) => {
   width: 100%;
   max-width: 480px;
   box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+  box-sizing: border-box;
 }
 .modal-card h2 { margin-top: 0; color: #0f172a; font-size: 20px; margin-bottom: 20px; }
 .modal-form { display: flex; flex-direction: column; gap: 16px; }
 .form-group { display: flex; flex-direction: column; gap: 6px; }
 .form-group label { font-size: 13px; font-weight: 600; color: #475569; }
-.form-input { padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; }
+.form-input { padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; width: 100%; box-sizing: border-box; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
 .btn-primary { background: #2563eb; color: white; padding: 10px 18px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; }
 .btn-primary:hover { background: #1d4ed8; }

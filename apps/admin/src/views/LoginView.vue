@@ -4,12 +4,12 @@ import { useRoute, useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 
 import { useAuthStore } from '../auth/auth.store';
+import { getClientInfo } from '../utils/client-info';
 
 const router = useRouter();
 const route = useRoute();
 
 const authStore = useAuthStore();
-
 const { loading, error } = storeToRefs(authStore);
 
 const username = ref('');
@@ -36,37 +36,33 @@ async function handleLogin() {
 
     switch (authStore.role) {
       case 'ADMIN':
-        await router.push({
-          name: 'admin-dashboard',
-        });
+        await router.push({ name: 'admin-dashboard' });
         break;
 
       case 'AGENT':
-        await router.push({
-          name: 'agent-dashboard',
-        });
+        await router.push({ name: 'agent-dashboard' });
         break;
 
       case 'CONTROLEUR':
-        await router.push({
-          name: 'controleur-dashboard',
-        });
+        await router.push({ name: 'controleur-dashboard' });
         break;
 
       case 'AUTORITE_HABILITEE':
-        await router.push({
-          name: 'autorite-dashboard',
-        });
+        await router.push({ name: 'autorite-dashboard' });
         break;
 
       default:
-        await router.push({
-          name: 'unauthorized',
-        });
+        await router.push({ name: 'unauthorized' });
     }
   } catch {
     // L'erreur est déjà gérée par authStore.error.
   }
+}
+
+function testerInformationsClient() {
+  const infos = getClientInfo();
+  console.table(infos);
+  return infos;
 }
 </script>
 
@@ -311,6 +307,10 @@ async function handleLogin() {
                 </span>
               </span>
 
+            </button>
+
+            <button type="button" class="secondary-button" @click="testerInformationsClient">
+              Tester les informations du navigateur
             </button>
 
           </form>
@@ -834,6 +834,23 @@ async function handleLogin() {
   cursor: not-allowed;
 
   opacity: 0.55;
+}
+
+.secondary-button {
+  width: 100%;
+  padding: 10px 16px;
+  border: 1px solid #d7dce3;
+  border-radius: 9px;
+  background: #f8fafc;
+  color: #344054;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.secondary-button:hover {
+  background: #f1f5f9;
 }
 
 .button-content {

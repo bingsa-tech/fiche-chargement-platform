@@ -30,7 +30,7 @@ import { Permission } from '../auth/decorators/permission.decorator';
 
 @ApiTags('Passagers')
 @ApiBearerAuth()
-@Controller('api/passagers')
+@Controller('passagers')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class PassagersController {
   constructor(
