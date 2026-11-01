@@ -1,13 +1,21 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import { RouterLink } from 'vue-router';
 import { getDashboardStats } from '../../api/stats.api';
 //import { useAuthStore } from '../../auth/auth.store';
+import type { RouteLocationRaw } from 'vue-router';
 
-
+interface DashboardModule {
+  title: string;
+  description: string;
+  status: string;
+  icon: string;
+  route: RouteLocationRaw | null;
+}
 //const authStore = useAuthStore();
 
 /**
- * Informations utilisateur dynamiques (utilisées dans le template)
+ * Informations utilisateur dynamiques (utilisÃ©es dans le template)
  */
 /* const userFullName = computed(() => {
   const user = authStore.user;
@@ -16,10 +24,10 @@ import { getDashboardStats } from '../../api/stats.api';
 });
 
 const userRole = computed(() => authStore.role ?? 'ROLE_INCONNU');
-const userEmail = computed(() => authStore.user?.email ?? 'Non renseigné');
-const userGare = computed(() => authStore.user?.gareId ?? 'Non affectée');
+const userEmail = computed(() => authStore.user?.email ?? 'Non renseignÃ©');
+const userGare = computed(() => authStore.user?.gareId ?? 'Non affectÃ©e');
  */
-// Variables réactives pour les statistiques
+// Variables rÃ©actives pour les statistiques
 const totalUtilisateurs = ref(0);
 const totalGares = ref(0);
 const totalVehicules = ref(0);
@@ -63,7 +71,7 @@ const statistics = computed(() => [
     color: 'green',
   },
   {
-    label: 'Véhicules',
+    label: 'VÃ©hicules',
     description: 'Parc automobile',
     value: totalVehicules.value,
     icon: 'V',
@@ -85,30 +93,34 @@ const statistics = computed(() => [
   },
 ]);
 
-const modules = [
+const modules: DashboardModule[] = [
   {
     title: 'Gestion des utilisateurs',
     description: 'Comptes, rôles et accès à la plateforme.',
     status: 'À connecter à l’API',
     icon: 'U',
+    route: { name: 'utilisateurs' },
   },
   {
     title: 'Gestion des gares',
     description: 'Organisation et administration des gares.',
     status: 'Module existant',
     icon: 'G',
+    route: { name: 'gares' },
   },
   {
     title: 'Supervision du système',
     description: 'Suivi du fonctionnement de la plateforme.',
-    status: 'À venir',
+    status: 'Module disponible',
     icon: 'S',
+    route: { name: 'admin-supervision' },
   },
   {
     title: 'Journal d’audit',
     description: 'Consultation des opérations et événements.',
     status: 'À venir',
     icon: 'A',
+    route: { name: 'audit' },
   },
 ];
 </script>
@@ -116,11 +128,11 @@ const modules = [
 <template>
   <main class="dashboard">
     <!-- Panneau de bienvenue -->
-    
-    
 
-  
-   
+
+
+
+
     <!-- Statistiques -->
     <section class="statistics-section" aria-labelledby="statistics-title">
       <div class="section-heading">
@@ -145,7 +157,7 @@ const modules = [
           <h3>{{ stat.label }}</h3>
           <p>{{ stat.description }}</p>
           <span class="stat-placeholder">
-            {{ isLoading ? 'Chargement...' : 'Synchronisé avec la BD' }}
+            {{ isLoading ? 'Chargement...' : 'SynchronisÃ© avec la BD' }}
           </span>
         </article>
       </div>
@@ -159,35 +171,33 @@ const modules = [
         </div>
       </div>
 
-      <div class="modules-grid">
-        <article
-          v-for="module in modules"
-          :key="module.title"
-          class="module-card"
-        >
-          <div class="module-icon">
-            {{ module.icon }}
-          </div>
-
-          <div class="module-body">
-            <h3>{{ module.title }}</h3>
-            <p>{{ module.description }}</p>
-
-            <span
-              class="module-status"
-              :class="{
-                'status-ready': module.status === 'Module existant',
-                'status-pending': module.status !== 'Module existant',
-              }"
-            >
-              <span class="status-dot"></span>
-              {{ module.status }}
-            </span>
-          </div>
-
-          <span class="module-arrow" aria-hidden="true">›</span>
-        </article>
+<div class="modules-grid">
+  <template v-for="module in modules" :key="module.title">
+    <RouterLink
+      v-if="module.route"
+      :to="module.route"
+      class="module-card"
+    >
+      <div class="module-icon">{{ module.icon }}</div>
+      <div class="module-content">
+        <h3>{{ module.title }}</h3>
+        <p>{{ module.description }}</p>
+        <span class="module-status">{{ module.status }}</span>
       </div>
+      <span class="module-arrow" aria-hidden="true">→</span>
+    </RouterLink>
+
+    <div v-else class="module-card module-disabled" aria-disabled="true">
+      <div class="module-icon">{{ module.icon }}</div>
+      <div class="module-content">
+        <h3>{{ module.title }}</h3>
+        <p>{{ module.description }}</p>
+        <span class="module-status">{{ module.status }}</span>
+      </div>
+    </div>
+  </template>
+</div>
+
     </section>
 
     <p class="dashboard-note">
@@ -399,75 +409,75 @@ const modules = [
 
 .modules-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(240px, 1fr)
+  );
+  gap: 20px;
 }
 
 .module-card {
-  min-width: 0;
   display: flex;
   align-items: flex-start;
-  gap: 15px;
-  padding: 20px;
-  border: 1px solid #e3e8f0;
-  border-radius: 14px;
-  background: white;
+  gap: 16px;
+  padding: 22px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  color: #1f2937;
+  text-decoration: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+
+.module-card:not(.module-disabled):hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  border-color: #166534;
+}
+
+.module-disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 .module-icon {
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  border-radius: 12px;
-  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 45px;
+  height: 45px;
+  border-radius: 10px;
+  background: #ecfdf5;
+  color: #166534;
   font-weight: 800;
-  background: #f0f4fa;
-  color: #405777;
+  font-size: 20px;
 }
 
-.module-body { flex: 1; min-width: 0; }
-.module-body h3 { margin: 1px 0 7px; color: #263349; font-size: 14px; }
-.module-body p { margin: 0 0 14px; color: #7a8699; font-size: 12px; line-height: 1.6; }
+.module-content {
+  flex: 1;
+}
+
+.module-content h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.module-content p {
+  margin: 0 0 12px;
+  color: #6b7280;
+  font-size: 13px;
+}
 
 .module-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
   font-size: 11px;
-  font-weight: 650;
+  font-weight: 600;
+  color: #166534;
 }
 
-.status-ready { color: #16834a; }
-.status-pending { color: #8a6b29; }
-.status-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-.module-arrow { color: #a0aabc; font-size: 25px; }
+.module-arrow {
+  font-size: 22px;
+  color: #166534;
 
-.dashboard-note {
-  margin: 0 0 12px;
-  padding: 14px 16px;
-  border: 1px solid #e3e8f0;
-  border-radius: 10px;
-  background: #f8fafc;
-  color: #64748b;
-  font-size: 12px;
-}
-
-@media (max-width: 1100px) {
-  .statistics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (max-width: 760px) {
-  .welcome-panel {
-    padding: 24px;
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .account-card { grid-template-columns: 1fr; }
-  .account-item + .account-item {
-    border-top: 1px solid #edf0f5;
-    border-left: none;
-  }
-  .modules-grid { grid-template-columns: 1fr; }
 }
 </style>

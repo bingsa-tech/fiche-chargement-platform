@@ -1,0 +1,40 @@
+body {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  color: var(--color-foreground);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+h1 {
+  font-size: 1.875rem;
+}
+
+h2 {
+  font-size: 1.5rem;
+}
+
+h3 {
+  font-size: 1.25rem;
+}
+
+p {
+  margin: 0;
+}
+
+.text-muted {
+  color: var(--color-muted);
+}
+
+.text-small {
+  font-size: 0.8125rem;
+}

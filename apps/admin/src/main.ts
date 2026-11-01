@@ -1,10 +1,10 @@
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
-
-import './style.css';
-
 import App from './App.vue';
 import router from './router';
+// Importation des fichiers CSS globaux
+import './assets/styles/main.css';
+import './style.css';
 
 const app = createApp(App);
 

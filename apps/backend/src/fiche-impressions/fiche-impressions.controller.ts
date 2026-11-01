@@ -43,7 +43,7 @@ interface AuthenticatedRequest extends Request {
 
 @ApiTags('Fiche Impressions')
 @ApiBearerAuth()
-@Controller('api/fiche-impressions')
+@Controller('fiche-impressions')
 @UseGuards(
   JwtAuthGuard,
   PermissionsGuard,

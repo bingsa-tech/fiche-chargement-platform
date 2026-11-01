@@ -38,7 +38,7 @@ type AuthenticatedRequest = {
 
 @ApiTags('Fiche Passagers')
 @ApiBearerAuth()
-@Controller('api/fiche-passagers')
+@Controller('fiche-passagers')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class FichePassagersController {
   constructor(

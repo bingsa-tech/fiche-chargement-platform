@@ -23,7 +23,7 @@ const routes: RouteRecordRaw[] = [
   },
 
   // ============================================================
-  // APPLICATION PROTÉGÉE
+  // APPLICATION PROTÃ‰GÃ‰E
   // ============================================================
   {
     path: '/',
@@ -67,7 +67,7 @@ const routes: RouteRecordRaw[] = [
       },
 
       // ========================================================
-      // PROPRIÉTAIRES
+      // PROPRIÃ‰TAIRES
       // ========================================================
       {
         path: 'proprietaires',
@@ -124,9 +124,18 @@ const routes: RouteRecordRaw[] = [
           roles: ['ADMIN', 'RESPONSABLE_GARE'] satisfies UserRole[],
         },
       },
+      {
+  path: 'admin/supervision',
+  name: 'admin-supervision',
+  component: () =>
+    import('../views/admin/SystemSupervisionView.vue'),
+  meta: {
+    roles: ['ADMIN'] satisfies UserRole[],
+  },
+},
 
       // ========================================================
-      // VÉHICULES
+      // VÃ‰HICULES
       // ========================================================
       {
         path: 'vehicules',
@@ -201,7 +210,7 @@ const routes: RouteRecordRaw[] = [
       },
 
       // ========================================================
-      // DOCUMENTS VÉHICULES
+      // DOCUMENTS VÃ‰HICULES
       // ========================================================
       {
         path: 'documents/vehicules',
@@ -240,7 +249,7 @@ const routes: RouteRecordRaw[] = [
 
       // ========================================================
       // FICHES DE CHARGEMENT
-      // La route new est déclarée séparément de la liste.
+      // La route new est dÃ©clarÃ©e sÃ©parÃ©ment de la liste.
       // ========================================================
       {
         path: 'fiches/new',
@@ -307,11 +316,11 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: '/passagers',
+        path: 'passagers',
         name: 'passagers',
         component: () => import('../views/passagers/PassagersView.vue'),
         meta: {
-          requiresAuth: true, // Si votre route est protégée par authentification
+          requiresAuth: true, // Si votre route est protÃ©gÃ©e par authentification
           // title: 'Gestion des Passagers'
         },
       },
@@ -344,6 +353,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           roles: ['ADMIN'] satisfies UserRole[],
         },
+
       },
       {
         path: 'agent/dashboard',
@@ -383,7 +393,7 @@ const routes: RouteRecordRaw[] = [
   },
 
   // ============================================================
-  // ACCÈS NON AUTORISÉ
+  // ACCÃˆS NON AUTORISÃ‰
   // ============================================================
   {
     path: '/unauthorized',
@@ -408,20 +418,18 @@ const routes: RouteRecordRaw[] = [
 ];
 
 // ============================================================
-// CRÉATION DU ROUTEUR
+// CRÃ‰ATION DU ROUTEUR
 // ============================================================
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
   scrollBehavior() {
-    return {
-      top: 0,
-    };
+    return { top: 0, left: 0 };
   },
 });
 
 // ============================================================
-// REDIRECTION VERS LE DASHBOARD SELON LE RÔLE
+// REDIRECTION VERS LE DASHBOARD SELON LE RÃ”LE
 // ============================================================
 function getDashboardRoute(role: UserRole | null): RouteLocationRaw {
   switch (role) {
@@ -446,12 +454,12 @@ function getDashboardRoute(role: UserRole | null): RouteLocationRaw {
 }
 
 // ============================================================
-// GARDE GLOBAL : SESSION ET AUTORISATION PAR RÔLE
+// GARDE GLOBAL : SESSION ET AUTORISATION PAR RÃ”LE
 // ============================================================
 router.beforeEach((to) => {
   const authStore = useAuthStore();
 
-  // Restaurer la session si elle n'est pas déjà en mémoire.
+  // Restaurer la session si elle n'est pas dÃ©jÃ  en mÃ©moire.
   if (!authStore.isAuthenticated) {
     authStore.restoreSession();
   }
@@ -475,7 +483,7 @@ router.beforeEach((to) => {
     };
   }
 
-  // Vérification du rôle requis par la route.
+  // VÃ©rification du rÃ´le requis par la route.
   const allowedRoles = to.meta.roles as UserRole[] | undefined;
 
   if (allowedRoles) {
@@ -487,6 +495,14 @@ router.beforeEach((to) => {
   }
 
   return true;
+});
+
+router.onError((error, to, from) => {
+  console.error('[Vue Router] Échec de navigation', {
+    error,
+    from: from.fullPath,
+    to: to.fullPath,
+  });
 });
 
 export default router;

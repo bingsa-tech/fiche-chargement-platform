@@ -10,6 +10,7 @@ import {
   Req,
   Res,
   UseGuards,
+   UnauthorizedException,
 } from '@nestjs/common';
 
 import {
@@ -44,6 +45,29 @@ export class FicheController {
     private readonly bordereauPdfService: BordereauPdfService,
   ) {}
 
+private getUserContext(request: any): {
+  id: number;
+  username: string;
+  role: string;
+  gareId: string | null;
+} {
+  const jwtUser = request.user;
+
+  const userId = Number(jwtUser?.sub ?? jwtUser?.id);
+
+  if (!Number.isInteger(userId) || userId <= 0) {
+    throw new UnauthorizedException(
+      'Identifiant utilisateur absent ou invalide dans le JWT.',
+    );
+  }
+
+  return {
+    id: userId,
+    username: jwtUser.username,
+    role: jwtUser.role,
+    gareId: jwtUser.gareId ?? null,
+  };
+}
   // =====================================================
   // CRÉER UNE FICHE
   // =====================================================
@@ -68,15 +92,15 @@ export class FicheController {
     status: 403,
     description: 'Permission insuffisante ou gare non autorisée',
   })
-  create(
-    @Body() createFicheDto: CreateFicheDto,
-    @Req() request: any,
-  ) {
-    return this.ficheService.create(
-      createFicheDto,
-      request.user,
-    );
-  }
+ create(
+  @Body() createFicheDto: CreateFicheDto,
+  @Req() request: any,
+) {
+  return this.ficheService.create(
+    createFicheDto,
+    this.getUserContext(request),
+  );
+}
 
   // =====================================================
   // LISTER LES FICHES
@@ -105,7 +129,7 @@ export class FicheController {
   findAll(
     @Req() request: any,
   ) {
-    return this.ficheService.findAll(request.user);
+    return this.ficheService.findAll(this.getUserContext(request));
   }
 
   // =====================================================
@@ -146,7 +170,7 @@ export class FicheController {
   ) {
     return this.ficheService.findOne(
       id,
-      request.user,
+      this.getUserContext(request),
     );
   }
 
@@ -194,7 +218,7 @@ export class FicheController {
     return this.ficheService.update(
       id,
       updateFicheDto,
-      request.user,
+      this.getUserContext(request),
     );
   }
 
@@ -241,7 +265,7 @@ export class FicheController {
   ) {
     return this.ficheService.prendreEnCharge(
       id,
-      request.user,
+      this.getUserContext(request),
     );
   }
 
@@ -288,7 +312,7 @@ export class FicheController {
   ) {
     return this.ficheService.finaliser(
       id,
-      request.user,
+      this.getUserContext(request),
     );
   }
 
@@ -330,7 +354,7 @@ export class FicheController {
   ) {
     return this.ficheService.remove(
       id,
-      request.user,
+      this.getUserContext(request),
     );
   }
 
@@ -375,7 +399,7 @@ export class FicheController {
   ): Promise<void> {
     const fiche = await this.ficheService.imprimer(
       id,
-      request.user,
+      this.getUserContext(request),
       dto,
     );
 
@@ -407,7 +431,7 @@ export class FicheController {
   ): Promise<void> {
     const fiche = await this.ficheService.findOne(
       id,
-      request.user,
+      this.getUserContext(request),
     );
 
     const pdf = this.bordereauPdfService.generer(fiche);

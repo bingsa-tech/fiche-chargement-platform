@@ -120,7 +120,6 @@ function annulerSaisiePassager() {
 }
 
 async function enregistrerPassager(): Promise<void> {
-  
   if (saving.value) return;
   errorMessage.value = '';
   successMessage.value = '';
@@ -138,7 +137,6 @@ async function enregistrerPassager(): Promise<void> {
   if (!nom || !prenom || !numeroCni) {
     errorMessage.value =
       'Le nom, le prénom et le numéro de CNI sont obligatoires.';
-   
     return;
   }
   if (telephone.length > 30) {
@@ -186,7 +184,6 @@ async function enregistrerPassager(): Promise<void> {
     return;
   }
 
-
   saving.value = true;
 
   try {
@@ -198,10 +195,7 @@ async function enregistrerPassager(): Promise<void> {
         numeroCni,
         ...(telephone ? { telephone } : {}),
       };
-
-
       passager = await createPassager(payloadPassager);
-      
     }
 
     const payloadAssociation = {
@@ -212,7 +206,6 @@ async function enregistrerPassager(): Promise<void> {
       ...(observations ? { observations } : {}),
     };
 
-    
     await associerPassagerAFiche(payloadAssociation);
     
     passagerEnAttenteAssociation.value = null;
@@ -283,26 +276,84 @@ onMounted(chargerFiche);
     </div>
 
     <article v-else-if="fiche" class="fiche-document">
-      <header class="administrative-header">
-        <div class="logo-placeholder" aria-label="Emplacement du logo">
-          LOGO
-          <small>À insérer</small>
+      
+      <!-- En-tête institutionnel fédération -->
+      <header class="institutional-header">
+        <div class="institutional-side french-side">
+          <h3>RÉPUBLIQUE DU CAMEROUN</h3>
+          <p class="motto">Paix - Travail - Patrie</p>
+          <p class="organization-name">
+            Fédération des Organisations Socio-Professionnelles
+            du Transport Routier du Cameroun
+          </p>
+          <p>Tél : +237 655 895 089</p>
+          <p>BP : 6180 Yaoundé-Cameroun</p>
         </div>
-        <div class="administration-title">
-          <p class="administration-name">ADMINISTRATION COMPÉTENTE</p>
-          <p>SERVICE / DÉLÉGATION : À COMPLÉTER</p>
-          <p class="document-subtitle">DOCUMENT ADMINISTRATIF</p>
+
+        <div class="institutional-logo">
+          <img
+            src="/images/logo-Fede.png"
+            alt="Logo de la Fédération"
+          />
         </div>
-        <div class="document-reference">
-          <span>Référence</span>
-          <strong>{{ fiche.reference }}</strong>
-          <span>Statut : {{ fiche.statut }}</span>
+
+        <div class="institutional-side english-side">
+          <h3>REPUBLIC OF CAMEROON</h3>
+          <p class="motto">Peace - Work - Fatherland</p>
+          <p class="organization-name">
+            Federation of Socio-Professional Organizations
+            of Road Transport of Cameroon
+          </p>
         </div>
       </header>
 
-      <div class="document-title">
+   <!--    <div class="fiche-reference">
+        <div>
+          <strong>Référence :</strong>
+          {{ fiche.reference }}
+        </div>
+        <div>
+          <strong>Statut :</strong>
+          {{ fiche.statut }}
+        </div>
+      </div> -->
+
+      <!-- Titre et informations principales du document -->
+      <div class="fiche-print-heading">
         <h1>FICHE DE CHARGEMENT</h1>
-        <p>Identification du véhicule, du chauffeur et des passagers</p>
+        <div class="fiche-print-number">
+          N° {{ fiche.reference }}
+        </div>
+        <div class="fiche-print-informations">
+          <p>
+            <strong>Départ :</strong>
+            {{ fiche.gare?.nomGare ?? fiche.gare?.nom ?? '—' }}
+          </p>
+          <p>
+            <strong>Destination :</strong>
+            {{ fiche.destination?.nom ?? '—' }}
+          </p>
+          <p>
+            <strong>Immatriculation :</strong>
+            {{ fiche.vehicule?.immatriculation ?? '—' }}
+          </p>
+          <p>
+            <strong>Chauffeur :</strong>
+            {{
+              [fiche.chauffeur?.prenom, fiche.chauffeur?.nom]
+                .filter(Boolean)
+                .join(' ') || '—'
+            }}
+          </p>
+          <p>
+            <strong>Date :</strong>
+            {{ dateCreation }}
+          </p>
+          <p>
+            <strong>Itinéraire :</strong>
+            {{ fiche.itineraire?.libelle ?? '—' }}
+          </p>
+        </div>
       </div>
 
       <div v-if="successMessage" class="success-message no-print">
@@ -315,61 +366,10 @@ onMounted(chargerFiche);
         {{ associationWarning }}
       </div>
 
-      <section class="section">
-        <h2>1. Informations générales</h2>
-        <div class="info-grid">
-          <div>
-            <span class="field-label">Gare</span>
-            <strong>
-              {{ fiche.gare?.nomGare ?? fiche.gare?.nom ?? '—' }}
-            </strong>
-          </div>
-          <div>
-            <span class="field-label">Date de création</span>
-            <strong>{{ dateCreation }}</strong>
-          </div>
-          <div>
-            <span class="field-label">Statut</span>
-            <strong>{{ fiche.statut }}</strong>
-          </div>
-          <div>
-            <span class="field-label">Destination</span>
-            <strong>{{ fiche.destination?.nom ?? '—' }}</strong>
-          </div>
-        </div>
-      </section>
-
-      <section class="section">
-        <h2>2. Véhicule et chauffeur</h2>
-        <div class="info-grid">
-          <div>
-            <span class="field-label">Immatriculation</span>
-            <strong>
-              {{ fiche.vehicule?.immatriculation ?? '—' }}
-            </strong>
-          </div>
-          <div>
-            <span class="field-label">Chauffeur</span>
-            <strong>
-              {{
-                [fiche.chauffeur?.prenom, fiche.chauffeur?.nom]
-                  .filter(Boolean)
-                  .join(' ') || '—'
-              }}
-            </strong>
-          </div>
-          <div>
-            <span class="field-label">Itinéraire</span>
-            <strong>
-              {{ fiche.itineraire?.libelle ?? '—' }}
-            </strong>
-          </div>
-        </div>
-      </section>
-
+      <!-- Section Passagers -->
       <section class="section passengers-section">
         <div class="section-heading">
-          <h2>3. Liste des passagers</h2>
+          <h2>Liste des passagers</h2>
           <button
             v-if="!addingPassenger"
             class="btn-primary no-print"
@@ -644,77 +644,6 @@ button:disabled {
   border-radius: 8px;
 }
 
-.administrative-header {
-  display: grid;
-  grid-template-columns: 100px minmax(0, 1fr) 180px;
-  align-items: center;
-  gap: 16px;
-  padding-bottom: 18px;
-  border-bottom: 2px solid #1f2937;
-}
-
-.logo-placeholder {
-  display: flex;
-  min-height: 76px;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border: 1px dashed #9ca3af;
-  color: #6b7280;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.logo-placeholder small {
-  margin-top: 4px;
-  font-size: 10px;
-  font-weight: 400;
-}
-
-.administration-title {
-  text-align: center;
-  font-size: 11px;
-  line-height: 1.6;
-}
-
-.administration-title p {
-  margin: 2px 0;
-}
-
-.administration-name {
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.document-subtitle {
-  margin-top: 8px !important;
-  font-weight: 700;
-}
-
-.document-reference {
-  display: grid;
-  gap: 5px;
-  text-align: right;
-  font-size: 11px;
-  overflow-wrap: anywhere;
-}
-
-.document-title {
-  margin-top: 22px;
-  text-align: center;
-}
-
-.document-title h1 {
-  margin: 0 0 7px;
-  font-size: 23px;
-}
-
-.document-title p {
-  margin: 0;
-  color: #4b5563;
-  font-size: 12px;
-}
-
 .section {
   margin-top: 28px;
 }
@@ -726,23 +655,6 @@ button:disabled {
   border-bottom: 1px solid #d1d5db;
 }
 
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
-}
-
-.info-grid > div {
-  display: grid;
-  gap: 5px;
-  overflow-wrap: anywhere;
-}
-
-.field-label {
-  color: #6b7280;
-  font-size: 13px;
-}
-
 .section-heading {
   align-items: flex-start;
   margin-bottom: 16px;
@@ -750,6 +662,8 @@ button:disabled {
 
 .section-heading h2 {
   flex: 1;
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
 .passenger-form {
@@ -887,6 +801,120 @@ tfoot {
   text-align: center;
 }
 
+/* ==========================================
+   EN-TÊTE INSTITUTIONNEL FÉDÉRATION
+========================================== */
+
+.institutional-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 115px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 18px;
+  border-bottom: 2px solid #111;
+  color: #111;
+}
+
+.institutional-side {
+  text-align: center;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.institutional-side h2 {
+  margin: 0 0 2px;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.institutional-side p {
+  margin: 4px 0;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.institutional-side .motto {
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.institutional-side .organization-name {
+  font-size: 11px;
+  margin-top: 8px;
+}
+
+.institutional-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.institutional-logo img {
+  display: block;
+  width: 110px;
+  height: 110px;
+  object-fit: contain;
+  max-width: 100%;
+}
+
+.fiche-reference {
+  display: flex;
+  justify-content: flex-end;
+  gap: 24px;
+  margin-top: 10px;
+  font-size: 11px;
+  color: #111;
+}
+
+.fiche-reference strong {
+  font-weight: 700;
+}
+
+/* ==========================================
+   BLOC IMPRESSION / EN-TÊTE FICHE
+========================================== */
+
+.fiche-print-heading {
+  margin-top: 14px;
+  color: #000;
+  border-bottom: 1px solid #d1d5db;
+  padding-bottom: 16px;
+}
+
+.fiche-print-heading h1 {
+  text-align: center;
+  font-size: 24px;
+  margin: 10px 0 6px;
+}
+
+.fiche-print-number {
+  text-align: center;
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.fiche-print-informations {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 30px;
+  row-gap: 6px;
+  font-size: 14px;
+  background: #f9fafb;
+  padding: 16px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.fiche-print-informations p {
+  margin: 0;
+}
+
+/* ==========================================
+   ADAPTATION ÉCRAN (RESPONSIVE)
+========================================== */
+
 @media (max-width: 700px) {
   .detail-page {
     padding: 12px;
@@ -894,17 +922,24 @@ tfoot {
   .fiche-document {
     padding: 16px;
   }
-  .administrative-header {
-    grid-template-columns: 70px minmax(0, 1fr);
+  .institutional-header {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
-  .document-reference {
-    grid-column: 1 / -1;
-    text-align: left;
+  .institutional-logo {
+    grid-row: 1;
   }
-  .administration-title {
-    text-align: left;
+  .institutional-side h2 {
+    font-size: 17px;
   }
-  .info-grid,
+  .fiche-reference {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+  }
+  .fiche-print-informations {
+    grid-template-columns: 1fr;
+  }
   .form-grid {
     grid-template-columns: 1fr;
   }
@@ -919,6 +954,10 @@ tfoot {
     gap: 20px;
   }
 }
+
+/* ==========================================
+   IMPRESSION (PRINT)
+========================================== */
 
 @media print {
   @page {
@@ -938,15 +977,37 @@ tfoot {
     border: 0;
     border-radius: 0;
   }
-  .administrative-header {
-    grid-template-columns: 80px minmax(0, 1fr) 145px;
+  .institutional-header {
+    grid-template-columns: minmax(0, 1fr) 105px minmax(0, 1fr);
     gap: 10px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid #111;
   }
-  .logo-placeholder {
-    min-height: 65px;
+  .institutional-side h2 {
+    font-size: 17px;
   }
-  .document-title h1 {
-    font-size: 20px;
+  .institutional-side p {
+    font-size: 9px;
+  }
+  .institutional-logo img {
+    width: 100px;
+    height: 100px;
+  }
+  .fiche-reference {
+    margin-top: 8px;
+    font-size: 10px;
+  }
+  .fiche-print-heading h1 {
+    font-size: 22px;
+  }
+  .fiche-print-number {
+    font-size: 18px;
+  }
+  .fiche-print-informations {
+    font-size: 11px;
+    background: transparent;
+    border: none;
+    padding: 0;
   }
   .section {
     margin-top: 20px;
