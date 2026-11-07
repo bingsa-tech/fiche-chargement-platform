@@ -12,11 +12,13 @@ import { UtilisateursModule } from '../utilisateurs/utilisateur.module';
 
 import { RefreshToken } from './refresh/entities/refresh-token.entity';
 import { RefreshTokenService } from './refresh/refresh-token.service';
+import { PresenceModule } from '../presence/presence.module';
 
 @Module({
   imports: [
     ConfigModule,
     UtilisateursModule,
+    PresenceModule,
     TypeOrmModule.forFeature([RefreshToken]),
 
     JwtModule.registerAsync({

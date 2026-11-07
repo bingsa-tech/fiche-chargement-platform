@@ -22,6 +22,8 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { DashboardStatsModule } from './dashboard-stats/dashboard-stats.module';
 import { AuditModule } from './audit/audit.module';
 
+import { PresenceModule } from './presence/presence.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -111,6 +113,8 @@ TypeOrmModule.forRootAsync({
     ScheduleModule.forRoot(),
     DashboardStatsModule,
     AuditModule,
+    PresenceModule,
   ],
+  
 })
 export class AppModule {}

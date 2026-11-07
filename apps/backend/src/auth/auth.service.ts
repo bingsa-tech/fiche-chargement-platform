@@ -1,3 +1,4 @@
+
 import {
   Injectable,
   UnauthorizedException,
@@ -8,7 +9,8 @@ import * as bcrypt from 'bcrypt';
 
 import { UtilisateursService } from '../utilisateurs/utilisateur.service';
 import { RefreshTokenService } from './refresh/refresh-token.service';
-import { RefreshToken } from './refresh/entities/refresh-token.entity';
+import { PresenceService } from '../presence/presence.service';
+import { PresenceDeviceType } from '../presence/entities/presence-session.entity';
 
 @Injectable()
 export class AuthService {
@@ -16,6 +18,7 @@ export class AuthService {
     private readonly utilisateursService: UtilisateursService,
     private readonly jwtService: JwtService,
     private readonly refreshTokenService: RefreshTokenService,
+    private readonly presenceService: PresenceService,
   ) {}
 
   /**
@@ -26,12 +29,14 @@ export class AuthService {
     username: string;
     role: string;
     gareId: string | null;
+    sessionId: string;
   }): string {
     const payload = {
       sub: user.id,
       username: user.username,
       role: user.role,
       gareId: user.gareId,
+      sessionId: user.sessionId,
     };
 
     return this.jwtService.sign(payload, {
@@ -41,9 +46,6 @@ export class AuthService {
 
   /**
    * Connexion utilisateur.
-   *
-   * Retourne les données nécessaires au contrôleur
-   * pour créer le cookie HttpOnly.
    */
   async login(
     username: string,
@@ -56,11 +58,7 @@ export class AuthService {
         username,
       );
 
-    if (!user) {
-      return null;
-    }
-
-    if (!user.actif || user.bloque) {
+    if (!user || !user.actif || user.bloque) {
       return null;
     }
 
@@ -75,19 +73,35 @@ export class AuthService {
 
     const roleCode = user.role?.code ?? 'USER';
 
+    const expiresAt =
+      this.refreshTokenService.getExpirationDate(7);
+
+    // 1. Créer la session de présence.
+    const session =
+      await this.presenceService.createSession({
+        utilisateurId: user.id,
+        gareId: user.gareId,
+        deviceType: PresenceDeviceType.WEB,
+        deviceName: userAgent ?? 'Navigateur Web',
+      });
+
+    // 2. Générer le JWT avec le sessionId.
     const accessToken = this.generateAccessToken({
       id: user.id,
       username: user.username,
       role: roleCode,
       gareId: user.gareId,
+      sessionId: session.id,
     });
 
+    // 3. Créer le refresh token associé à la session.
     const refreshToken =
       await this.refreshTokenService.create(
         user,
-        this.refreshTokenService.getExpirationDate(7),
+        expiresAt,
         userAgent,
         ipAddress,
+        session.id,
       );
 
     await this.utilisateursService.updateLastLogin(
@@ -96,7 +110,6 @@ export class AuthService {
 
     return {
       accessToken,
-
       refreshToken: refreshToken.token,
 
       user: {
@@ -112,10 +125,8 @@ export class AuthService {
   }
 
   /**
-   * Rafraîchit la session.
-   *
-   * L'ancien refresh token est révoqué et remplacé
-   * par un nouveau refresh token.
+   * Renouvellement du refresh token.
+   * La même session est conservée pendant la rotation.
    */
   async refresh(
     refreshTokenValue: string,
@@ -129,7 +140,7 @@ export class AuthService {
 
     if (!currentToken) {
       throw new UnauthorizedException(
-        'Refresh token invalide ou expiré',
+        'Refresh token invalide ou expiré.',
       );
     }
 
@@ -140,31 +151,60 @@ export class AuthService {
 
     if (!user) {
       throw new UnauthorizedException(
-        'Utilisateur introuvable',
+        'Utilisateur introuvable.',
       );
     }
 
     if (!user.actif || user.bloque) {
       throw new UnauthorizedException(
-        'Utilisateur désactivé ou bloqué',
+        'Utilisateur désactivé ou bloqué.',
       );
     }
 
     const roleCode = user.role?.code ?? 'USER';
+
+    const expiresAt =
+      this.refreshTokenService.getExpirationDate(7);
+
+    let sessionId = currentToken.sessionId;
+
+    // Compatibilité avec les anciens refresh tokens
+    // dont session_id est NULL.
+    if (!sessionId) {
+      const session =
+        await this.presenceService.createSession({
+          utilisateurId: user.id,
+          gareId: user.gareId,
+          deviceType: PresenceDeviceType.WEB,
+          deviceName: userAgent ?? 'Navigateur Web',
+        });
+
+      sessionId = session.id;
+    } else {
+      // Conserver et prolonger la session existante.
+      await this.presenceService.renewSession(
+        sessionId,
+        user.id,
+        expiresAt,
+      );
+    }
 
     const accessToken = this.generateAccessToken({
       id: user.id,
       username: user.username,
       role: roleCode,
       gareId: user.gareId,
+      sessionId,
     });
 
+    // Créer le nouveau refresh token sur la même session.
     const replacement =
       await this.refreshTokenService.create(
         user,
-        this.refreshTokenService.getExpirationDate(7),
+        expiresAt,
         userAgent,
         ipAddress,
+        sessionId,
       );
 
     await this.refreshTokenService.markAsReplaced(
@@ -190,6 +230,7 @@ export class AuthService {
 
   /**
    * Déconnexion.
+   * Révoque le refresh token et sa session.
    */
   async logout(
     refreshTokenValue: string | null,
@@ -198,9 +239,24 @@ export class AuthService {
       return;
     }
 
-    await this.refreshTokenService.revokeByToken(
-      refreshTokenValue,
-    );
+    const token =
+      await this.refreshTokenService.findToken(
+        refreshTokenValue,
+      );
+
+    if (!token) {
+      return;
+    }
+
+    // Révoquer le refresh token.
+    await this.refreshTokenService.revoke(token);
+
+    // Révoquer uniquement la session correspondante.
+    if (token.sessionId) {
+      await this.presenceService.revokeSession(
+        token.sessionId,
+        token.userId,
+      );
+    }
   }
 }
-

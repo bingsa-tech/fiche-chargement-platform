@@ -48,6 +48,7 @@ export class RefreshTokenService {
     expiresAt: Date,
     userAgent?: string | null,
     ipAddress?: string | null,
+    sessionId?: string | null,
   ): Promise<{
     token: string;
     refreshToken: RefreshToken;
@@ -56,16 +57,17 @@ export class RefreshTokenService {
 
     const tokenHash = this.hashToken(token);
 
-    const refreshToken =
-      this.refreshTokenRepository.create({
-        userId: user.id,
-        tokenHash,
-        expiresAt,
-        revokedAt: null,
-        replacedByTokenId: null,
-        userAgent: userAgent ?? null,
-        ipAddress: ipAddress ?? null,
-      });
+   const refreshToken =
+  this.refreshTokenRepository.create({
+    userId: user.id,
+    sessionId: sessionId ?? null,
+    tokenHash,
+    expiresAt,
+    revokedAt: null,
+    replacedByTokenId: null,
+    userAgent: userAgent ?? null,
+    ipAddress: ipAddress ?? null,
+  });
 
     const savedToken =
       await this.refreshTokenRepository.save(

@@ -10,6 +10,11 @@ import { UtilisateursService } from '../../utilisateurs/utilisateur.service';
 
 interface JwtPayload {
   sub: number;
+  sessionId: string;
+  username: string;
+  role: string;
+  gareId: string | null;  
+  
 }
 
 @Injectable()
@@ -64,6 +69,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     username: utilisateur.username,
     role: utilisateur.role.code,
     gareId: utilisateur.gareId,
+    sessionId: payload.sessionId,
   };
 }
 }

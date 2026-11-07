@@ -1,21 +1,93 @@
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onUnmounted, ref, watch } from 'vue';
 import { RouterLink, RouterView, useRouter } from 'vue-router';
 
 import { useAuthStore } from '../auth/auth.store';
 import HeaderView from '../components/HeaderView.vue';
 import FooterView from '../components/FooterView.vue';
+import { presenceApi } from '../api/presence.api';
 
 const router = useRouter();
 const authStore = useAuthStore();
 
 const sidebarOpen = ref(false);
 
+// ============================================================
+// PRÉSENCE EN LIGNE — HEARTBEAT
+// ============================================================
+
+const HEARTBEAT_INTERVAL = 30_000;
+
+let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+let heartbeatInProgress = false;
+
+async function sendHeartbeat(): Promise<void> {
+  if (!authStore.isAuthenticated || heartbeatInProgress) {
+    return;
+  }
+
+  heartbeatInProgress = true;
+
+  try {
+    const response = await presenceApi.heartbeat();
+
+    console.debug(
+      '[PRESENCE] Heartbeat confirmé :',
+      response.lastSeenAt,
+    );
+  } catch (error: unknown) {
+    console.error('[PRESENCE] Échec du heartbeat :', error);
+  } finally {
+    heartbeatInProgress = false;
+  }
+}
+
+function startHeartbeat(): void {
+  if (heartbeatTimer !== null) {
+    return;
+  }
+
+  void sendHeartbeat();
+
+  heartbeatTimer = setInterval(() => {
+    void sendHeartbeat();
+  }, HEARTBEAT_INTERVAL);
+}
+
+function stopHeartbeat(): void {
+  if (heartbeatTimer !== null) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+}
+
+watch(
+  () => authStore.isAuthenticated,
+  (isAuthenticated) => {
+    stopHeartbeat();
+
+    if (isAuthenticated) {
+      startHeartbeat();
+    }
+  },
+  { immediate: true },
+);
+
+onUnmounted(() => {
+  stopHeartbeat();
+});
+
+// ============================================================
+// INFORMATIONS UTILISATEUR
+// ============================================================
+
 const userFullName = computed(() => {
   const user = authStore.user;
 
-  if (!user) return 'Utilisateur';
+  if (!user) {
+    return 'Utilisateur';
+  }
 
   return `${user.prenom ?? ''} ${user.nom ?? ''}`.trim() || 'Utilisateur';
 });
@@ -30,9 +102,21 @@ const canManageUsers = computed(
     authStore.role === 'RESPONSABLE_GARE',
 );
 
-function closeSidebar() {
-  sidebarOpen.value = false;
-}
+const canViewAudit = computed(
+  () =>
+    authStore.role === 'ADMIN' ||
+    authStore.role === 'RESPONSABLE_GARE',
+);
+
+const canViewPresenceOnline = computed(
+  () =>
+    authStore.role === 'ADMIN' ||
+    authStore.role === 'AUTORITE_HABILITEE',
+);
+
+// ============================================================
+// NAVIGATION
+// ============================================================
 
 type RouteName =
   | 'gares'
@@ -45,24 +129,24 @@ type RouteName =
   | 'fiches'
   | 'alertes'
   | 'passagers'
-  | 'audit';
+  | 'audit'
+  | 'presence-online';
 
-  const canViewAudit = computed(
-  () =>
-    authStore.role === 'ADMIN' ||
-    authStore.role === 'RESPONSABLE_GARE',
-);
-function navigateTo(routeName: RouteName) {
+function closeSidebar(): void {
+  sidebarOpen.value = false;
+}
+
+function navigateTo(routeName: RouteName): void {
   closeSidebar();
   void router.push({ name: routeName });
 }
 
-async function logout() {
+async function logout(): Promise<void> {
   closeSidebar();
 
   try {
     await authStore.logout();
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Erreur lors de la déconnexion', error);
   } finally {
     await router.push({ name: 'login' });
@@ -203,7 +287,6 @@ async function logout() {
           >
             <span class="navigation-icon">P</span>
             <span>Passagers</span>
-            
           </button>
         </div>
 
@@ -217,18 +300,27 @@ async function logout() {
           >
             <span class="navigation-icon">!</span>
             <span>Alertes</span>
-            
           </button>
 
           <button
-  v-if="canViewAudit"
-  type="button"
-  class="navigation-item"
-  @click="navigateTo('audit')"
->
-  <span class="navigation-icon">A</span>
-  <span>Journal d'audit</span>
-</button>
+            v-if="canViewAudit"
+            type="button"
+            class="navigation-item"
+            @click="navigateTo('audit')"
+          >
+            <span class="navigation-icon">A</span>
+            <span>Journal d'audit</span>
+          </button>
+
+          <button
+            v-if="canViewPresenceOnline"
+            type="button"
+            class="navigation-item"
+            @click="navigateTo('presence-online')"
+          >
+            <span class="navigation-icon">●</span>
+            <span>Présence en ligne</span>
+          </button>
         </div>
       </nav>
 
@@ -246,10 +338,8 @@ async function logout() {
 
     <!-- Contenu principal -->
     <div class="main-area">
-      <!-- Header officiel avec logo FOPTRAC -->
       <HeaderView subtitle="Administration" />
 
-      <!-- Barre utilisateur -->
       <header class="topbar">
         <button
           type="button"
@@ -260,12 +350,9 @@ async function logout() {
         >
           ☰
         </button>
-
-     
       </header>
 
       <main class="content">
-        <!-- Informations de session -->
         <section
           class="content-user-context"
           aria-label="Informations du compte connecté"
@@ -291,13 +378,11 @@ async function logout() {
           </div>
         </section>
 
-        <!-- Les pages enfants s'affichent ici -->
         <div class="page-content">
           <RouterView />
         </div>
       </main>
 
-      <!-- Footer officiel avec logo FOPTRAC -->
       <FooterView />
     </div>
   </div>
@@ -495,13 +580,6 @@ async function logout() {
   box-sizing: border-box;
 }
 
-.topbar-title {
-  flex: 1;
-  color: #374151;
-  font-size: 14px;
-  font-weight: 600;
-}
-
 .menu-button {
   display: none;
   border: none;
@@ -509,41 +587,6 @@ async function logout() {
   color: #111827;
   font-size: 24px;
   cursor: pointer;
-}
-
-.user-summary {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.user-avatar {
-  width: 38px;
-  height: 38px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: #2563eb;
-  color: white;
-  font-weight: 700;
-}
-
-.user-info {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.user-info strong {
-  color: #111827;
-  font-size: 13px;
-}
-
-.user-info span {
-  color: #6b7280;
-  font-size: 11px;
 }
 
 .content {
@@ -634,14 +677,6 @@ async function logout() {
 
   .topbar {
     padding: 12px 18px;
-  }
-
-  .topbar-title {
-    display: none;
-  }
-
-  .user-info {
-    display: none;
   }
 }
 

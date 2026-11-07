@@ -125,14 +125,23 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-  path: 'admin/supervision',
-  name: 'admin-supervision',
-  component: () =>
-    import('../views/admin/SystemSupervisionView.vue'),
-  meta: {
-    roles: ['ADMIN'] satisfies UserRole[],
-  },
-},
+        path: 'admin/supervision',
+        name: 'admin-supervision',
+        component: () =>
+          import('../views/admin/SystemSupervisionView.vue'),
+        meta: {
+          roles: ['ADMIN'] satisfies UserRole[],
+        },
+      },
+      {
+        path: 'presence',
+        name: 'presence-online',
+        component: () =>
+          import('../views/presence/PresenceOnlineView.vue'),
+        meta: {
+          roles: ['ADMIN', 'AUTORITE_HABILITEE'] satisfies UserRole[],
+        },
+      },
 
       // ========================================================
       // VÃ‰HICULES

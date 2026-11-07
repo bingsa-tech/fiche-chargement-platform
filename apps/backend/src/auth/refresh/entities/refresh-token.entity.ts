@@ -121,4 +121,11 @@ export class RefreshToken {
     default: () => 'CURRENT_TIMESTAMP',
   })
   createdAt!: Date;
+
+  @Column({
+  name: 'session_id',
+  type: 'uuid',
+  nullable: true,
+})
+sessionId!: string | null;
 }
