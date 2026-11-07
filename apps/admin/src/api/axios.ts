@@ -1,117 +1,149 @@
+
 import axios, {
   AxiosError,
+  type InternalAxiosRequestConfig,
 } from 'axios';
+
+import { useLoadingStore } from '../stores/loading.store';
 
 const API_BASE_URL =
   import.meta.env.VITE_API_URL ??
   'http://localhost:8085';
 
-const ACCESS_TOKEN_KEY =
-  'access_token';
+const ACCESS_TOKEN_KEY = 'access_token';
+
+type TrackedRequestConfig = InternalAxiosRequestConfig & {
+  _retry?: boolean;
+  _loadingTracked?: boolean;
+  _skipGlobalLoading?: boolean;
+};
 
 /**
  * Client Axios principal.
- *
- * withCredentials = true permet au navigateur
- * d'envoyer le cookie HttpOnly refresh_token.
  */
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
-
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
   },
-
   withCredentials: true,
 });
 
 /**
- * Client séparé utilisé uniquement
- * pour /api/auth/refresh.
- *
- * Cela évite que le refresh lui-même
- * déclenche notre intercepteur 401.
+ * Client séparé pour le renouvellement du token.
+ * Il ne passe pas par les intercepteurs du client principal.
  */
 const refreshClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
-
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
   },
-
   withCredentials: true,
 });
 
-/**
- * Requêtes qui attendent un refresh
- * déjà en cours.
- */
 type FailedRequest = {
   resolve: (token: string) => void;
   reject: (error: unknown) => void;
 };
 
 let isRefreshing = false;
-
 let failedQueue: FailedRequest[] = [];
 
 /**
- * Récupère l'access token depuis localStorage.
+ * Gestion du chargement global.
+ *
+ * Chaque requête ne démarre le chargement qu'une seule fois,
+ * même lorsqu'elle est rejouée après un refresh JWT.
  */
-function getAccessToken(): string | null {
-  return localStorage.getItem(
-    ACCESS_TOKEN_KEY,
+function shouldSkipGlobalLoading(
+  config: TrackedRequestConfig,
+): boolean {
+  const url = config.url ?? '';
+
+  const excludedEndpoints = [
+    '/api/auth/login',
+    '/api/auth/logout',
+    '/api/presence/heartbeat',
+  ];
+
+  return (
+    config._skipGlobalLoading === true ||
+    excludedEndpoints.some((endpoint) =>
+      url.includes(endpoint),
+    )
+  );
+}
+
+function startRequestLoading(
+  config: TrackedRequestConfig,
+): void {
+  if (shouldSkipGlobalLoading(config)) {
+    return;
+  }
+
+  if (config._loadingTracked) {
+    return;
+  }
+
+  config._loadingTracked = true;
+
+  useLoadingStore().startLoading(
+    'Communication avec le serveur...',
   );
 }
 
 /**
- * Enregistre le nouvel access token.
+ * Termine le chargement d'une requête.
+ * Le contrôle évite de décrémenter plusieurs fois le compteur.
  */
-function saveAccessToken(
-  accessToken: string,
+function stopRequestLoading(
+  config?: TrackedRequestConfig,
 ): void {
+  if (!config?._loadingTracked) {
+    return;
+  }
+
+  config._loadingTracked = false;
+
+  useLoadingStore().stopLoading();
+}
+
+function getAccessToken(): string | null {
+  return localStorage.getItem(ACCESS_TOKEN_KEY);
+}
+
+function saveAccessToken(accessToken: string): void {
   localStorage.setItem(
     ACCESS_TOKEN_KEY,
     accessToken,
   );
 }
 
-/**
- * Supprime l'access token.
- */
 function clearAccessToken(): void {
-  localStorage.removeItem(
-    ACCESS_TOKEN_KEY,
-  );
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
 }
 
 /**
- * Réveille toutes les requêtes qui
- * attendaient le refresh.
+ * Réveille les requêtes qui attendaient le refresh.
  */
 function processQueue(
   error: unknown,
   token: string | null = null,
 ): void {
-  failedQueue.forEach(
-    ({
-      resolve,
-      reject,
-    }) => {
-      if (error) {
-        reject(error);
-        return;
-      }
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (error) {
+      reject(error);
+      return;
+    }
 
-      if (token) {
-        resolve(token);
-      }
-    },
-  );
+    if (token) {
+      resolve(token);
+    }
+  });
 
   failedQueue = [];
 }
@@ -119,77 +151,74 @@ function processQueue(
 /**
  * REQUEST INTERCEPTOR
  *
- * Ajoute automatiquement :
- *
- * Authorization: Bearer <accessToken>
+ * 1. Démarre le chargement global.
+ * 2. Ajoute le JWT si disponible.
  */
 api.interceptors.request.use(
   (config) => {
-    const accessToken =
-      getAccessToken();
+    const trackedConfig =
+      config as TrackedRequestConfig;
+
+    startRequestLoading(trackedConfig);
+
+    const accessToken = getAccessToken();
 
     if (accessToken) {
-      config.headers =
-        config.headers ?? {};
-
-      config.headers.Authorization =
+      trackedConfig.headers.Authorization =
         `Bearer ${accessToken}`;
     }
 
-    return config;
+    return trackedConfig;
   },
 
-  (error) => {
+  (error: AxiosError) => {
+    const config =
+      error.config as TrackedRequestConfig | undefined;
+
+    stopRequestLoading(config);
+
     return Promise.reject(error);
   },
 );
 
 /**
  * RESPONSE INTERCEPTOR
- *
- * Si une requête retourne 401 :
- *
- * 1. appel /api/auth/refresh
- * 2. récupération du nouveau accessToken
- * 3. sauvegarde du token
- * 4. nouvelle tentative de la requête initiale
  */
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    stopRequestLoading(
+      response.config as TrackedRequestConfig,
+    );
 
-  async (
-    error: AxiosError,
-  ) => {
+    return response;
+  },
+
+  async (error: AxiosError) => {
     const originalRequest =
-      error.config as
-        | typeof error.config & {
-            _retry?: boolean;
-          }
-        | undefined;
+      error.config as TrackedRequestConfig | undefined;
 
     if (!originalRequest) {
       return Promise.reject(error);
     }
 
     /**
-     * Seules les erreurs 401
-     * déclenchent le refresh.
+     * Les erreurs autres que 401
+     * terminent immédiatement le chargement.
      */
-    if (
-      error.response?.status !== 401
-    ) {
+    if (error.response?.status !== 401) {
+      stopRequestLoading(originalRequest);
+
       return Promise.reject(error);
     }
 
     /**
-     * Ne jamais essayer de rafraîchir
-     * l'endpoint de refresh lui-même.
+     * Ne jamais rafraîchir le endpoint de refresh lui-même.
      */
     if (
-      originalRequest.url ===
-      '/api/auth/refresh'
+      originalRequest.url?.includes('/api/auth/refresh')
     ) {
       clearAccessToken();
+      stopRequestLoading(originalRequest);
 
       return Promise.reject(error);
     }
@@ -199,6 +228,7 @@ api.interceptors.response.use(
      */
     if (originalRequest._retry) {
       clearAccessToken();
+      stopRequestLoading(originalRequest);
 
       return Promise.reject(error);
     }
@@ -206,36 +236,27 @@ api.interceptors.response.use(
     originalRequest._retry = true;
 
     /**
-     * Un refresh est déjà en cours.
+     * Un refresh est déjà en cours :
+     * cette requête attend le nouveau token.
      *
-     * Cette requête attend le nouveau token.
+     * Le chargement reste actif pendant l'attente.
      */
     if (isRefreshing) {
-      return new Promise(
-        (
-          resolve,
-          reject,
-        ) => {
-          failedQueue.push({
-            resolve: (
-              token: string,
-            ) => {
-              originalRequest.headers =
-                originalRequest.headers ??
-                {};
+      return new Promise((resolve, reject) => {
+        failedQueue.push({
+          resolve: (token: string) => {
+            originalRequest.headers.Authorization =
+              `Bearer ${token}`;
 
-              originalRequest.headers.Authorization =
-                `Bearer ${token}`;
+            resolve(api(originalRequest));
+          },
 
-              resolve(
-                api(originalRequest),
-              );
-            },
-
-            reject,
-          });
-        },
-      );
+          reject: (queueError: unknown) => {
+            stopRequestLoading(originalRequest);
+            reject(queueError);
+          },
+        });
+      });
     }
 
     /**
@@ -244,14 +265,12 @@ api.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      const response =
-        await refreshClient.post(
-          '/api/auth/refresh',
-        );
+      const response = await refreshClient.post(
+        '/api/auth/refresh',
+      );
 
       const newAccessToken =
-        response.data
-          ?.accessToken;
+        response.data?.accessToken;
 
       if (!newAccessToken) {
         throw new Error(
@@ -260,50 +279,41 @@ api.interceptors.response.use(
       }
 
       /**
-       * Sauvegarde du nouveau token.
+       * Enregistre le nouveau token.
        */
-      saveAccessToken(
-        newAccessToken,
-      );
+      saveAccessToken(newAccessToken);
 
       /**
-       * Réveille les requêtes
-       * qui attendaient le refresh.
+       * Réveille les requêtes en attente.
        */
-      processQueue(
-        null,
-        newAccessToken,
-      );
+      processQueue(null, newAccessToken);
 
       /**
-       * Met à jour le Authorization
-       * de la requête originale.
+       * Met à jour la requête initiale.
        */
-      originalRequest.headers =
-        originalRequest.headers ??
-        {};
-
       originalRequest.headers.Authorization =
         `Bearer ${newAccessToken}`;
 
       /**
-       * Rejoue la requête originale.
+       * Rejoue la requête initiale.
+       *
+       * Le compteur de chargement n'est pas
+       * incrémenté une deuxième fois.
        */
       return api(originalRequest);
+
     } catch (refreshError) {
       /**
        * Le refresh a échoué.
        */
-      processQueue(
-        refreshError,
-        null,
-      );
+      processQueue(refreshError, null);
 
       clearAccessToken();
 
-      return Promise.reject(
-        refreshError,
-      );
+      stopRequestLoading(originalRequest);
+
+      return Promise.reject(refreshError);
+
     } finally {
       isRefreshing = false;
     }

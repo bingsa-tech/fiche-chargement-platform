@@ -38,7 +38,7 @@ async function loadPresence(isAutomatic = false): Promise<void> {
   error.value = null;
 
   try {
-    const response = await presenceApi.getOnline();
+    const response = await presenceApi.getOnline(!isAutomatic);
 
     sessions.value = response.sessions ?? [];
     lastUpdated.value = new Date();

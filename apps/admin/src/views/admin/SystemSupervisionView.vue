@@ -76,12 +76,12 @@ onMounted(loadSupervision);
   <main class="supervision-page">
     <header class="page-header">
       <div>
-        <span class="eyebrow">ADMINISTRATION</span>
-        <h1>Supervision du système</h1>
-        <p>
+        <span class="eyebrow">Monotoring</span>
+       
+       <!--  <p>
           Vue d'ensemble des indicateurs et de l'accès aux données
           de la plateforme.
-        </p>
+        </p> -->
       </div>
 
       <RouterLink

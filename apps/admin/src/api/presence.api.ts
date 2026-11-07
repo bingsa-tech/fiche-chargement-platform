@@ -1,6 +1,11 @@
 
 import api from './axios';
+import type { InternalAxiosRequestConfig } from 'axios';
 
+type TrackedPresenceRequestConfig =
+  InternalAxiosRequestConfig & {
+    _skipGlobalLoading?: boolean;
+  }
 // ============================================================
 // TYPES
 // ============================================================
@@ -43,7 +48,7 @@ export interface HeartbeatResponse {
 export const presenceApi = {
   /**
    * Envoie un heartbeat pour maintenir la session active.
-   * POST /api/presence/heartbeat
+   * Aucun overlay global pour cette opération automatique.
    */
   async heartbeat(): Promise<HeartbeatResponse> {
     const response = await api.post<HeartbeatResponse>(
@@ -54,12 +59,17 @@ export const presenceApi = {
   },
 
   /**
-   * Récupère la liste des utilisateurs actuellement en ligne.
-   * GET /api/presence/online
+   * Récupère la liste des utilisateurs en ligne.
+   * trackLoading = false pour les actualisations automatiques.
    */
-  async getOnline(): Promise<OnlinePresenceResponse> {
+  async getOnline(
+    trackLoading = true,
+  ): Promise<OnlinePresenceResponse> {
     const response = await api.get<OnlinePresenceResponse>(
       '/api/presence/online',
+      {
+        _skipGlobalLoading: !trackLoading,
+      } as TrackedPresenceRequestConfig,
     );
 
     return response.data;

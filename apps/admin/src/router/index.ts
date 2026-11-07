@@ -23,6 +23,26 @@ const routes: RouteRecordRaw[] = [
   },
 
   // ============================================================
+  // PAGES PUBLIQUES
+  // ============================================================
+  {
+    path: '/accueil',
+    name: 'landing',
+    component: () => import('../views/public/LandingView.vue'),
+    meta: {
+      public: true,
+    },
+  },
+  {
+    path: '/demo',
+    name: 'demo',
+    component: () => import('../views/public/DemoView.vue'),
+    meta: {
+      public: true,
+    },
+  },
+
+  // ============================================================
   // APPLICATION PROTÃ‰GÃ‰E
   // ============================================================
   {
@@ -37,7 +57,7 @@ const routes: RouteRecordRaw[] = [
         path: '',
         name: 'home',
         redirect: {
-          name: 'role-hub',
+          name: 'landing',
         },
       },
 
@@ -440,7 +460,7 @@ const router = createRouter({
 // ============================================================
 // REDIRECTION VERS LE DASHBOARD SELON LE RÃ”LE
 // ============================================================
-function getDashboardRoute(role: UserRole | null): RouteLocationRaw {
+export function getDashboardRoute(role: UserRole | null): RouteLocationRaw {
   switch (role) {
     case 'ADMIN':
       return { name: 'admin-dashboard' };
@@ -462,28 +482,55 @@ function getDashboardRoute(role: UserRole | null): RouteLocationRaw {
   }
 }
 
+
 // ============================================================
 // GARDE GLOBAL : SESSION ET AUTORISATION PAR RÃ”LE
 // ============================================================
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const authStore = useAuthStore();
 
-  // Restaurer la session si elle n'est pas dÃ©jÃ  en mÃ©moire.
-  if (!authStore.isAuthenticated) {
-    authStore.restoreSession();
-  }
+  // ==========================================================
+  // 1. INITIALISATION DE LA SESSION
+  // ==========================================================
 
-  // Routes publiques.
+  authStore.initialize();
+
+  // ==========================================================
+  // 2. ROUTES PUBLIQUES
+  // ==========================================================
+
   if (to.meta.public) {
-    if (to.name === 'login' && authStore.isAuthenticated) {
+    // Un utilisateur déjà connecté ne doit pas revenir
+    // sur la page de connexion.
+    if (
+      to.name === 'login' &&
+      authStore.isAuthenticated
+    ) {
       return getDashboardRoute(authStore.role);
     }
 
     return true;
   }
 
-  // Authentification obligatoire.
-  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+  // ==========================================================
+  // 3. REDIRECTION VERS L'ACCUEIL PUBLIC
+  // ==========================================================
+
+  if (
+    to.name === 'home' &&
+    !authStore.isAuthenticated
+  ) {
+    return { name: 'landing' };
+  }
+
+  // ==========================================================
+  // 4. AUTHENTIFICATION OBLIGATOIRE
+  // ==========================================================
+
+  if (
+    to.meta.requiresAuth &&
+    !authStore.isAuthenticated
+  ) {
     return {
       name: 'login',
       query: {
@@ -492,13 +539,20 @@ router.beforeEach((to) => {
     };
   }
 
-  // VÃ©rification du rÃ´le requis par la route.
-  const allowedRoles = to.meta.roles as UserRole[] | undefined;
+  // ==========================================================
+  // 5. CONTRÔLE DES AUTORISATIONS PAR RÔLE
+  // ==========================================================
+const allowedRoles = to.meta.roles as
+    | UserRole[]
+    | undefined;
 
   if (allowedRoles) {
     const currentRole = authStore.role;
 
-    if (!currentRole || !allowedRoles.includes(currentRole)) {
+    if (
+      !currentRole ||
+      !allowedRoles.includes(currentRole)
+    ) {
       return { name: 'unauthorized' };
     }
   }

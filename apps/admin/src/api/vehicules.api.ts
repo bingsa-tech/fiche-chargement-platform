@@ -53,7 +53,7 @@ export async function createVehicule(
   payload: CreateVehiculePayload,
 ): Promise<Vehicule> {
   const response = await api.post<Vehicule>(
-    '/vehicules',
+    'api/vehicules',
     payload,
   );
 

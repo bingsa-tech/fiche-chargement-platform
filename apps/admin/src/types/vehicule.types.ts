@@ -21,23 +21,14 @@ export interface VehiculeProprietaire {
 
 export interface VehiculeDocument {
   id: string;
-
   vehiculeId: string;
-
   typeDocument: string;
-
   numeroDocument: string | null;
-
   dateDelivrance: string | null;
-
   dateExpiration: string;
-
   statut: string;
-
   observations: string | null;
-
   createdAt: string;
-
   updatedAt: string;
 }
 
@@ -47,27 +38,17 @@ export interface VehiculeDocument {
 
 export interface Vehicule {
   id: string;
-
   plaqueImmatriculation: string;
-
   type: string;
-
   marque: string | null;
-
   modele: string | null;
-
   capacite: number;
-
   statut: VehiculeStatut;
-
   proprietaireId: string | null;
-
   proprietaire: VehiculeProprietaire | null;
-
+  gareId: string | null;
   documentsVehicules: VehiculeDocument[];
-
   createdAt: string;
-
   updatedAt: string;
 }
 
@@ -77,15 +58,10 @@ export interface Vehicule {
 
 export interface CreateVehiculeDocumentPayload {
   typeDocument: string;
-
   numeroDocument?: string;
-
   dateDelivrance?: string;
-
   dateExpiration: string;
-
   statut: string;
-
   observations?: string;
 }
 
@@ -95,19 +71,13 @@ export interface CreateVehiculeDocumentPayload {
 
 export interface CreateVehiculePayload {
   plaqueImmatriculation: string;
-
   type: string;
-
   marque?: string;
-
   modele?: string;
-
   capacite: number;
-
   statut: VehiculeStatut;
-
   proprietaireId: string;
-
+  gareId: string;
   documents: CreateVehiculeDocumentPayload[];
 }
 
@@ -117,16 +87,11 @@ export interface CreateVehiculePayload {
 
 export interface UpdateVehiculePayload {
   plaqueImmatriculation?: string;
-
   type?: string;
-
   marque?: string;
-
   modele?: string;
-
   capacite?: number;
-
   statut?: VehiculeStatut;
-
   proprietaireId?: string;
+  gareId?: string;
 }

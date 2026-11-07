@@ -1,3 +1,4 @@
+
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 
@@ -9,211 +10,167 @@ import type { Utilisateur } from './auth.types';
 const ACCESS_TOKEN_KEY = 'access_token';
 const USER_KEY = 'auth_user';
 
-export const useAuthStore = defineStore(
-  'auth',
-  () => {
-    const user =
-      ref<Utilisateur | null>(null);
+export const useAuthStore = defineStore('auth', () => {
+  // ============================================================
+  // STATE
+  // ============================================================
 
-    const accessToken =
-      ref<string | null>(null);
+  const user = ref<Utilisateur | null>(null);
+  const accessToken = ref<string | null>(null);
 
-    const loading = ref(false);
-    const error =
-      ref<string | null>(null);
+  const loading = ref(false);
+  const initialized = ref(false);
+  const error = ref<string | null>(null);
 
-    // =========================================================================
-    // COMPUTED
-    // =========================================================================
+  // ============================================================
+  // COMPUTED
+  // ============================================================
 
-    const isAuthenticated =
-      computed(() => {
-        return (
-          !!accessToken.value &&
-          !!user.value
-        );
+  const isAuthenticated = computed(
+    () => !!accessToken.value && !!user.value,
+  );
+
+  const role = computed(() => user.value?.role ?? null);
+  const userId = computed(() => user.value?.id ?? null);
+  const gareId = computed(() => user.value?.gareId ?? null);
+
+  // ============================================================
+  // INITIALISATION DE L'AUTHENTIFICATION
+  // ============================================================
+
+  function initialize(): boolean {
+    if (initialized.value) {
+      return isAuthenticated.value;
+    }
+
+    return restoreSession();
+  }
+
+  // ============================================================
+  // LOGIN
+  // ============================================================
+
+  async function login(username: string, password: string) {
+    loading.value = true;
+    error.value = null;
+
+    try {
+      const response = await authApi.login({
+        username,
+        password,
       });
 
-    const role = computed(() => {
-      return (
-        user.value?.role ?? null
-      );
-    });
+      accessToken.value = response.accessToken;
+      user.value = response.user;
 
-    const userId = computed(() => {
-      return (
-        user.value?.id ?? null
-      );
-    });
-
-    const gareId = computed(() => {
-      return (
-        user.value?.gareId ?? null
-      );
-    });
-
-    // =========================================================================
-    // LOGIN
-    // =========================================================================
-
-    async function login(
-      username: string,
-      password: string,
-    ) {
-      loading.value = true;
-      error.value = null;
-
-      try {
-        const response =
-          await authApi.login({
-            username,
-            password,
-          });
-
-        accessToken.value =
-          response.accessToken;
-
-        user.value =
-          response.user;
-
-        localStorage.setItem(
-          ACCESS_TOKEN_KEY,
-          response.accessToken,
-        );
-
-        localStorage.setItem(
-          USER_KEY,
-          JSON.stringify(
-            response.user,
-          ),
-        );
-
-        return response;
-      } catch (err: unknown) {
-        user.value = null;
-        accessToken.value = null;
-
-        localStorage.removeItem(
-          ACCESS_TOKEN_KEY,
-        );
-
-        localStorage.removeItem(
-          USER_KEY,
-        );
-
-        error.value =
-          getApiErrorMessage(err);
-
-        throw err;
-      } finally {
-        loading.value = false;
-      }
-    }
-
-    // =========================================================================
-    // RESTORE SESSION
-    // =========================================================================
-
-    function restoreSession(): boolean {
-      const storedToken =
-        localStorage.getItem(
-          ACCESS_TOKEN_KEY,
-        );
-
-      const storedUser =
-        localStorage.getItem(
-          USER_KEY,
-        );
-
-      if (
-        !storedToken ||
-        !storedUser
-      ) {
-        return false;
-      }
-
-      try {
-        const parsedUser =
-          JSON.parse(
-            storedUser,
-          ) as Utilisateur;
-
-        accessToken.value =
-          storedToken;
-
-        user.value =
-          parsedUser;
-
-        return true;
-      } catch {
-        clearLocalSession();
-
-        return false;
-      }
-    }
-
-    // =========================================================================
-    // CLEAR LOCAL SESSION
-    // =========================================================================
-
-    function clearLocalSession(): void {
-      user.value = null;
-      accessToken.value = null;
-      error.value = null;
-
-      localStorage.removeItem(
+      localStorage.setItem(
         ACCESS_TOKEN_KEY,
+        response.accessToken,
       );
 
-      localStorage.removeItem(
+      localStorage.setItem(
         USER_KEY,
+        JSON.stringify(response.user),
       );
+
+      initialized.value = true;
+
+      return response;
+    } catch (err: unknown) {
+      clearLocalSession();
+
+      error.value = getApiErrorMessage(err);
+
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  // ============================================================
+  // RESTORE SESSION
+  // ============================================================
+
+  function restoreSession(): boolean {
+    const storedToken = localStorage.getItem(
+      ACCESS_TOKEN_KEY,
+    );
+
+    const storedUser = localStorage.getItem(USER_KEY);
+
+    if (!storedToken || !storedUser) {
+      clearLocalSession();
+      return false;
     }
 
-    // =========================================================================
-    // LOGOUT
-    // =========================================================================
+    try {
+      const parsedUser = JSON.parse(storedUser) as Utilisateur;
 
-    async function logout(): Promise<void> {
-      error.value = null;
+      accessToken.value = storedToken;
+      user.value = parsedUser;
+      initialized.value = true;
 
-      try {
-        /**
-         * Le backend récupère le refresh token
-         * depuis le cookie HttpOnly et le révoque.
-         */
-        await authApi.logout();
-      } catch (err: unknown) {
-        /**
-         * Même si l'appel backend échoue,
-         * nous supprimons la session locale.
-         */
-        error.value =
-          getApiErrorMessage(err);
-      } finally {
-        clearLocalSession();
-      }
+      return isAuthenticated.value;
+    } catch {
+      clearLocalSession();
+      return false;
     }
+  }
 
-    // =========================================================================
-    // RETURN
-    // =========================================================================
+  // ============================================================
+  // CLEAR LOCAL SESSION
+  // ============================================================
 
-    return {
-      user,
-      accessToken,
-      loading,
-      error,
+  function clearLocalSession(): void {
+    user.value = null;
+    accessToken.value = null;
+    error.value = null;
+    initialized.value = true;
 
-      isAuthenticated,
-      role,
-      userId,
-      gareId,
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+  }
 
-      login,
-      restoreSession,
-      logout,
-    };
-  },
-);
+  // ============================================================
+  // LOGOUT
+  // ============================================================
 
+  async function logout(): Promise<void> {
+    error.value = null;
+
+    try {
+      // Le backend récupère le refresh token
+      // depuis le cookie HttpOnly et le révoque.
+      await authApi.logout();
+    } catch (err: unknown) {
+      // La session locale sera supprimée même
+      // si l'appel au backend échoue.
+      error.value = getApiErrorMessage(err);
+    } finally {
+      clearLocalSession();
+    }
+  }
+
+  // ============================================================
+  // RETURN
+  // ============================================================
+
+  return {
+    user,
+    accessToken,
+    loading,
+    initialized,
+    error,
+
+    isAuthenticated,
+    role,
+    userId,
+    gareId,
+
+    initialize,
+    login,
+    restoreSession,
+    clearLocalSession,
+    logout,
+  };
+});

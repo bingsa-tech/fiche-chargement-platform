@@ -18,6 +18,10 @@ import {
   getProprietaires,
 } from '../../api/proprietaires.api';
 
+import {
+  getGares,
+} from '../../api/gares.api';
+
 import type {
   CreateVehiculePayload,
   UpdateVehiculePayload,
@@ -27,6 +31,9 @@ import type {
 import type {
   Proprietaire,
 } from '../../types/proprietaire.types';
+import type {
+  Gare,
+} from '../../types/gare.types';
 
 // =====================================================
 // ROUTER
@@ -44,6 +51,7 @@ const saving = ref(false);
 const error = ref('');
 
 const proprietaires = ref<Proprietaire[]>([]);
+const gares = ref<Gare[]>([]);
 
 let documentCounter = 0;
 
@@ -88,6 +96,7 @@ const form = reactive<{
   statut: VehiculeStatut;
   proprietaireId: string;
   documents: DocumentForm[];
+  gareId: string;
 }>({
   plaqueImmatriculation: '',
   type: '',
@@ -97,6 +106,7 @@ const form = reactive<{
   statut: 'ACTIF',
   proprietaireId: '',
   documents: [],
+  gareId: '',
 });
 
 // =====================================================
@@ -118,7 +128,7 @@ function createEmptyDocument(): DocumentForm {
 }
 
 // =====================================================
-// PROPRIÉTAIRES
+// PROPRIÉTAIRES & GARES
 // =====================================================
 
 async function loadProprietaires() {
@@ -130,6 +140,17 @@ async function loadProprietaires() {
 
     error.value =
       'Impossible de charger la liste des propriétaires.';
+  }
+}
+
+async function loadGares() {
+  try {
+    gares.value = await getGares();
+  } catch (err) {
+    console.error(err);
+
+    error.value =
+      'Impossible de charger la liste des gares.';
   }
 }
 
@@ -171,6 +192,9 @@ async function loadVehicule() {
 
     form.proprietaireId =
       vehicule.proprietaireId ?? '';
+    
+    form.gareId =
+      vehicule.gareId ?? '';
 
     // -----------------------------------------------
     // Documents existants
@@ -292,6 +316,13 @@ function validateForm(): boolean {
     return false;
   }
 
+  if (!form.gareId) {
+    error.value =
+      'La gare de rattachement est obligatoire.';
+
+    return false;
+  }
+
   // ---------------------------------------------------
   // Documents
   // ---------------------------------------------------
@@ -365,6 +396,9 @@ function buildCreatePayload(): CreateVehiculePayload {
     proprietaireId:
       form.proprietaireId,
 
+    gareId:
+      form.gareId,
+
     documents:
       form.documents.map((document) => ({
         typeDocument:
@@ -385,6 +419,7 @@ function buildCreatePayload(): CreateVehiculePayload {
         observations:
           document.observations.trim() || undefined,
       })),
+
   };
 }
 
@@ -414,6 +449,9 @@ function buildUpdatePayload(): UpdateVehiculePayload {
 
     proprietaireId:
       form.proprietaireId,
+
+    gareId:
+      form.gareId,
   };
 }
 
@@ -493,7 +531,10 @@ function cancel() {
 // =====================================================
 
 onMounted(async () => {
-  await loadProprietaires();
+  await Promise.all([
+    loadProprietaires(),
+    loadGares(),
+  ]);
 
   await loadVehicule();
 
@@ -715,6 +756,31 @@ onMounted(async () => {
               >
                 — {{ proprietaire.telephone }}
               </template>
+            </option>
+          </select>
+        </div>
+
+        <!-- GARE DE RATTACHEMENT -->
+
+        <div class="form-group full-width">
+          <label for="gare">
+            Gare de rattachement *
+          </label>
+
+          <select
+            id="gare"
+            v-model="form.gareId"
+          >
+            <option value="" disabled>
+              Sélectionner une gare
+            </option>
+
+            <option
+              v-for="gare in gares"
+              :key="gare.id"
+              :value="gare.id"
+            >
+              {{ gare.nom }}
             </option>
           </select>
         </div>

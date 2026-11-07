@@ -50,6 +50,12 @@ async function handleLogin() {
       case 'AUTORITE_HABILITEE':
         await router.push({ name: 'autorite-dashboard' });
         break;
+      
+      case 'RESPONSABLE_GARE':
+  await router.push({
+    name: 'responsable-gare-dashboard',
+  });
+  break;
 
       default:
         await router.push({ name: 'unauthorized' });

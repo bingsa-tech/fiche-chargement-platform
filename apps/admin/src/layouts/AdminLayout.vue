@@ -149,7 +149,7 @@ async function logout(): Promise<void> {
   } catch (error: unknown) {
     console.error('Erreur lors de la déconnexion', error);
   } finally {
-    await router.push({ name: 'login' });
+    await router.push({ name: 'home' });
   }
 }
 </script>

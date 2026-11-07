@@ -71,7 +71,7 @@ const statistics = computed(() => [
     color: 'green',
   },
   {
-    label: 'VÃ©hicules',
+    label: 'Véhicules',
     description: 'Parc automobile',
     value: totalVehicules.value,
     icon: 'V',
@@ -97,42 +97,93 @@ const modules: DashboardModule[] = [
   {
     title: 'Gestion des utilisateurs',
     description: 'Comptes, rôles et accès à la plateforme.',
-    status: 'À connecter à l’API',
-    icon: 'U',
+    status: 'connecter à l’API',
+    icon: 'GU',
     route: { name: 'utilisateurs' },
   },
   {
     title: 'Gestion des gares',
     description: 'Organisation et administration des gares.',
-    status: 'Module existant',
-    icon: 'G',
+    status: 'connecter à l’API',
+    icon: 'GG',
     route: { name: 'gares' },
   },
   {
     title: 'Supervision du système',
     description: 'Suivi du fonctionnement de la plateforme.',
-    status: 'Module disponible',
-    icon: 'S',
+    status: 'connecter à l’API',
+    icon: 'SFP',
     route: { name: 'admin-supervision' },
   },
   {
     title: 'Journal d’audit',
     description: 'Consultation des opérations et événements.',
-    status: 'À venir',
-    icon: 'A',
+    status: 'connecter à l’API',
+    icon: 'COE',
     route: { name: 'audit' },
   },
+  {
+    title: 'Gestion des véhicules',
+    description: 'Administration du parc automobile.',
+    status: 'connecter à l’API',
+    icon: 'GV',
+    route: {name: 'vehicules'},
+  },
+  {
+    title: 'Gestion des chauffeurs',
+    description: 'Administration du personnel de conduite.',
+    status: 'connecter à l’API',
+    icon: 'GC',
+    route: {name: 'chauffeurs'},
+  },
+  {
+    title: 'Gestion des fiches de chargement',
+    description: 'Administration des documents de gestion.',
+    status: 'connecter à l’API',
+    icon: 'GFC',
+    route: {name: 'fiches'},
+  },
+  {
+    title: 'Gestion des propriétaires de véhicules',
+    description: 'Création et consultation',
+    status: 'connecter à l’API',
+    icon: 'GP',
+    route: {name: 'proprietaires'},
+  },
+  {
+    title: 'Gestion des documents chauffeurs',
+    description: 'Création et consultation',
+    status: 'connecter à l’API',
+    icon: 'GDC',
+    route: {name: 'documents-chauffeurs'},
+  },
+  {
+    title: 'Gestion des documents véhicules',
+    description: 'Création et consultation',
+    status: 'connecter à l’API',
+    icon: 'GDV',
+    route: {name: 'documents-vehicules'},
+  },
+  {
+    title: 'Gestion des passagers',
+    description: 'Création et consultation',
+    status: 'connecter à l’API',
+    icon: 'GTF',
+    route: {name: 'passagers'},
+  },
+  {
+    title: 'Gestion de user online',
+    description: 'Création et consultation',
+    status: 'connecter à l’API',
+    icon: 'UONline',
+    route: {name: 'presence-online'},
+  }
 ];
 </script>
 
 <template>
   <main class="dashboard">
     <!-- Panneau de bienvenue -->
-
-
-
-
-
     <!-- Statistiques -->
     <section class="statistics-section" aria-labelledby="statistics-title">
       <div class="section-heading">
@@ -157,7 +208,7 @@ const modules: DashboardModule[] = [
           <h3>{{ stat.label }}</h3>
           <p>{{ stat.description }}</p>
           <span class="stat-placeholder">
-            {{ isLoading ? 'Chargement...' : 'SynchronisÃ© avec la BD' }}
+            {{ isLoading ? 'Chargement...' : 'Synchronisé avec la BD' }}
           </span>
         </article>
       </div>
