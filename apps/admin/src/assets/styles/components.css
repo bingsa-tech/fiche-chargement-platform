@@ -1,21 +1,54 @@
+
+/* =========================================
+   FOPTRAC - COMPOSANTS REUTILISABLES
+========================================= */
+
+/* =========================================
+   CARTES
+========================================= */
+
 .app-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: 1.25rem;
+  box-shadow: var(--shadow-card);
+}
+
+.app-card--interactive {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.app-card--interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-dropdown);
+  border-color: var(--color-brand-primary);
 }
 
 .app-card-title {
+  color: var(--color-text-primary);
   font-size: 1rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
 }
 
+/* =========================================
+   SEPARATEURS
+========================================= */
+
 .app-divider {
   height: 1px;
   width: 100%;
   background-color: var(--color-border);
+  border: 0;
 }
+
+/* =========================================
+   BADGES DE STATUT
+========================================= */
 
 .app-status {
   display: inline-flex;
@@ -25,6 +58,8 @@
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
 }
 
 .app-status--success {
@@ -45,4 +80,10 @@
 .app-status--info {
   color: #075985;
   background-color: #e0f2fe;
+}
+
+.app-status--neutral {
+  color: var(--color-text-secondary);
+  background-color: var(--color-surface-secondary);
+  border: 1px solid var(--color-border);
 }

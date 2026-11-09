@@ -15,6 +15,7 @@ import { Utilisateur } from '../../../utilisateurs/entities/utilisateur.entity';
 @Index('idx_refresh_token_user', ['userId'])
 @Index('idx_refresh_token_hash', ['tokenHash'])
 @Index('idx_refresh_token_expires_at', ['expiresAt'])
+@Index('idx_refresh_token_session', ['sessionId'])
 export class RefreshToken {
   // =========================
   // IDENTIFIANT
@@ -84,12 +85,14 @@ export class RefreshToken {
   // ROTATION
   // =========================
 
-  @Column({
-    name: 'replaced_by_token_id',
-    type: 'integer',
-    nullable: true,
-  })
-  replacedByTokenId!: number | null;
+  @ManyToOne(() => RefreshToken, {
+  nullable: true,
+  onDelete: 'SET NULL',
+})
+@JoinColumn({
+  name: 'replaced_by_token_id',
+})
+replacedBy!: RefreshToken | null;
 
   // =========================
   // CONTEXTE DE SESSION

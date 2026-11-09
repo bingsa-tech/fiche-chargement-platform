@@ -12,22 +12,22 @@ import { ItineraireStatut } from '../enums/itineraire-statut.enum';
 export class CreateItineraireDto {
   @IsUUID()
   @IsNotEmpty()
-  destinationId: string;
+  destinationId!: string;
 
   @IsString()
   @IsNotEmpty()
   @MaxLength(30)
-  code: string;
+  code!: string;
 
   @IsString()
   @IsNotEmpty()
   @MaxLength(150)
-  libelle: string;
+  libelle!: string;
 
   @IsOptional()
   @IsString()
   description?: string;
 
   @IsEnum(ItineraireStatut)
-  statut: ItineraireStatut;
+  statut!: ItineraireStatut;
 }

@@ -1,4 +1,3 @@
-
 import {
   createRouter,
   createWebHistory,
@@ -43,7 +42,7 @@ const routes: RouteRecordRaw[] = [
   },
 
   // ============================================================
-  // APPLICATION PROTÃ‰GÃ‰E
+  // APPLICATION PROTÉGÉE
   // ============================================================
   {
     path: '/',
@@ -87,7 +86,7 @@ const routes: RouteRecordRaw[] = [
       },
 
       // ========================================================
-      // PROPRIÃ‰TAIRES
+      // PROPRIÉTAIRES
       // ========================================================
       {
         path: 'proprietaires',
@@ -109,6 +108,37 @@ const routes: RouteRecordRaw[] = [
         name: 'proprietaire-edit',
         component: () =>
           import('../views/proprietaires/ProprietairesFormView.vue'),
+        meta: {
+          roles: ['ADMIN', 'RESPONSABLE_GARE'] satisfies UserRole[],
+        },
+      },
+
+      // ========================================================
+      // ITINÉRAIRES
+      // ========================================================
+      {
+        path: 'itineraires',
+        name: 'itineraires',
+        component: () =>
+          import('../views/itineraires/ItinerairesListView.vue'),
+        meta: {
+          roles: ['ADMIN', 'RESPONSABLE_GARE'] satisfies UserRole[],
+        },
+      },
+      {
+        path: 'itineraires/nouveau',
+        name: 'itineraires-create',
+        component: () =>
+          import('../views/itineraires/ItineraireFormView.vue'),
+        meta: {
+          roles: ['ADMIN', 'RESPONSABLE_GARE'] satisfies UserRole[],
+        },
+      },
+      {
+        path: 'itineraires/:id/modifier',
+        name: 'itineraires-edit',
+        component: () =>
+          import('../views/itineraires/ItineraireFormView.vue'),
         meta: {
           roles: ['ADMIN', 'RESPONSABLE_GARE'] satisfies UserRole[],
         },
@@ -164,7 +194,7 @@ const routes: RouteRecordRaw[] = [
       },
 
       // ========================================================
-      // VÃ‰HICULES
+      // VÉHICULES
       // ========================================================
       {
         path: 'vehicules',
@@ -239,7 +269,7 @@ const routes: RouteRecordRaw[] = [
       },
 
       // ========================================================
-      // DOCUMENTS VÃ‰HICULES
+      // DOCUMENTS VÉHICULES
       // ========================================================
       {
         path: 'documents/vehicules',
@@ -278,7 +308,6 @@ const routes: RouteRecordRaw[] = [
 
       // ========================================================
       // FICHES DE CHARGEMENT
-      // La route new est dÃ©clarÃ©e sÃ©parÃ©ment de la liste.
       // ========================================================
       {
         path: 'fiches/new',
@@ -307,7 +336,6 @@ const routes: RouteRecordRaw[] = [
           ] satisfies UserRole[],
         },
       },
-
       {
         path: 'fiches/:id',
         name: 'fiche-detail',
@@ -349,8 +377,7 @@ const routes: RouteRecordRaw[] = [
         name: 'passagers',
         component: () => import('../views/passagers/PassagersView.vue'),
         meta: {
-          requiresAuth: true, // Si votre route est protÃ©gÃ©e par authentification
-          // title: 'Gestion des Passagers'
+          requiresAuth: true,
         },
       },
 
@@ -382,7 +409,6 @@ const routes: RouteRecordRaw[] = [
         meta: {
           roles: ['ADMIN'] satisfies UserRole[],
         },
-
       },
       {
         path: 'agent/dashboard',
@@ -418,11 +444,66 @@ const routes: RouteRecordRaw[] = [
           roles: ['AUTORITE_HABILITEE'] satisfies UserRole[],
         },
       },
+      
+      // ========================================================
+      // DESTINATIONS
+      // ========================================================
+      {
+        path: 'destinations',
+        name: 'destinations',
+        component: () =>
+          import('../views/destinations/DestinationsListView.vue'),
+        meta: {
+          roles: [
+            'ADMIN',
+            'RESPONSABLE_GARE',
+            'CONTROLEUR',
+            'AGENT',
+            'AUTORITE_HABILITEE',
+          ] satisfies UserRole[],
+        },
+      },
+      {
+        path: 'destinations/nouveau',
+        name: 'destination-create',
+        component: () =>
+          import('../views/destinations/DestinationFormView.vue'),
+        meta: {
+          roles: ['ADMIN', 'RESPONSABLE_GARE'] satisfies UserRole[],
+        },
+      },
+      {
+        path: 'destinations/:id/modifier',
+        name: 'destination-edit',
+        component: () =>
+          import('../views/destinations/DestinationFormView.vue'),
+        meta: {
+          roles: ['ADMIN', 'RESPONSABLE_GARE'] satisfies UserRole[],
+        },
+      },
+      {
+        path: 'destinations/:id',
+        name: 'destination-details',
+        component: () =>
+          import('../views/destinations/DestinationDetailsView.vue'),
+        meta: {
+          roles: [
+            'ADMIN',
+            'RESPONSABLE_GARE',
+            'CONTROLEUR',
+            'AGENT',
+            'AUTORITE_HABILITEE',
+          ] satisfies UserRole[],
+        },
+      },
+
     ],
   },
 
+
+
   // ============================================================
-  // ACCÃˆS NON AUTORISÃ‰
+  // ACCÈS NON AUTORISÉ
   // ============================================================
   {
     path: '/unauthorized',
@@ -447,7 +528,7 @@ const routes: RouteRecordRaw[] = [
 ];
 
 // ============================================================
-// CRÃ‰ATION DU ROUTEUR
+// CRÉATION DU ROUTEUR
 // ============================================================
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -458,7 +539,7 @@ const router = createRouter({
 });
 
 // ============================================================
-// REDIRECTION VERS LE DASHBOARD SELON LE RÃ”LE
+// REDIRECTION VERS LE DASHBOARD SELON LE RÔLE
 // ============================================================
 export function getDashboardRoute(role: UserRole | null): RouteLocationRaw {
   switch (role) {
@@ -482,9 +563,8 @@ export function getDashboardRoute(role: UserRole | null): RouteLocationRaw {
   }
 }
 
-
 // ============================================================
-// GARDE GLOBAL : SESSION ET AUTORISATION PAR RÃ”LE
+// GARDE GLOBAL : SESSION ET AUTORISATION PAR RÔLE
 // ============================================================
 router.beforeEach(async (to) => {
   const authStore = useAuthStore();
@@ -492,16 +572,12 @@ router.beforeEach(async (to) => {
   // ==========================================================
   // 1. INITIALISATION DE LA SESSION
   // ==========================================================
-
   authStore.initialize();
 
   // ==========================================================
   // 2. ROUTES PUBLIQUES
   // ==========================================================
-
   if (to.meta.public) {
-    // Un utilisateur déjà connecté ne doit pas revenir
-    // sur la page de connexion.
     if (
       to.name === 'login' &&
       authStore.isAuthenticated
@@ -515,7 +591,6 @@ router.beforeEach(async (to) => {
   // ==========================================================
   // 3. REDIRECTION VERS L'ACCUEIL PUBLIC
   // ==========================================================
-
   if (
     to.name === 'home' &&
     !authStore.isAuthenticated
@@ -526,7 +601,6 @@ router.beforeEach(async (to) => {
   // ==========================================================
   // 4. AUTHENTIFICATION OBLIGATOIRE
   // ==========================================================
-
   if (
     to.meta.requiresAuth &&
     !authStore.isAuthenticated
@@ -542,7 +616,7 @@ router.beforeEach(async (to) => {
   // ==========================================================
   // 5. CONTRÔLE DES AUTORISATIONS PAR RÔLE
   // ==========================================================
-const allowedRoles = to.meta.roles as
+  const allowedRoles = to.meta.roles as
     | UserRole[]
     | undefined;
 

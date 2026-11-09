@@ -24,6 +24,9 @@ function redirectByRole() {
     case 'AUTORITE_HABILITEE':
       router.replace({ name: 'autorite-dashboard' });
       break;
+    case 'RESPONSABLE_GARE':
+      router.replace({ name: 'responsable-gare-dashboard' });
+      break;
 
     default:
       router.replace({ name: 'unauthorized' });

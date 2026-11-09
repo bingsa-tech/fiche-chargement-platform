@@ -11,7 +11,7 @@ import {
 import type { Fiche } from '../../types/fiche.types';
 import type { FichePassagerDetail } from '../../api/fiche-passager.api';
 import type { Passager } from '../../api/passagers.api';
-
+import logo from '@/assets/logo.png'
 const route = useRoute();
 const router = useRouter();
 const fiche = ref<Fiche | null>(null);
@@ -291,10 +291,7 @@ onMounted(chargerFiche);
         </div>
 
         <div class="institutional-logo">
-          <img
-            src="/images/logo-Fede.png"
-            alt="Logo de la Fédération"
-          />
+<img :src="logo" alt="Logo" />
         </div>
 
         <div class="institutional-side english-side">

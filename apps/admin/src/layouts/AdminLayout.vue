@@ -1,7 +1,18 @@
 
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch } from 'vue';
-import { RouterLink, RouterView, useRouter } from 'vue-router';
+import {
+  computed,
+  onUnmounted,
+  ref,
+  watch,
+} from 'vue';
+
+import {
+  RouterLink,
+  RouterView,
+  useRoute,
+  useRouter,
+} from 'vue-router';
 
 import { useAuthStore } from '../auth/auth.store';
 import HeaderView from '../components/HeaderView.vue';
@@ -9,12 +20,13 @@ import FooterView from '../components/FooterView.vue';
 import { presenceApi } from '../api/presence.api';
 
 const router = useRouter();
+const route = useRoute();
 const authStore = useAuthStore();
 
 const sidebarOpen = ref(false);
 
 // ============================================================
-// PRÉSENCE EN LIGNE — HEARTBEAT
+// PRESENCE EN LIGNE - HEARTBEAT
 // ============================================================
 
 const HEARTBEAT_INTERVAL = 30_000;
@@ -33,11 +45,14 @@ async function sendHeartbeat(): Promise<void> {
     const response = await presenceApi.heartbeat();
 
     console.debug(
-      '[PRESENCE] Heartbeat confirmé :',
+      '[PRESENCE] Heartbeat confirme :',
       response.lastSeenAt,
     );
   } catch (error: unknown) {
-    console.error('[PRESENCE] Échec du heartbeat :', error);
+    console.error(
+      '[PRESENCE] Echec du heartbeat :',
+      error,
+    );
   } finally {
     heartbeatInProgress = false;
   }
@@ -89,12 +104,27 @@ const userFullName = computed(() => {
     return 'Utilisateur';
   }
 
-  return `${user.prenom ?? ''} ${user.nom ?? ''}`.trim() || 'Utilisateur';
+  return (
+    `${user.prenom ?? ''} ${user.nom ?? ''}`.trim() ||
+    'Utilisateur'
+  );
 });
 
-const userRole = computed(() => authStore.role ?? 'ROLE_INCONNU');
-const userEmail = computed(() => authStore.user?.email ?? '');
-const userGare = computed(() => authStore.user?.gareId ?? 'Non affectée');
+const userRole = computed(
+  () => authStore.role ?? 'ROLE_INCONNU',
+);
+
+const userEmail = computed(
+  () => authStore.user?.email ?? '',
+);
+
+const userGare = computed(
+  () => authStore.user?.gareId ?? 'Non affectee',
+);
+
+// ============================================================
+// PERMISSIONS DE NAVIGATION
+// ============================================================
 
 const canManageUsers = computed(
   () =>
@@ -124,22 +154,53 @@ type RouteName =
   | 'vehicules'
   | 'chauffeurs'
   | 'documents-vehicules'
+  | 'destinations'
   | 'documents-chauffeurs'
   | 'utilisateurs'
   | 'fiches'
   | 'alertes'
   | 'passagers'
   | 'audit'
-  | 'presence-online';
+  | 'presence-online'
+  | 'itineraires';
+
+const currentRouteName = computed(
+  () => route.name?.toString() ?? '',
+);
+
+function isActive(routeName: RouteName): boolean {
+  return currentRouteName.value === routeName;
+}
 
 function closeSidebar(): void {
   sidebarOpen.value = false;
 }
 
+function toggleSidebar(): void {
+  sidebarOpen.value = !sidebarOpen.value;
+}
+
 function navigateTo(routeName: RouteName): void {
   closeSidebar();
+
+  if (currentRouteName.value === routeName) {
+    return;
+  }
+
   void router.push({ name: routeName });
 }
+
+// Ferme aussi le menu si la navigation change autrement
+watch(
+  () => route.fullPath,
+  () => {
+    closeSidebar();
+  },
+);
+
+// ============================================================
+// DECONNEXION
+// ============================================================
 
 async function logout(): Promise<void> {
   closeSidebar();
@@ -147,7 +208,10 @@ async function logout(): Promise<void> {
   try {
     await authStore.logout();
   } catch (error: unknown) {
-    console.error('Erreur lors de la déconnexion', error);
+    console.error(
+      'Erreur lors de la deconnexion',
+      error,
+    );
   } finally {
     await router.push({ name: 'home' });
   }
@@ -163,18 +227,26 @@ async function logout(): Promise<void> {
       @click="closeSidebar"
     ></div>
 
-    <!-- Menu latéral -->
+    <!-- SIDEBAR -->
     <aside
       class="sidebar"
       :class="{ 'sidebar-open': sidebarOpen }"
+      aria-label="Navigation principale"
     >
+      <!-- Identite FOPTRAC -->
       <div class="sidebar-header">
         <div class="brand">
-          <div class="brand-logo">FC</div>
+          <div class="brand-logo-wrapper">
+            <img
+              src="/icons/icon-512.png"
+              alt="Logo FOPTRAC"
+              class="brand-logo"
+            />
+          </div>
 
           <div class="brand-text">
-            <strong>Fiche Chargement</strong>
-            <span>Administration</span>
+            <strong>FOPTRAC</strong>
+            <span>Gestion des fiches de chargement</span>
           </div>
         </div>
 
@@ -188,9 +260,13 @@ async function logout(): Promise<void> {
         </button>
       </div>
 
+      <!-- NAVIGATION -->
       <nav class="navigation">
+        <!-- PRINCIPAL -->
         <div class="navigation-section">
-          <span class="navigation-title">Principal</span>
+          <span class="navigation-title">
+            Principal
+          </span>
 
           <RouterLink
             :to="{ name: 'role-hub' }"
@@ -198,63 +274,78 @@ async function logout(): Promise<void> {
             active-class="active"
             @click="closeSidebar"
           >
-            <span class="navigation-icon">⌂</span>
+            <span class="navigation-icon">DB</span>
             <span>Dashboard</span>
           </RouterLink>
         </div>
 
+        <!-- GESTION -->
         <div class="navigation-section">
-          <span class="navigation-title">Gestion</span>
+          <span class="navigation-title">
+            Gestion
+          </span>
 
           <button
             v-if="canManageUsers"
             type="button"
             class="navigation-item"
+            :class="{ active: isActive('utilisateurs') }"
+            :aria-current="isActive('utilisateurs') ? 'page' : undefined"
             @click="navigateTo('utilisateurs')"
           >
-            <span class="navigation-icon">U</span>
+            <span class="navigation-icon">US</span>
             <span>Utilisateurs</span>
           </button>
 
           <button
             type="button"
             class="navigation-item"
+            :class="{ active: isActive('gares') }"
+            :aria-current="isActive('gares') ? 'page' : undefined"
             @click="navigateTo('gares')"
           >
-            <span class="navigation-icon">G</span>
+            <span class="navigation-icon">GA</span>
             <span>Gares</span>
           </button>
 
           <button
             type="button"
             class="navigation-item"
+            :class="{ active: isActive('proprietaires') }"
+            :aria-current="isActive('proprietaires') ? 'page' : undefined"
             @click="navigateTo('proprietaires')"
           >
-            <span class="navigation-icon">P</span>
+            <span class="navigation-icon">PR</span>
             <span>Propriétaires</span>
           </button>
 
           <button
             type="button"
             class="navigation-item"
+            :class="{ active: isActive('vehicules') }"
+            :aria-current="isActive('vehicules') ? 'page' : undefined"
             @click="navigateTo('vehicules')"
           >
-            <span class="navigation-icon">V</span>
+            <span class="navigation-icon">VH</span>
             <span>Véhicules</span>
           </button>
 
           <button
             type="button"
             class="navigation-item"
+            :class="{ active: isActive('chauffeurs') }"
+            :aria-current="isActive('chauffeurs') ? 'page' : undefined"
             @click="navigateTo('chauffeurs')"
           >
-            <span class="navigation-icon">C</span>
+            <span class="navigation-icon">CH</span>
             <span>Chauffeurs</span>
           </button>
 
           <button
             type="button"
             class="navigation-item"
+            :class="{ active: isActive('documents-vehicules') }"
+            :aria-current="isActive('documents-vehicules') ? 'page' : undefined"
             @click="navigateTo('documents-vehicules')"
           >
             <span class="navigation-icon">DV</span>
@@ -264,6 +355,8 @@ async function logout(): Promise<void> {
           <button
             type="button"
             class="navigation-item"
+            :class="{ active: isActive('documents-chauffeurs') }"
+            :aria-current="isActive('documents-chauffeurs') ? 'page' : undefined"
             @click="navigateTo('documents-chauffeurs')"
           >
             <span class="navigation-icon">DC</span>
@@ -273,32 +366,69 @@ async function logout(): Promise<void> {
           <button
             type="button"
             class="navigation-item"
+            :class="{ active: isActive('fiches') }"
+            :aria-current="isActive('fiches') ? 'page' : undefined"
             @click="navigateTo('fiches')"
           >
-            <span class="navigation-icon">F</span>
+            <span class="navigation-icon">FC</span>
             <span>Fiches de chargement</span>
           </button>
 
           <button
             type="button"
             class="navigation-item"
-            @click="navigateTo('passagers')"
+            :class="{ active: isActive('passagers') }"
+            :aria-current="isActive('passagers') ? 'page' : undefined"
             title="Module prochainement disponible"
+            @click="navigateTo('passagers')"
           >
-            <span class="navigation-icon">P</span>
+            <span class="navigation-icon">PA</span>
             <span>Passagers</span>
           </button>
+
+          
+           <!-- DESTINATIONS -->
+<button
+  type="button"
+  class="navigation-item"
+  :class="{ active: isActive('destinations') }"
+  :aria-current="isActive('destinations') ? 'page' : undefined"
+  @click="navigateTo('destinations')"
+>
+  <span class="navigation-icon">DS</span>
+  <span>Destinations</span>
+</button>
+
+
+           <!-- ITINÉRAIRES -->
+<button
+  type="button"
+  class="navigation-item"
+  :class="{ active: isActive('itineraires') }"
+  :aria-current="
+    isActive('itineraires') ? 'page' : undefined
+  "
+  @click="navigateTo('itineraires')"
+>
+  <span class="navigation-icon">IT</span>
+  <span>Itinéraires</span>
+</button>
         </div>
 
+        <!-- SUPERVISION -->
         <div class="navigation-section">
-          <span class="navigation-title">Supervision</span>
+          <span class="navigation-title">
+            Supervision
+          </span>
 
           <button
             type="button"
             class="navigation-item"
+            :class="{ active: isActive('alertes') }"
+            :aria-current="isActive('alertes') ? 'page' : undefined"
             @click="navigateTo('alertes')"
           >
-            <span class="navigation-icon">!</span>
+            <span class="navigation-icon">AL</span>
             <span>Alertes</span>
           </button>
 
@@ -306,9 +436,11 @@ async function logout(): Promise<void> {
             v-if="canViewAudit"
             type="button"
             class="navigation-item"
+            :class="{ active: isActive('audit') }"
+            :aria-current="isActive('audit') ? 'page' : undefined"
             @click="navigateTo('audit')"
           >
-            <span class="navigation-icon">A</span>
+            <span class="navigation-icon">AU</span>
             <span>Journal d'audit</span>
           </button>
 
@@ -316,68 +448,76 @@ async function logout(): Promise<void> {
             v-if="canViewPresenceOnline"
             type="button"
             class="navigation-item"
+            :class="{ active: isActive('presence-online') }"
+            :aria-current="isActive('presence-online') ? 'page' : undefined"
             @click="navigateTo('presence-online')"
           >
-            <span class="navigation-icon">●</span>
+            <span class="navigation-icon">ON</span>
             <span>Présence en ligne</span>
           </button>
         </div>
       </nav>
 
+      <!-- DECONNEXION -->
       <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <span class="sidebar-user-name">
+            {{ userFullName }}
+          </span>
+
+          <span class="sidebar-user-role">
+            {{ userRole }}
+          </span>
+        </div>
+
         <button
           type="button"
           class="logout-button"
           @click="logout"
         >
-          <span>↪</span>
+          <span class="logout-icon">↪</span>
           <span>Se déconnecter</span>
         </button>
       </div>
     </aside>
 
-    <!-- Contenu principal -->
+    <!-- CONTENU PRINCIPAL -->
     <div class="main-area">
-      <HeaderView subtitle="Administration" />
-
-      <header class="topbar">
-        <button
-          type="button"
-          class="menu-button"
-          aria-label="Ouvrir le menu"
-          :aria-expanded="sidebarOpen"
-          @click="sidebarOpen = true"
-        >
-          ☰
-        </button>
-      </header>
+      <HeaderView
+        subtitle="Administration"
+        @toggle-sidebar="toggleSidebar"
+      />
 
       <main class="content">
+        <!-- INFORMATIONS DU COMPTE -->
         <section
           class="content-user-context"
           aria-label="Informations du compte connecté"
         >
-          <div>
+          <div class="context-item">
             <span class="context-label">Compte</span>
             <strong>{{ userFullName }}</strong>
           </div>
 
-          <div>
+          <div class="context-item">
             <span class="context-label">Email</span>
-            <strong>{{ userEmail || 'Non renseigné' }}</strong>
+            <strong>
+              {{ userEmail || 'Non renseigné' }}
+            </strong>
           </div>
 
-          <div>
+          <div class="context-item">
             <span class="context-label">Gare</span>
             <strong>{{ userGare }}</strong>
           </div>
 
-          <div>
+          <div class="context-item">
             <span class="context-label">Rôle</span>
             <strong>{{ userRole }}</strong>
           </div>
         </section>
 
+        <!-- MODULE ACTIF -->
         <div class="page-content">
           <RouterView />
         </div>
@@ -389,83 +529,116 @@ async function logout(): Promise<void> {
 </template>
 
 <style scoped>
+/* ============================================================
+   LAYOUT GENERAL
+============================================================ */
+
 .admin-layout {
   min-height: 100vh;
   display: flex;
-  background: #f4f6f8;
-  color: #111827;
+  background: var(--color-background);
+  color: var(--color-text-primary);
 }
+
+/* ============================================================
+   SIDEBAR
+============================================================ */
 
 .sidebar {
   position: fixed;
   z-index: 100;
   inset: 0 auto 0 0;
-  width: 260px;
+  width: var(--sidebar-width);
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #111827;
-  color: white;
+  overflow: hidden;
+  background: var(--color-sidebar);
+  color: #ffffff;
   box-sizing: border-box;
+  box-shadow: 4px 0 20px rgb(15 23 42 / 8%);
   transition: transform 0.25s ease;
 }
 
 .sidebar-header {
-  min-height: 76px;
-  padding: 0 16px 0 20px;
+  min-height: 82px;
+  padding: 0 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 10px;
+  border-bottom: 1px solid rgb(255 255 255 / 10%);
 }
 
 .brand {
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.brand-logo {
-  width: 38px;
-  height: 38px;
+.brand-logo-wrapper {
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  padding: 3px;
+  background: #ffffff;
+  border: 1px solid var(--color-brand-accent);
   border-radius: 9px;
-  background: #2563eb;
-  color: white;
-  font-size: 14px;
-  font-weight: 800;
+  box-sizing: border-box;
+}
+
+.brand-logo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .brand-text {
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
 }
 
 .brand-text strong {
-  font-size: 14px;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
 }
 
 .brand-text span {
-  color: #9ca3af;
-  font-size: 11px;
+  color: #aebdd0;
+  font-size: 10px;
+  line-height: 1.4;
 }
 
 .close-sidebar {
   display: none;
   border: none;
   background: transparent;
-  color: white;
+  color: #ffffff;
   font-size: 28px;
   cursor: pointer;
 }
 
+/* ============================================================
+   NAVIGATION
+============================================================ */
+
 .navigation {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  padding: 20px 14px;
+  padding: 22px 12px;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 20%) transparent;
 }
 
 .navigation-section {
@@ -474,179 +647,240 @@ async function logout(): Promise<void> {
 
 .navigation-title {
   display: block;
-  margin: 0 10px 8px;
-  color: #9ca3af;
-  font-size: 11px;
-  font-weight: 700;
+  margin: 0 10px 9px;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
 }
 
 .navigation-item {
   width: 100%;
-  min-height: 42px;
+  min-height: 43px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
   margin-bottom: 4px;
   padding: 8px 10px;
-  border: none;
-  border-radius: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
   background: transparent;
-  color: #d1d5db;
+  color: #d1d9e5;
   text-align: left;
   text-decoration: none;
   box-sizing: border-box;
   cursor: pointer;
   font: inherit;
-  font-size: 13px;
+  font-size: 12px;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
 }
 
-.navigation-item:hover:not(:disabled) {
-  background: #1f2937;
-  color: white;
+.navigation-item:hover {
+  background: rgb(255 255 255 / 8%);
+  color: #ffffff;
 }
 
 .navigation-item.active {
-  background: #2563eb;
-  color: white;
-}
-
-.navigation-item.disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.navigation-icon {
-  width: 24px;
-  flex-shrink: 0;
-  text-align: center;
-  font-size: 13px;
+  position: relative;
+  background: var(--color-brand-primary);
+  border-color: rgb(255 255 255 / 12%);
+  color: #ffffff;
   font-weight: 700;
 }
 
-.navigation-item span:nth-child(2) {
+.navigation-item.active::before {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 0;
+  width: 3px;
+  border-radius: 0 4px 4px 0;
+  background: var(--color-brand-accent);
+  content: '';
+}
+
+.navigation-icon {
+  width: 27px;
+  height: 27px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 7px;
+  background: rgb(255 255 255 / 7%);
+  color: #cbd5e1;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.navigation-item.active .navigation-icon {
+  background: rgb(255 255 255 / 15%);
+  color: var(--color-brand-accent-light);
+}
+
+.navigation-item > span:nth-child(2) {
   flex: 1;
 }
 
-.navigation-item small {
-  color: #9ca3af;
-  font-size: 10px;
+.navigation-item:focus-visible,
+.logout-button:focus-visible,
+.close-sidebar:focus-visible {
+  outline: 2px solid var(--color-brand-accent-light);
+  outline-offset: 2px;
 }
+
+/* ============================================================
+   SIDEBAR FOOTER
+============================================================ */
 
 .sidebar-footer {
   padding: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid rgb(255 255 255 / 10%);
+}
+
+.sidebar-user {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+  padding: 0 4px;
+}
+
+.sidebar-user-name {
+  overflow: hidden;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-user-role {
+  color: var(--color-brand-accent-light);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
 }
 
 .logout-button {
   width: 100%;
-  min-height: 42px;
+  min-height: 43px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
   padding: 0 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  background: transparent;
-  color: #d1d5db;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: var(--radius-md);
+  background: rgb(255 255 255 / 5%);
+  color: #e2e8f0;
   cursor: pointer;
   font: inherit;
+  font-size: 12px;
+  transition: background 0.2s ease;
 }
 
 .logout-button:hover {
-  background: #1f2937;
-  color: white;
+  background: rgb(220 38 38 / 20%);
+  color: #ffffff;
 }
+
+.logout-icon {
+  color: var(--color-brand-accent-light);
+  font-size: 18px;
+}
+
+/* ============================================================
+   MAIN AREA
+============================================================ */
 
 .main-area {
-  width: calc(100% - 260px);
+  width: calc(100% - var(--sidebar-width));
   min-width: 0;
   min-height: 100vh;
-  margin-left: 260px;
+  margin-left: var(--sidebar-width);
   display: flex;
   flex-direction: column;
-}
-
-.topbar {
-  min-height: 76px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 12px 28px;
-  background: white;
-  border-bottom: 1px solid #e5e7eb;
-  box-sizing: border-box;
-}
-
-.menu-button {
-  display: none;
-  border: none;
-  background: transparent;
-  color: #111827;
-  font-size: 24px;
-  cursor: pointer;
 }
 
 .content {
   flex: 1;
   min-width: 0;
-  padding: 28px;
+  padding: 26px 28px;
   box-sizing: border-box;
 }
+
+/* ============================================================
+   CONTEXTE UTILISATEUR
+============================================================ */
 
 .content-user-context {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: 18px;
+  margin-bottom: 25px;
   padding: 18px 20px;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
 }
 
-.content-user-context > div {
+.context-item {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
 }
 
 .context-label {
-  color: #6b7280;
-  font-size: 11px;
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.07em;
 }
 
 .content-user-context strong {
   overflow-wrap: anywhere;
-  color: #111827;
-  font-size: 13px;
+  color: var(--color-text-primary);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .page-content {
   min-width: 0;
 }
 
+/* ============================================================
+   OVERLAY
+============================================================ */
+
 .sidebar-overlay {
   display: none;
 }
 
-@media (max-width: 1000px) {
+/* ============================================================
+   RESPONSIVE
+============================================================ */
+
+@media (max-width: 1100px) {
   .content-user-context {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .content {
-    padding: 20px;
+    padding: 22px;
   }
 }
 
 @media (max-width: 768px) {
   .sidebar {
+    width: min(var(--sidebar-width), 86vw);
     transform: translateX(-100%);
   }
 
@@ -663,7 +897,8 @@ async function logout(): Promise<void> {
     z-index: 90;
     inset: 0;
     display: block;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgb(15 23 42 / 55%);
+    backdrop-filter: blur(2px);
   }
 
   .main-area {
@@ -671,22 +906,26 @@ async function logout(): Promise<void> {
     margin-left: 0;
   }
 
-  .menu-button {
-    display: block;
-  }
-
-  .topbar {
-    padding: 12px 18px;
+  .content {
+    padding: 20px;
   }
 }
 
 @media (max-width: 560px) {
   .content-user-context {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    padding: 15px;
   }
 
   .content {
     padding: 14px;
+  }
+}
+
+@media (max-width: 360px) {
+  .content-user-context {
+    grid-template-columns: 1fr;
   }
 }
 </style>

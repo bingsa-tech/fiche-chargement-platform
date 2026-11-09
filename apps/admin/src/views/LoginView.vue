@@ -1,3 +1,4 @@
+
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -5,6 +6,7 @@ import { storeToRefs } from 'pinia';
 
 import { useAuthStore } from '../auth/auth.store';
 import { getClientInfo } from '../utils/client-info';
+import logo from '../assets/logo-final.png';
 
 const router = useRouter();
 const route = useRoute();
@@ -16,7 +18,7 @@ const username = ref('');
 const password = ref('');
 const showPassword = ref(false);
 
-async function handleLogin() {
+async function handleLogin(): Promise<void> {
   if (!username.value.trim() || !password.value) {
     return;
   }
@@ -50,12 +52,12 @@ async function handleLogin() {
       case 'AUTORITE_HABILITEE':
         await router.push({ name: 'autorite-dashboard' });
         break;
-      
+
       case 'RESPONSABLE_GARE':
-  await router.push({
-    name: 'responsable-gare-dashboard',
-  });
-  break;
+        await router.push({
+          name: 'responsable-gare-dashboard',
+        });
+        break;
 
       default:
         await router.push({ name: 'unauthorized' });
@@ -74,57 +76,58 @@ function testerInformationsClient() {
 
 <template>
   <main class="login-page">
+    <div class="login-background-decoration decoration-one"></div>
+    <div class="login-background-decoration decoration-two"></div>
 
     <section class="login-container">
 
-      <!-- ========================= -->
-      <!-- PANNEAU SÉCURITÉ ROUTIÈRE -->
-      <!-- ========================= -->
-      <div class="security-panel">
+      <!-- PANNEAU INSTITUTIONNEL -->
+      <aside class="security-panel">
+        <div class="security-overlay"></div>
 
         <div class="security-content">
 
           <div class="brand">
-            <div class="brand-icon">
-              🚍
+            <div class="brand-logo">
+              <img
+                :src="logo"
+                alt="Logo FOPTRAC"
+              />
             </div>
 
-            <div>
-              <h1>Gare Routière</h1>
-              <span>Plateforme de gestion</span>
+            <div class="brand-information">
+              <span class="brand-name">FOPTRAC</span>
+              <span class="brand-subtitle">
+                Plateforme de gestion
+              </span>
             </div>
           </div>
 
           <div class="security-main">
+            <div class="security-label">
+              <span class="status-dot"></span>
+              SÉCURITÉ ET GESTION DU TRANSPORT
+            </div>
 
-            <span class="security-label">
-              SÉCURITÉ ROUTIÈRE
-            </span>
+            <h1>
+              Une gestion rigoureuse.
+              <span>Des déplacements plus sûrs.</span>
+            </h1>
 
-            <h2>
-              La sécurité des voyageurs
-              commence avant le départ.
-            </h2>
-
-            <p>
-              Une gestion rigoureuse des véhicules,
-              des chauffeurs et des documents contribue
-              à assurer des conditions de transport
-              plus sûres pour tous.
+            <p class="security-description">
+              FOPTRAC centralise les opérations de gestion des gares,
+              des véhicules, des chauffeurs et des documents afin
+              de renforcer le contrôle et la sécurité des voyageurs.
             </p>
 
             <div class="security-items">
 
               <div class="security-item">
                 <div class="item-icon">
-                  ✓
+                  <span>✓</span>
                 </div>
-
                 <div>
-                  <strong>
-                    Véhicules contrôlés
-                  </strong>
-
+                  <strong>Véhicules contrôlés</strong>
                   <span>
                     Suivi des véhicules et de leur état.
                   </span>
@@ -133,14 +136,10 @@ function testerInformationsClient() {
 
               <div class="security-item">
                 <div class="item-icon">
-                  ✓
+                  <span>✓</span>
                 </div>
-
                 <div>
-                  <strong>
-                    Documents vérifiés
-                  </strong>
-
+                  <strong>Documents vérifiés</strong>
                   <span>
                     Suivi des documents obligatoires.
                   </span>
@@ -149,14 +148,10 @@ function testerInformationsClient() {
 
               <div class="security-item">
                 <div class="item-icon">
-                  ✓
+                  <span>✓</span>
                 </div>
-
                 <div>
-                  <strong>
-                    Départs mieux maîtrisés
-                  </strong>
-
+                  <strong>Départs mieux maîtrisés</strong>
                   <span>
                     Une information fiable pour les opérations.
                   </span>
@@ -167,36 +162,61 @@ function testerInformationsClient() {
           </div>
 
           <div class="security-footer">
-            <span>
+            <span class="footer-line"></span>
+            <p>
               Une plateforme au service d'un transport
               plus sûr et mieux organisé.
-            </span>
+            </p>
           </div>
 
         </div>
-      </div>
+      </aside>
 
-      <!-- ========================= -->
-      <!-- PANNEAU CONNEXION -->
-      <!-- ========================= -->
-      <div class="login-panel">
-
+      <!-- PANNEAU DE CONNEXION -->
+      <section class="login-panel">
         <div class="login-card">
 
-          <div class="login-header">
+          <div class="mobile-brand">
+            <img :src="logo" alt="Logo FOPTRAC" />
+            <span>FOPTRAC</span>
+          </div>
 
+          <div class="login-header">
             <div class="login-icon">
-              🔐
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M12 15.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
+                  stroke="currentColor"
+                  stroke-width="1.7"
+                />
+                <path
+                  d="M19 10.2V7.5a7 7 0 0 0-14 0v2.7"
+                  stroke="currentColor"
+                  stroke-width="1.7"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M5 10h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z"
+                  stroke="currentColor"
+                  stroke-width="1.7"
+                  stroke-linejoin="round"
+                />
+              </svg>
             </div>
 
-            <h2>
-              Connexion
-            </h2>
+            <span class="welcome-label">
+              ESPACE PROFESSIONNEL
+            </span>
+
+            <h2>Bienvenue</h2>
 
             <p>
-              Accédez à votre espace de travail
+              Connectez-vous pour accéder à votre espace de travail.
             </p>
-
           </div>
 
           <form
@@ -204,18 +224,33 @@ function testerInformationsClient() {
             @submit.prevent="handleLogin"
           >
 
-            <!-- Nom utilisateur -->
+            <!-- NOM D'UTILISATEUR -->
             <div class="form-group">
-
               <label for="username">
                 Nom d'utilisateur
               </label>
 
               <div class="input-wrapper">
-
-                <span class="input-icon">
-                  👤
-                </span>
+                <svg
+                  class="input-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <circle
+                    cx="12"
+                    cy="8"
+                    r="4"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                  />
+                  <path
+                    d="M4 20c.8-4 3.4-6 8-6s7.2 2 8 6"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    stroke-linecap="round"
+                  />
+                </svg>
 
                 <input
                   id="username"
@@ -226,23 +261,44 @@ function testerInformationsClient() {
                   :disabled="loading"
                   required
                 />
-
               </div>
-
             </div>
 
-            <!-- Mot de passe -->
+            <!-- MOT DE PASSE -->
             <div class="form-group">
-
               <label for="password">
                 Mot de passe
               </label>
 
               <div class="input-wrapper">
-
-                <span class="input-icon">
-                  🔒
-                </span>
+                <svg
+                  class="input-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <rect
+                    x="4"
+                    y="10"
+                    width="16"
+                    height="11"
+                    rx="2"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                  />
+                  <path
+                    d="M8 10V7a4 4 0 0 1 8 0v3"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    stroke-linecap="round"
+                  />
+                  <path
+                    d="M12 14v3"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    stroke-linecap="round"
+                  />
+                </svg>
 
                 <input
                   id="password"
@@ -265,29 +321,79 @@ function testerInformationsClient() {
                   :disabled="loading"
                   @click="showPassword = !showPassword"
                 >
-                  {{ showPassword ? '🙈' : '👁️' }}
+                  <svg
+                    v-if="!showPassword"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"
+                      stroke="currentColor"
+                      stroke-width="1.7"
+                    />
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="3"
+                      stroke="currentColor"
+                      stroke-width="1.7"
+                    />
+                  </svg>
+
+                  <svg
+                    v-else
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="m3 3 18 18M10.6 10.6a2 2 0 0 0 2.8 2.8"
+                      stroke="currentColor"
+                      stroke-width="1.7"
+                      stroke-linecap="round"
+                    />
+                    <path
+                      d="M9.9 5.2A10.8 10.8 0 0 1 12 5c6.5 0 10 7 10 7a15 15 0 0 1-3.1 3.9M6.2 6.2C3.5 8 2 12 2 12s3.5 7 10 7c1.1 0 2.1-.2 3-.5"
+                      stroke="currentColor"
+                      stroke-width="1.7"
+                      stroke-linecap="round"
+                    />
+                  </svg>
                 </button>
-
               </div>
-
             </div>
 
-            <!-- Erreur -->
+            <!-- MESSAGE D'ERREUR -->
             <div
               v-if="error"
               class="login-error"
               role="alert"
             >
-              <span class="error-icon">
-                ⚠
-              </span>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="9"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                />
+                <path
+                  d="M12 7v6m0 3v.1"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                />
+              </svg>
 
-              <span>
-                {{ error }}
-              </span>
+              <span>{{ error }}</span>
             </div>
 
-            <!-- Bouton -->
+            <!-- BOUTON DE CONNEXION -->
             <button
               type="submit"
               class="login-button"
@@ -297,8 +403,10 @@ function testerInformationsClient() {
                 !password
               "
             >
-
-              <span v-if="loading" class="button-content">
+              <span
+                v-if="loading"
+                class="button-content"
+              >
                 <span class="spinner"></span>
                 Connexion en cours...
               </span>
@@ -308,392 +416,483 @@ function testerInformationsClient() {
                 class="button-content"
               >
                 Se connecter
-                <span class="arrow">
-                  →
-                </span>
-              </span>
 
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M5 12h14m-6-6 6 6-6 6"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </span>
             </button>
 
-            <button type="button" class="secondary-button" @click="testerInformationsClient">
+            <!-- OUTIL DE DIAGNOSTIC CONSERVÉ -->
+            <button
+              type="button"
+              class="secondary-button"
+              :disabled="loading"
+              @click="testerInformationsClient"
+            >
               Tester les informations du navigateur
             </button>
 
           </form>
 
           <div class="login-security">
+            <div class="security-lock">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <rect
+                  x="5"
+                  y="10"
+                  width="14"
+                  height="11"
+                  rx="2"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                />
+                <path
+                  d="M8 10V7a4 4 0 0 1 8 0v3"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </div>
 
-            <span class="lock-icon">
-              🔒
-            </span>
+            <span>Connexion sécurisée</span>
+            <span class="security-separator">•</span>
+            <span>Accès réservé</span>
+          </div>
 
-            <span>
-              Connexion sécurisée
-            </span>
-
+          <div class="login-copyright">
+            © {{ new Date().getFullYear() }} FOPTRAC
           </div>
 
         </div>
-
-      </div>
+      </section>
 
     </section>
-
   </main>
 </template>
 
 <style scoped>
-/* =========================
+/* =========================================
    PAGE
-========================= */
+========================================= */
 
 .login-page {
+  position: relative;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 36px 24px;
   box-sizing: border-box;
-
+  overflow: hidden;
   background:
     radial-gradient(
-      circle at top left,
-      #eaf2ff 0%,
-      transparent 35%
+      circle at 10% 10%,
+      rgba(37, 99, 235, 0.08),
+      transparent 32%
     ),
-    #f3f6fa;
+    #f3f6fb;
 }
 
-/* =========================
-   CONTENEUR PRINCIPAL
-========================= */
+.login-background-decoration {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.decoration-one {
+  width: 380px;
+  height: 380px;
+  top: -220px;
+  right: -100px;
+  background: rgba(197, 161, 59, 0.08);
+}
+
+.decoration-two {
+  width: 300px;
+  height: 300px;
+  bottom: -190px;
+  left: -100px;
+  background: rgba(23, 54, 93, 0.06);
+}
+
+/* =========================================
+   CONTENEUR
+========================================= */
 
 .login-container {
+  position: relative;
+  z-index: 1;
   width: 100%;
-  max-width: 1050px;
-  min-height: 650px;
-
+  max-width: 1120px;
+  min-height: 680px;
   display: grid;
-  grid-template-columns: 1.08fr 0.92fr;
-
+  grid-template-columns: 1.05fr 0.95fr;
   overflow: hidden;
-
-  background: #ffffff;
-
-  border-radius: 22px;
-
+  background: #fff;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 20px;
   box-shadow:
-    0 25px 60px rgba(15, 23, 42, 0.12),
-    0 8px 20px rgba(15, 23, 42, 0.06);
+    0 25px 65px rgba(15, 23, 42, 0.10),
+    0 5px 18px rgba(15, 23, 42, 0.04);
 }
 
-/* =========================
-   PANNEAU SÉCURITÉ
-========================= */
+/* =========================================
+   PANNEAU INSTITUTIONNEL
+========================================= */
 
 .security-panel {
   position: relative;
-
   display: flex;
-
   padding: 48px;
-
-  color: white;
-
+  overflow: hidden;
+  color: #fff;
   background:
     linear-gradient(
       145deg,
-      #0f3d68 0%,
-      #155d91 55%,
-      #1976a8 100%
+      #101b2d 0%,
+      #17365d 55%,
+      #214b7c 100%
     );
+}
 
-  overflow: hidden;
+.security-overlay {
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+  background-image:
+    linear-gradient(
+      rgba(255, 255, 255, 0.025) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.025) 1px,
+      transparent 1px
+    );
+  background-size: 38px 38px;
 }
 
 .security-panel::before {
   content: '';
-
   position: absolute;
-
-  width: 280px;
-  height: 280px;
-
-  top: -120px;
-  right: -100px;
-
+  width: 360px;
+  height: 360px;
+  top: -180px;
+  right: -160px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 50%;
-
-  background: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 0 0 35px rgba(255, 255, 255, 0.025),
+    0 0 0 70px rgba(255, 255, 255, 0.02);
 }
 
 .security-panel::after {
   content: '';
-
   position: absolute;
-
-  width: 220px;
-  height: 220px;
-
-  bottom: -120px;
-  left: -80px;
-
+  width: 250px;
+  height: 250px;
+  bottom: -170px;
+  left: -100px;
   border-radius: 50%;
-
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(197, 161, 59, 0.10);
 }
 
 .security-content {
   position: relative;
   z-index: 1;
-
   width: 100%;
-
   display: flex;
   flex-direction: column;
 }
 
-/* =========================
-   BRAND
-========================= */
+/* =========================================
+   IDENTITÉ FOPTRAC
+========================================= */
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 15px;
 }
 
-.brand-icon {
-  width: 48px;
-  height: 48px;
-
+.brand-logo {
+  width: 62px;
+  height: 62px;
   display: flex;
   align-items: center;
   justify-content: center;
-
-  border-radius: 13px;
-
-  background: rgba(255, 255, 255, 0.14);
-
-  font-size: 25px;
+  padding: 5px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.12);
 }
 
-.brand h1 {
-  margin: 0;
-
-  font-size: 21px;
-  font-weight: 700;
+.brand-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
-.brand span {
-  display: block;
-
-  margin-top: 3px;
-
-  color: rgba(255, 255, 255, 0.72);
-
-  font-size: 13px;
+.brand-information {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-/* =========================
-   SECURITY CONTENT
-========================= */
+.brand-name {
+  color: #fff;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+
+.brand-subtitle {
+  color: rgba(255, 255, 255, 0.70);
+  font-size: 12px;
+  letter-spacing: 0.3px;
+}
+
+.mobile-brand {
+  display: none;
+}
+
+/* =========================================
+   CONTENU DE PRÉSENTATION
+========================================= */
 
 .security-main {
   margin-top: auto;
   margin-bottom: auto;
-
-  max-width: 500px;
+  padding: 65px 0;
+  max-width: 480px;
 }
 
 .security-label {
-  display: inline-block;
-
-  margin-bottom: 18px;
-
-  padding: 7px 12px;
-
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
-
-  background: rgba(255, 255, 255, 0.09);
-
-  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 23px;
+  padding: 9px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.20);
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 1.3px;
+  letter-spacing: 1.2px;
 }
 
-.security-main h2 {
-  margin: 0 0 18px;
-
-  font-size: 36px;
-  line-height: 1.15;
-  font-weight: 700;
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #d6b34d;
+  box-shadow: 0 0 10px rgba(214, 179, 77, 0.65);
 }
 
-.security-main > p {
+.security-main h1 {
+  margin: 0 0 22px;
+  color: #fff;
+  font-size: clamp(30px, 3vw, 39px);
+  line-height: 1.17;
+  font-weight: 750;
+  letter-spacing: -0.8px;
+}
+
+.security-main h1 span {
+  display: block;
+  margin-top: 7px;
+  color: #e6c86e;
+}
+
+.security-description {
+  max-width: 460px;
   margin: 0;
-
-  max-width: 470px;
-
-  color: rgba(255, 255, 255, 0.82);
-
-  font-size: 15px;
-  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 14px;
+  line-height: 1.8;
 }
 
-/* =========================
-   SECURITY ITEMS
-========================= */
+/* =========================================
+   AVANTAGES
+========================================= */
 
 .security-items {
   display: flex;
   flex-direction: column;
-
-  gap: 18px;
-
-  margin-top: 32px;
+  gap: 21px;
+  margin-top: 35px;
 }
 
 .security-item {
   display: flex;
   align-items: center;
-
   gap: 14px;
 }
 
 .item-icon {
-  width: 32px;
-  height: 32px;
-
+  width: 35px;
+  height: 35px;
   flex-shrink: 0;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
-  border-radius: 50%;
-
-  background: rgba(255, 255, 255, 0.14);
-
-  font-size: 14px;
-  font-weight: 700;
+  border: 1px solid rgba(230, 200, 110, 0.35);
+  border-radius: 11px;
+  background: rgba(230, 200, 110, 0.12);
+  color: #e6c86e;
+  font-size: 15px;
+  font-weight: 800;
 }
 
 .security-item strong {
   display: block;
-
-  margin-bottom: 3px;
-
-  font-size: 14px;
+  margin-bottom: 4px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 650;
 }
 
 .security-item span {
-  color: rgba(255, 255, 255, 0.68);
-
-  font-size: 12px;
-}
-
-/* =========================
-   SECURITY FOOTER
-========================= */
-
-.security-footer {
-  color: rgba(255, 255, 255, 0.55);
-
-  font-size: 12px;
+  color: rgba(255, 255, 255, 0.64);
+  font-size: 11px;
   line-height: 1.5;
 }
 
-/* =========================
-   LOGIN PANEL
-========================= */
+/* =========================================
+   PIED DU PANNEAU
+========================================= */
+
+.security-footer {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: auto;
+}
+
+.footer-line {
+  width: 3px;
+  min-height: 35px;
+  flex-shrink: 0;
+  border-radius: 3px;
+  background: #c5a13b;
+}
+
+.security-footer p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+/* =========================================
+   PANNEAU CONNEXION
+========================================= */
 
 .login-panel {
   display: flex;
   align-items: center;
   justify-content: center;
-
-  padding: 48px;
-
-  background: #ffffff;
+  padding: 55px 48px;
+  background: #fff;
 }
 
 .login-card {
   width: 100%;
-  max-width: 360px;
+  max-width: 370px;
 }
 
-/* =========================
-   LOGIN HEADER
-========================= */
+/* =========================================
+   EN-TÊTE CONNEXION
+========================================= */
 
 .login-header {
-  margin-bottom: 34px;
+  margin-bottom: 35px;
 }
 
 .login-icon {
-  width: 46px;
-  height: 46px;
-
+  width: 51px;
+  height: 51px;
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-bottom: 23px;
+  border: 1px solid #e1eaf5;
+  border-radius: 14px;
+  background: #f0f5fb;
+  color: #17365d;
+}
 
-  margin-bottom: 18px;
+.login-icon svg {
+  width: 25px;
+  height: 25px;
+}
 
-  border-radius: 12px;
-
-  background: #eef4ff;
-
-  font-size: 21px;
+.welcome-label {
+  display: block;
+  margin-bottom: 9px;
+  color: #a18432;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 1.3px;
 }
 
 .login-header h2 {
-  margin: 0 0 7px;
-
+  margin: 0 0 9px;
   color: #172033;
-
-  font-size: 28px;
-  font-weight: 700;
+  font-size: 31px;
+  font-weight: 750;
+  letter-spacing: -0.7px;
 }
 
 .login-header p {
   margin: 0;
-
-  color: #697386;
-
-  font-size: 14px;
+  color: #718096;
+  font-size: 13px;
+  line-height: 1.7;
 }
 
-/* =========================
-   FORM
-========================= */
+/* =========================================
+   FORMULAIRE
+========================================= */
 
 .login-form {
   display: flex;
   flex-direction: column;
-
-  gap: 21px;
+  gap: 22px;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-
-  gap: 8px;
+  gap: 9px;
 }
 
 .form-group label {
   color: #344054;
-
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 650;
 }
 
 .input-wrapper {
   position: relative;
-
   display: flex;
   align-items: center;
 }
@@ -701,189 +900,189 @@ function testerInformationsClient() {
 .input-icon {
   position: absolute;
   left: 14px;
-
-  font-size: 15px;
-
-  opacity: 0.6;
-
+  width: 19px;
+  height: 19px;
+  color: #8290a3;
   pointer-events: none;
 }
 
 .form-group input {
   width: 100%;
+  height: 49px;
   box-sizing: border-box;
-
-  padding: 13px 42px;
-
-  border: 1px solid #d7dce3;
-  border-radius: 9px;
-
+  padding: 0 45px;
+  border: 1px solid #dce3ec;
+  border-radius: 10px;
+  outline: none;
   color: #172033;
-
-  background: #ffffff;
-
-  font-size: 14px;
-
+  background: #fff;
+  font-family: inherit;
+  font-size: 13px;
   transition:
-    border-color 0.2s,
-    box-shadow 0.2s;
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
 }
 
 .form-group input::placeholder {
-  color: #98a2b3;
+  color: #a0aaba;
 }
 
 .form-group input:focus {
-  outline: none;
-
-  border-color: #2878d4;
-
-  box-shadow:
-    0 0 0 3px rgba(40, 120, 212, 0.1);
+  border-color: #214b7c;
+  box-shadow: 0 0 0 3px rgba(33, 75, 124, 0.10);
 }
 
 .form-group input:disabled {
-  background: #f5f6f8;
+  background: #f4f6f9;
+  cursor: not-allowed;
 }
 
-/* =========================
-   PASSWORD
-========================= */
+/* =========================================
+   AFFICHAGE MOT DE PASSE
+========================================= */
 
 .password-toggle {
   position: absolute;
-
-  right: 9px;
-
-  width: 34px;
-  height: 34px;
-
+  right: 8px;
+  width: 35px;
+  height: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 0;
-
   border: none;
-
+  border-radius: 8px;
   background: transparent;
-
-  color: #667085;
-
+  color: #718096;
   cursor: pointer;
-
-  font-size: 15px;
+  transition: background 0.2s ease;
 }
 
-.password-toggle:hover {
-  opacity: 0.75;
+.password-toggle svg {
+  width: 19px;
+  height: 19px;
 }
 
-/* =========================
-   ERROR
-========================= */
+.password-toggle:hover:not(:disabled) {
+  background: #f0f4f8;
+}
+
+.password-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* =========================================
+   ERREURS
+========================================= */
 
 .login-error {
   display: flex;
   align-items: flex-start;
-
-  gap: 9px;
-
-  padding: 11px 12px;
-
+  gap: 10px;
+  padding: 12px 13px;
   border: 1px solid #fecaca;
-  border-radius: 8px;
-
-  background: #fff1f2;
-
+  border-radius: 9px;
+  background: #fff5f5;
   color: #b42318;
-
-  font-size: 13px;
-  line-height: 1.45;
+  font-size: 12px;
+  line-height: 1.6;
 }
 
-.error-icon {
+.login-error svg {
+  width: 17px;
+  height: 17px;
   flex-shrink: 0;
+  margin-top: 1px;
 }
 
-/* =========================
-   LOGIN BUTTON
-========================= */
+/* =========================================
+   BOUTON PRINCIPAL
+========================================= */
 
 .login-button {
   width: 100%;
-
-  padding: 14px 16px;
-
-  border: none;
-  border-radius: 9px;
-
-  background: #1769aa;
-
-  color: white;
-
-  font-size: 14px;
-  font-weight: 600;
-
+  min-height: 49px;
+  padding: 13px 17px;
+  border: 1px solid #17365d;
+  border-radius: 10px;
+  background: linear-gradient(110deg, #17365d, #214b7c);
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 650;
   cursor: pointer;
-
+  box-shadow: 0 5px 12px rgba(23, 54, 93, 0.14);
   transition:
-    background 0.2s,
-    transform 0.1s;
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
 }
 
 .login-button:hover:not(:disabled) {
-  background: #12598f;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(23, 54, 93, 0.20);
 }
 
 .login-button:active:not(:disabled) {
-  transform: translateY(1px);
+  transform: translateY(0);
 }
 
 .login-button:disabled {
   cursor: not-allowed;
-
   opacity: 0.55;
-}
-
-.secondary-button {
-  width: 100%;
-  padding: 10px 16px;
-  border: 1px solid #d7dce3;
-  border-radius: 9px;
-  background: #f8fafc;
-  color: #344054;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.secondary-button:hover {
-  background: #f1f5f9;
+  box-shadow: none;
 }
 
 .button-content {
   display: flex;
   align-items: center;
   justify-content: center;
-
-  gap: 10px;
+  gap: 11px;
 }
 
-.arrow {
-  font-size: 17px;
+.button-content svg {
+  width: 18px;
+  height: 18px;
 }
 
-/* =========================
-   SPINNER
-========================= */
+/* =========================================
+   BOUTON SECONDAIRE
+========================================= */
+
+.secondary-button {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #e4e9f0;
+  border-radius: 8px;
+  background: #fff;
+  color: #718096;
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.secondary-button:hover:not(:disabled) {
+  background: #f5f7fa;
+}
+
+.secondary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* =========================================
+   CHARGEMENT
+========================================= */
 
 .spinner {
   width: 15px;
   height: 15px;
-
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  border-top-color: white;
-
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
   border-radius: 50%;
-
   animation: spin 0.7s linear infinite;
 }
 
@@ -893,72 +1092,180 @@ function testerInformationsClient() {
   }
 }
 
-/* =========================
-   LOGIN SECURITY
-========================= */
+/* =========================================
+   SÉCURITÉ ET COPYRIGHT
+========================================= */
 
 .login-security {
   display: flex;
   align-items: center;
   justify-content: center;
-
-  gap: 7px;
-
-  margin-top: 25px;
-
-  color: #98a2b3;
-
-  font-size: 11px;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 27px;
+  color: #8491a3;
+  font-size: 10px;
 }
 
-.lock-icon {
-  font-size: 12px;
+.security-lock {
+  display: flex;
+  align-items: center;
+  color: #27845a;
 }
 
-/* =========================
-   RESPONSIVE
-========================= */
+.security-lock svg {
+  width: 15px;
+  height: 15px;
+}
 
-@media (max-width: 850px) {
+.security-separator {
+  color: #cbd5e1;
+}
+
+.login-copyright {
+  margin-top: 17px;
+  color: #b0bac7;
+  font-size: 10px;
+  text-align: center;
+}
+
+/* =========================================
+   RESPONSIVE TABLETTE
+========================================= */
+
+@media (max-width: 900px) {
   .login-container {
+    max-width: 570px;
+    min-height: auto;
     grid-template-columns: 1fr;
-    max-width: 520px;
   }
 
   .security-panel {
-    min-height: 380px;
-
-    padding: 35px;
+    min-height: 420px;
+    padding: 38px;
   }
 
-  .security-main h2 {
-    font-size: 29px;
+  .security-main {
+    padding: 50px 0 35px;
+  }
+
+  .security-main h1 {
+    font-size: 32px;
+  }
+
+  .security-items {
+    gap: 16px;
+    margin-top: 25px;
   }
 
   .login-panel {
-    padding: 40px 35px;
+    padding: 45px 40px;
+  }
+
+  .security-footer {
+    margin-top: 10px;
   }
 }
 
-@media (max-width: 500px) {
+/* =========================================
+   RESPONSIVE MOBILE
+========================================= */
+
+@media (max-width: 520px) {
   .login-page {
-    padding: 12px;
+    min-height: 100vh;
+    padding: 14px;
   }
 
   .login-container {
-    border-radius: 16px;
+    border-radius: 15px;
   }
 
   .security-panel {
-    padding: 28px 24px;
+    min-height: auto;
+    padding: 25px 23px;
   }
 
-  .security-main h2 {
-    font-size: 26px;
+  .brand-logo {
+    width: 49px;
+    height: 49px;
+  }
+
+  .brand-name {
+    font-size: 19px;
+  }
+
+  .security-main {
+    padding: 36px 0 25px;
+  }
+
+  .security-main h1 {
+    font-size: 27px;
+  }
+
+  .security-description {
+    font-size: 12px;
+  }
+
+  .security-items {
+    gap: 14px;
+    margin-top: 22px;
+  }
+
+  .security-item strong {
+    font-size: 12px;
+  }
+
+  .security-item span {
+    font-size: 10px;
+  }
+
+  .security-footer {
+    margin-top: 5px;
   }
 
   .login-panel {
-    padding: 32px 24px;
+    padding: 32px 23px;
+  }
+
+  .login-header {
+    margin-bottom: 27px;
+  }
+
+  .login-header h2 {
+    font-size: 27px;
+  }
+
+  .mobile-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 25px;
+    color: #17365d;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 1px;
+  }
+
+  .mobile-brand img {
+    width: 35px;
+    height: 35px;
+    object-fit: contain;
+  }
+}
+
+/* =========================================
+   ACCESSIBILITÉ
+========================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 </style>

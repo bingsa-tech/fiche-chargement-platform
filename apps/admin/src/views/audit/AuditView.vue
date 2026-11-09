@@ -37,6 +37,24 @@ const hasNextPage = computed(
   () => pagination.page < pagination.totalPages,
 );
 
+const hasActiveFilters = computed(
+  () => Object.values(activeFilters.value).some(
+    (value) => value !== undefined && value !== null && value !== '',
+  ),
+);
+
+const displayedRange = computed(() => {
+  if (pagination.total === 0) return '0 événement';
+
+  const start = (pagination.page - 1) * pagination.limit + 1;
+  const end = Math.min(
+    pagination.page * pagination.limit,
+    pagination.total,
+  );
+
+  return `${start}–${end} sur ${pagination.total}`;
+});
+
 async function loadAuditLogs(): Promise<void> {
   loading.value = true;
   errorMessage.value = '';
@@ -67,9 +85,7 @@ async function loadAuditLogs(): Promise<void> {
   }
 }
 
-function applyFilters(
-  filters: AuditFiltersType,
-): void {
+function applyFilters(filters: AuditFiltersType): void {
   activeFilters.value = filters;
   pagination.page = 1;
 
@@ -110,204 +126,592 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="audit-view">
+  <section class="audit-view">
+    <!-- Fil d'Ariane -->
+    <nav class="breadcrumb" aria-label="Fil d’Ariane">
+      <span>Administration</span>
+      <span class="breadcrumb-separator">/</span>
+      <span class="breadcrumb-current">Journal d'audit</span>
+    </nav>
+
+    <!-- En-tête -->
     <header class="page-header">
-      <div>
-        <h1>Journal d'audit</h1>
-        <p>
-          Suivi et traçabilité des opérations effectuées
-          sur la plateforme Fiche Chargement.
-        </p>
+      <div class="header-content">
+        <div class="title-icon">
+          <span aria-hidden="true">◷</span>
+        </div>
+
+        <div>
+          <p class="eyebrow">Sécurité et traçabilité</p>
+          <h1>Journal d'audit</h1>
+          <p class="subtitle">
+            Suivi et traçabilité des opérations effectuées sur la plateforme FOPTRAC.
+          </p>
+        </div>
       </div>
 
       <button
         type="button"
-        class="refresh-button"
+        class="button button-primary"
         :disabled="loading"
         @click="loadAuditLogs"
       >
+        <span aria-hidden="true">↻</span>
         {{ loading ? 'Actualisation...' : 'Actualiser' }}
       </button>
     </header>
 
-    <div v-if="errorMessage" class="error-message" role="alert">
-      {{ errorMessage }}
+    <!-- Indicateurs -->
+    <div class="stats-grid">
+      <article class="stat-card">
+        <div class="stat-icon navy">
+          <span aria-hidden="true">▤</span>
+        </div>
 
-      <button
-        type="button"
-        @click="loadAuditLogs"
-      >
-        Réessayer
-      </button>
+        <div class="stat-content">
+          <p>Total des événements</p>
+          <strong>{{ pagination.total }}</strong>
+          <span>Événements enregistrés</span>
+        </div>
+      </article>
+
+      <article class="stat-card">
+        <div class="stat-icon gold">
+          <span aria-hidden="true">⌕</span>
+        </div>
+
+        <div class="stat-content">
+          <p>Page consultée</p>
+          <strong>{{ pagination.totalPages ? pagination.page : 0 }}</strong>
+          <span>
+            Sur {{ pagination.totalPages }} page(s)
+          </span>
+        </div>
+      </article>
+
+      <article class="stat-card">
+        <div class="stat-icon green">
+          <span aria-hidden="true">✓</span>
+        </div>
+
+        <div class="stat-content">
+          <p>Résultats affichés</p>
+          <strong>{{ logs.length }}</strong>
+          <span>
+            {{ hasActiveFilters ? 'Avec filtres actifs' : 'Sans filtre actif' }}
+          </span>
+        </div>
+      </article>
     </div>
 
-    <section class="audit-stats" aria-live="polite">
-      <span>Total des événements d’audit</span>
-      <strong>{{ pagination.total }}</strong>
-    </section>
-
-    <AuditFilters
-      @filter="applyFilters"
-      @reset="resetFilters"
-    />
-
-    <AuditTable
-      :logs="logs"
-      :loading="loading"
-      @details="openDetails"
-    />
-
+    <!-- Erreur -->
     <div
-      v-if="pagination.totalPages > 0"
-      class="pagination"
+      v-if="errorMessage"
+      class="alert alert-error"
+      role="alert"
     >
-      <span>
-        Page {{ pagination.page }}
-        sur {{ pagination.totalPages }}
-        — {{ pagination.total }} événement(s)
-      </span>
+      <span class="alert-icon">!</span>
 
-      <div class="pagination-actions">
-        <button
-          type="button"
-          :disabled="!hasPreviousPage || loading"
-          @click="changePage(pagination.page - 1)"
-        >
-          Précédent
-        </button>
+      <div class="alert-content">
+        <strong>Erreur de chargement</strong>
+        <p>{{ errorMessage }}</p>
 
         <button
           type="button"
-          :disabled="!hasNextPage || loading"
-          @click="changePage(pagination.page + 1)"
+          class="button button-secondary"
+          :disabled="loading"
+          @click="loadAuditLogs"
         >
-          Suivant
+          Réessayer
         </button>
       </div>
     </div>
 
+    <!-- Filtres -->
+    <section class="filters-card">
+      <div class="section-heading">
+        <div class="section-icon">⌕</div>
+
+        <div>
+          <h2>Filtres de recherche</h2>
+          <p>
+            Affinez les événements selon les critères disponibles.
+          </p>
+        </div>
+      </div>
+
+      <AuditFilters
+        @filter="applyFilters"
+        @reset="resetFilters"
+      />
+    </section>
+
+    <!-- Tableau -->
+    <section class="table-card">
+      <div class="table-heading">
+        <div>
+          <h2>Historique des opérations</h2>
+          <p>
+            Consultez les événements enregistrés sur la plateforme.
+          </p>
+        </div>
+
+        <span class="record-count">
+          {{ pagination.total }} événement(s)
+        </span>
+      </div>
+
+      <AuditTable
+        :logs="logs"
+        :loading="loading"
+        @details="openDetails"
+      />
+    </section>
+
+    <!-- Pagination -->
+    <footer
+      v-if="pagination.totalPages > 0"
+      class="pagination"
+    >
+      <div class="pagination-info">
+        <strong>{{ displayedRange }}</strong>
+        <span>
+          — Page {{ pagination.page }} sur {{ pagination.totalPages }}
+        </span>
+      </div>
+
+      <div class="pagination-actions">
+        <button
+          type="button"
+          class="pagination-button"
+          :disabled="!hasPreviousPage || loading"
+          @click="changePage(pagination.page - 1)"
+        >
+          <span aria-hidden="true">←</span>
+          Précédent
+        </button>
+
+        <span class="current-page">
+          {{ pagination.page }}
+        </span>
+
+        <button
+          type="button"
+          class="pagination-button"
+          :disabled="!hasNextPage || loading"
+          @click="changePage(pagination.page + 1)"
+        >
+          Suivant
+          <span aria-hidden="true">→</span>
+        </button>
+      </div>
+    </footer>
+
+    <!-- Détails -->
     <AuditDetails
       :log="selectedLog"
       @close="closeDetails"
     />
-  </div>
+  </section>
 </template>
 
 <style scoped>
 .audit-view {
+  max-width: 1600px;
   min-width: 0;
+  margin: 0 auto;
+  padding: 28px 32px;
+  color: #263445;
 }
 
-.audit-stats {
+/* Breadcrumb */
+.breadcrumb {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  padding: 16px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  color: #4b5563;
+  gap: 9px;
+  margin-bottom: 22px;
+  color: #7b8795;
   font-size: 13px;
 }
 
-.audit-stats strong {
-  color: #111827;
-  font-size: 20px;
+.breadcrumb-current {
+  color: #17365d;
+  font-weight: 600;
 }
 
+.breadcrumb-separator {
+  color: #c5a13b;
+}
+
+/* En-tête */
 .page-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 20px;
-  margin-bottom: 24px;
+  margin-bottom: 27px;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 17px;
+}
+
+.title-icon {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  flex-shrink: 0;
+  border-radius: 13px;
+  background: #edf2f8;
+  color: #17365d;
+  font-size: 29px;
+}
+
+.eyebrow {
+  margin: 0 0 5px;
+  color: #a17d22;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
 }
 
 .page-header h1 {
-  margin: 0 0 7px;
-  color: #111827;
-  font-size: 24px;
+  margin: 0;
+  color: #17365d;
+  font-size: 27px;
+  font-weight: 700;
 }
 
-.page-header p {
-  margin: 0;
-  color: #6b7280;
-  font-size: 13px;
+.subtitle {
+  margin: 7px 0 0;
+  color: #778394;
+  font-size: 14px;
   line-height: 1.5;
 }
 
-.refresh-button {
+/* Boutons */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   min-height: 40px;
-  padding: 0 16px;
-  border: 1px solid #2563eb;
+  padding: 10px 16px;
+  border: 1px solid transparent;
   border-radius: 7px;
-  background: #2563eb;
-  color: white;
+  cursor: pointer;
+  font: inherit;
   font-size: 13px;
   font-weight: 600;
-  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
 }
 
-.refresh-button:disabled {
-  opacity: 0.6;
-  cursor: wait;
+.button-primary {
+  border-color: #17365d;
+  background: #17365d;
+  color: #fff;
 }
 
-.error-message {
+.button-primary:hover:not(:disabled) {
+  border-color: #102744;
+  background: #102744;
+}
+
+.button-secondary {
+  border-color: #d9e0e8;
+  background: #fff;
+  color: #425269;
+}
+
+.button-secondary:hover:not(:disabled) {
+  border-color: #c5a13b;
+  background: #faf8f2;
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Statistiques */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 23px;
+}
+
+.stat-card {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-  padding: 14px 16px;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  background: #fef2f2;
-  color: #991b1b;
-  font-size: 13px;
-}
-
-.error-message button {
-  padding: 7px 12px;
-  border: 1px solid #fca5a5;
-  border-radius: 6px;
-  background: white;
-  color: #991b1b;
-  cursor: pointer;
-}
-
-.pagination {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
   gap: 15px;
-  margin-top: 18px;
-  color: #6b7280;
+  min-height: 112px;
+  padding: 19px;
+  border: 1px solid #e5eaf0;
+  border-radius: 11px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgb(16 37 63 / 4%);
+}
+
+.stat-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  font-size: 21px;
+  font-weight: 700;
+}
+
+.stat-icon.navy {
+  background: #edf2f8;
+  color: #17365d;
+}
+
+.stat-icon.gold {
+  background: #f8f2e4;
+  color: #a17d22;
+}
+
+.stat-icon.green {
+  background: #eaf5ed;
+  color: #34764a;
+}
+
+.stat-content p {
+  margin: 0 0 6px;
+  color: #778394;
   font-size: 12px;
+}
+
+.stat-content strong {
+  display: block;
+  color: #17365d;
+  font-size: 25px;
+  font-weight: 700;
+}
+
+.stat-content span {
+  display: block;
+  margin-top: 4px;
+  color: #98a1ad;
+  font-size: 11px;
+}
+
+/* Filtres */
+.filters-card,
+.table-card {
+  margin-bottom: 21px;
+  overflow: hidden;
+  border: 1px solid #e5eaf0;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgb(16 37 63 / 4%);
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 21px 23px;
+  border-bottom: 1px solid #edf0f4;
+}
+
+.section-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: #f5f0e3;
+  color: #9a7620;
+  font-size: 21px;
+}
+
+.section-heading h2,
+.table-heading h2 {
+  margin: 0;
+  color: #17365d;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.section-heading p,
+.table-heading p {
+  margin: 5px 0 0;
+  color: #8792a1;
+  font-size: 12px;
+}
+
+/* En-tête du tableau */
+.table-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 21px 23px;
+  border-bottom: 1px solid #edf0f4;
+}
+
+.record-count {
+  padding: 6px 10px;
+  border-radius: 20px;
+  background: #f5f0e3;
+  color: #927020;
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-top: 18px;
+  padding: 16px 19px;
+  border: 1px solid #e5eaf0;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.pagination-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  color: #8792a1;
+  font-size: 12px;
+}
+
+.pagination-info strong {
+  color: #17365d;
 }
 
 .pagination-actions {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 9px;
 }
 
-.pagination-actions button {
+.pagination-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   min-height: 36px;
-  padding: 0 13px;
-  border: 1px solid #d1d5db;
+  padding: 7px 12px;
+  border: 1px solid #d9e0e8;
   border-radius: 6px;
-  background: white;
-  color: #374151;
+  background: #fff;
+  color: #425269;
   cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
 }
 
-.pagination-actions button:disabled {
-  opacity: 0.4;
+.pagination-button:hover:not(:disabled) {
+  border-color: #c5a13b;
+  background: #faf8f2;
+}
+
+.pagination-button:disabled {
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
-@media (max-width: 600px) {
+.current-page {
+  display: grid;
+  place-items: center;
+  min-width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  background: #17365d;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Messages */
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 15px 17px;
+  border: 1px solid;
+  border-radius: 9px;
+  font-size: 13px;
+}
+
+.alert-error {
+  border-color: #f0caca;
+  background: #fff7f7;
+  color: #923737;
+}
+
+.alert-icon {
+  display: grid;
+  place-items: center;
+  width: 23px;
+  height: 23px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 5%);
+  font-weight: 800;
+}
+
+.alert-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.alert-content strong {
+  font-size: 14px;
+}
+
+.alert-content p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .audit-view {
+    padding: 18px 15px;
+  }
+
   .page-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .page-header h1 {
+    font-size: 22px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .table-heading {
     align-items: flex-start;
     flex-direction: column;
   }
@@ -317,9 +721,9 @@ onMounted(() => {
     flex-direction: column;
   }
 
-  .error-message {
-    align-items: flex-start;
-    flex-direction: column;
+  .pagination-actions {
+    width: 100%;
+    justify-content: space-between;
   }
 }
 </style>

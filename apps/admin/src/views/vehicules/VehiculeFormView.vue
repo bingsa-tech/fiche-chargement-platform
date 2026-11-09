@@ -1,1075 +1,580 @@
-<script setup lang="ts">
-import {
-  computed,
-  onMounted,
-  reactive,
-  ref,
-} from 'vue';
 
+<script setup lang="ts">
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import {
-  createVehicule,
-  getVehicule,
-  updateVehicule,
-} from '../../api/vehicules.api';
-
-import {
-  getProprietaires,
-} from '../../api/proprietaires.api';
-
-import {
-  getGares,
-} from '../../api/gares.api';
+  createChauffeur,
+  getChauffeur,
+  updateChauffeur,
+} from '../../api/chauffeurs.api';
 
 import type {
-  CreateVehiculePayload,
-  UpdateVehiculePayload,
-  VehiculeStatut,
-} from '../../types/vehicule.types';
-
-import type {
-  Proprietaire,
-} from '../../types/proprietaire.types';
-import type {
-  Gare,
-} from '../../types/gare.types';
-
-// =====================================================
-// ROUTER
-// =====================================================
+  CreateChauffeurPayload,
+  UpdateChauffeurPayload,
+} from '../../types/chauffeur.types';
 
 const route = useRoute();
 const router = useRouter();
 
-// =====================================================
-// STATE
-// =====================================================
-
 const loading = ref(false);
 const saving = ref(false);
-const error = ref('');
+const loadFailed = ref(false);
+const error = ref<string | null>(null);
 
-const proprietaires = ref<Proprietaire[]>([]);
-const gares = ref<Gare[]>([]);
+const isEditMode = computed(() => Boolean(route.params.id));
 
-let documentCounter = 0;
-
-// =====================================================
-// MODE
-// =====================================================
-
-const isEditMode = computed(() =>
-  Boolean(route.params.id),
+const chauffeurId = computed(() =>
+  typeof route.params.id === 'string'
+    ? route.params.id
+    : undefined,
 );
 
-const pageTitle = computed(() =>
-  isEditMode.value
-    ? 'Modifier le véhicule'
-    : 'Nouveau véhicule',
-);
-
-// =====================================================
-// TYPES LOCAUX
-// =====================================================
-
-interface DocumentForm {
-  localId: number;
-  typeDocument: string;
-  numeroDocument: string;
-  dateDelivrance: string;
-  dateExpiration: string;
-  statut: string;
-  observations: string;
-}
-
-// =====================================================
-// FORMULAIRE
-// =====================================================
-
-const form = reactive<{
-  plaqueImmatriculation: string;
-  type: string;
-  marque: string;
-  modele: string;
-  capacite: number;
-  statut: VehiculeStatut;
-  proprietaireId: string;
-  documents: DocumentForm[];
-  gareId: string;
-}>({
-  plaqueImmatriculation: '',
-  type: '',
-  marque: '',
-  modele: '',
-  capacite: 0,
+const form = reactive<CreateChauffeurPayload>({
+  nom: '',
+  prenom: '',
+  telephone: '',
   statut: 'ACTIF',
-  proprietaireId: '',
-  documents: [],
-  gareId: '',
-});
-
-// =====================================================
-// DOCUMENT FACTORY
-// =====================================================
-
-function createEmptyDocument(): DocumentForm {
-  documentCounter += 1;
-
-  return {
-    localId: documentCounter,
+  document: {
     typeDocument: '',
     numeroDocument: '',
     dateDelivrance: '',
     dateExpiration: '',
-    statut: 'VALIDE',
+    statut: '',
     observations: '',
-  };
+  },
+});
+
+function resetForm(): void {
+  form.nom = '';
+  form.prenom = '';
+  form.telephone = '';
+  form.statut = 'ACTIF';
+
+  form.document.typeDocument = '';
+  form.document.numeroDocument = '';
+  form.document.dateDelivrance = '';
+  form.document.dateExpiration = '';
+  form.document.statut = '';
+  form.document.observations = '';
 }
 
-// =====================================================
-// PROPRIÉTAIRES & GARES
-// =====================================================
-
-async function loadProprietaires() {
-  try {
-    proprietaires.value =
-      await getProprietaires();
-  } catch (err) {
-    console.error(err);
-
-    error.value =
-      'Impossible de charger la liste des propriétaires.';
-  }
-}
-
-async function loadGares() {
-  try {
-    gares.value = await getGares();
-  } catch (err) {
-    console.error(err);
-
-    error.value =
-      'Impossible de charger la liste des gares.';
-  }
-}
-
-// =====================================================
-// VÉHICULE
-// =====================================================
-
-async function loadVehicule() {
-  if (!isEditMode.value) {
+async function loadChauffeur(): Promise<void> {
+  if (!chauffeurId.value) {
+    loadFailed.value = true;
+    error.value = 'Identifiant du chauffeur introuvable.';
     return;
   }
 
-  const id = String(route.params.id);
-
   loading.value = true;
-  error.value = '';
+  loadFailed.value = false;
+  error.value = null;
 
   try {
-    const vehicule =
-      await getVehicule(id);
+    const chauffeur = await getChauffeur(chauffeurId.value);
 
-    form.plaqueImmatriculation =
-      vehicule.plaqueImmatriculation;
-
-    form.type =
-      vehicule.type;
-
-    form.marque =
-      vehicule.marque ?? '';
-
-    form.modele =
-      vehicule.modele ?? '';
-
-    form.capacite =
-      vehicule.capacite;
-
-    form.statut =
-      vehicule.statut;
-
-    form.proprietaireId =
-      vehicule.proprietaireId ?? '';
-    
-    form.gareId =
-      vehicule.gareId ?? '';
-
-    // -----------------------------------------------
-    // Documents existants
-    // -----------------------------------------------
-
-    form.documents =
-      (vehicule.documentsVehicules ?? []).map(
-        (document) => {
-          documentCounter += 1;
-
-          return {
-            localId: documentCounter,
-
-            typeDocument:
-              document.typeDocument ?? '',
-
-            numeroDocument:
-              document.numeroDocument ?? '',
-
-            dateDelivrance:
-              normalizeDate(
-                document.dateDelivrance,
-              ),
-
-            dateExpiration:
-              normalizeDate(
-                document.dateExpiration,
-              ),
-
-            statut:
-              document.statut ?? 'VALIDE',
-
-            observations:
-              document.observations ?? '',
-          };
-        },
-      );
+    form.nom = chauffeur.nom;
+    form.prenom = chauffeur.prenom;
+    form.telephone = chauffeur.telephone ?? '';
+    form.statut = chauffeur.statut;
   } catch (err) {
-    console.error(err);
+    console.error('Erreur chargement chauffeur :', err);
 
+    loadFailed.value = true;
     error.value =
-      'Impossible de charger le véhicule.';
+      'Impossible de charger les informations du chauffeur.';
   } finally {
     loading.value = false;
   }
 }
 
-// =====================================================
-// DATE
-// =====================================================
-
-function normalizeDate(
-  value: string | null | undefined,
-): string {
-  if (!value) {
-    return '';
-  }
-
-  return value.substring(0, 10);
-}
-
-// =====================================================
-// DOCUMENTS
-// =====================================================
-
-function addDocument() {
-  form.documents.push(
-    createEmptyDocument(),
-  );
-}
-
-function removeDocument(index: number) {
-  form.documents.splice(index, 1);
-}
-
-// =====================================================
-// VALIDATION
-// =====================================================
-
-function validateForm(): boolean {
-  error.value = '';
-
-  // ---------------------------------------------------
-  // Véhicule
-  // ---------------------------------------------------
-
-  if (!form.plaqueImmatriculation.trim()) {
-    error.value =
-      "La plaque d'immatriculation est obligatoire.";
-
-    return false;
-  }
-
-  if (!form.type.trim()) {
-    error.value =
-      'Le type du véhicule est obligatoire.';
-
-    return false;
-  }
-
-  if (!form.capacite || form.capacite <= 0) {
-    error.value =
-      'La capacité doit être supérieure à 0.';
-
-    return false;
-  }
-
-  if (!form.statut) {
-    error.value =
-      'Le statut est obligatoire.';
-
-    return false;
-  }
-
-  if (!form.proprietaireId) {
-    error.value =
-      'Le propriétaire est obligatoire.';
-
-    return false;
-  }
-
-  if (!form.gareId) {
-    error.value =
-      'La gare de rattachement est obligatoire.';
-
-    return false;
-  }
-
-  // ---------------------------------------------------
-  // Documents
-  // ---------------------------------------------------
-
-  if (!isEditMode.value) {
-    if (form.documents.length === 0) {
-      error.value =
-        'Au moins un document est obligatoire pour créer un véhicule.';
-
-      return false;
-    }
-
-    for (
-      let index = 0;
-      index < form.documents.length;
-      index += 1
-    ) {
-      const document =
-        form.documents[index];
-
-      if (!document.typeDocument.trim()) {
-        error.value =
-          `Le type du document ${index + 1} est obligatoire.`;
-
-        return false;
-      }
-
-      if (!document.dateExpiration) {
-        error.value =
-          `La date d'expiration du document ${index + 1} est obligatoire.`;
-
-        return false;
-      }
-
-      if (!document.statut.trim()) {
-        error.value =
-          `Le statut du document ${index + 1} est obligatoire.`;
-
-        return false;
-      }
-    }
-  }
-
-  return true;
-}
-
-// =====================================================
-// CREATE PAYLOAD
-// =====================================================
-
-function buildCreatePayload(): CreateVehiculePayload {
-  return {
-    plaqueImmatriculation:
-      form.plaqueImmatriculation.trim(),
-
-    type:
-      form.type.trim(),
-
-    marque:
-      form.marque.trim() || undefined,
-
-    modele:
-      form.modele.trim() || undefined,
-
-    capacite:
-      Number(form.capacite),
-
-    statut:
-      form.statut,
-
-    proprietaireId:
-      form.proprietaireId,
-
-    gareId:
-      form.gareId,
-
-    documents:
-      form.documents.map((document) => ({
-        typeDocument:
-          document.typeDocument.trim(),
-
-        numeroDocument:
-          document.numeroDocument.trim() || undefined,
-
-        dateDelivrance:
-          document.dateDelivrance || undefined,
-
-        dateExpiration:
-          document.dateExpiration,
-
-        statut:
-          document.statut.trim(),
-
-        observations:
-          document.observations.trim() || undefined,
-      })),
-
-  };
-}
-
-// =====================================================
-// UPDATE PAYLOAD
-// =====================================================
-
-function buildUpdatePayload(): UpdateVehiculePayload {
-  return {
-    plaqueImmatriculation:
-      form.plaqueImmatriculation.trim(),
-
-    type:
-      form.type.trim(),
-
-    marque:
-      form.marque.trim() || undefined,
-
-    modele:
-      form.modele.trim() || undefined,
-
-    capacite:
-      Number(form.capacite),
-
-    statut:
-      form.statut,
-
-    proprietaireId:
-      form.proprietaireId,
-
-    gareId:
-      form.gareId,
-  };
-}
-
-// =====================================================
-// SUBMIT
-// =====================================================
-
-async function submitForm() {
-  if (!validateForm()) {
+async function submit(): Promise<void> {
+  if (saving.value || loading.value || loadFailed.value) {
     return;
   }
 
+  error.value = null;
   saving.value = true;
-  error.value = '';
 
   try {
-    // -------------------------------------------------
-    // MODIFICATION
-    // -------------------------------------------------
-
     if (isEditMode.value) {
-      const updatePayload =
-        buildUpdatePayload();
+      if (!chauffeurId.value) {
+        throw new Error('Identifiant du chauffeur introuvable.');
+      }
 
-      await updateVehicule(
-        String(route.params.id),
-        updatePayload,
-      );
-    }
+      const payload: UpdateChauffeurPayload = {
+        nom: form.nom,
+        prenom: form.prenom,
+        telephone: form.telephone || undefined,
+        statut: form.statut,
+      };
 
-    // -------------------------------------------------
-    // CRÉATION
-    // -------------------------------------------------
-
-    else {
-      const payload =
-        buildCreatePayload();
-
-      await createVehicule(payload);
-    }
-
-    router.push({
-      name: 'vehicules',
-    });
-  } catch (err: any) {
-    console.error(err);
-
-    if (err?.response?.data?.message) {
-      error.value = Array.isArray(
-        err.response.data.message,
-      )
-        ? err.response.data.message.join(', ')
-        : err.response.data.message;
+      await updateChauffeur(chauffeurId.value, payload);
     } else {
-      error.value =
-        isEditMode.value
-          ? 'Impossible de modifier le véhicule.'
-          : 'Impossible de créer le véhicule.';
+      const payload: CreateChauffeurPayload = {
+        nom: form.nom,
+        prenom: form.prenom,
+        telephone: form.telephone || undefined,
+        statut: form.statut,
+        document: {
+          typeDocument: form.document.typeDocument,
+          numeroDocument:
+            form.document.numeroDocument || undefined,
+          dateDelivrance:
+            form.document.dateDelivrance || undefined,
+          dateExpiration: form.document.dateExpiration,
+          statut: form.document.statut,
+          observations:
+            form.document.observations || undefined,
+        },
+      };
+
+      await createChauffeur(payload);
     }
+
+    await router.push({ name: 'chauffeurs' });
+  } catch (err) {
+    console.error('Erreur enregistrement chauffeur :', err);
+
+    error.value = isEditMode.value
+      ? 'Impossible de modifier le chauffeur. Vérifiez les informations et réessayez.'
+      : 'Impossible de créer le chauffeur. Vérifiez les informations et réessayez.';
   } finally {
     saving.value = false;
   }
 }
 
-// =====================================================
-// CANCEL
-// =====================================================
-
-function cancel() {
-  router.push({
-    name: 'vehicules',
-  });
+function cancel(): void {
+  void router.push({ name: 'chauffeurs' });
 }
 
-// =====================================================
-// INIT
-// =====================================================
-
 onMounted(async () => {
-  await Promise.all([
-    loadProprietaires(),
-    loadGares(),
-  ]);
-
-  await loadVehicule();
-
-  // En création : proposer directement
-  // un premier document.
-  if (
-    !isEditMode.value &&
-    form.documents.length === 0
-  ) {
-    addDocument();
+  if (isEditMode.value) {
+    await loadChauffeur();
+  } else {
+    resetForm();
   }
 });
 </script>
 
 <template>
-  <section class="page">
+  <div class="chauffeur-form-page">
+    <div class="breadcrumb">
+      <span>Administration</span>
+      <span class="separator">/</span>
+      <button type="button" @click="cancel">Chauffeurs</button>
+      <span class="separator">/</span>
+      <strong>
+        {{ isEditMode ? 'Modification' : 'Nouveau chauffeur' }}
+      </strong>
+    </div>
 
-    <!-- ================================================= -->
-    <!-- HEADER -->
-    <!-- ================================================= -->
+    <header class="page-header">
+      <div class="header-content">
+        <div class="header-icon">CH</div>
+        <div>
+          <h1>
+            {{ isEditMode ? 'Modifier le chauffeur' : 'Nouveau chauffeur' }}
+          </h1>
+          <p>
+            {{
+              isEditMode
+                ? 'Modifiez les informations du chauffeur.'
+                : 'Enregistrez un chauffeur et son document initial.'
+            }}
+          </p>
+        </div>
+      </div>
 
-    <div class="page-header">
-      <div>
-        <h1>
-          {{ pageTitle }}
-        </h1>
+      <button
+        type="button"
+        class="btn-back"
+        :disabled="saving"
+        @click="cancel"
+      >
+        ← Retour à la liste
+      </button>
+    </header>
 
-        <p>
-          {{
-            isEditMode
-              ? 'Modifier les informations du véhicule.'
-              : 'Enregistrer un véhicule avec ses documents.'
-          }}
-        </p>
+    <div v-if="loading" class="loading-state">
+      <span class="spinner"></span>
+      <p>Chargement des informations...</p>
+    </div>
+
+    <div v-else-if="loadFailed" class="form-card">
+      <div class="alert-error">
+        {{ error }}
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-secondary" @click="cancel">
+          Retour
+        </button>
+        <button type="button" class="btn-primary" @click="loadChauffeur">
+          Réessayer
+        </button>
       </div>
     </div>
 
-    <!-- ================================================= -->
-    <!-- LOADING -->
-    <!-- ================================================= -->
-
-    <div
-      v-if="loading"
-      class="loading"
-    >
-      Chargement du véhicule...
-    </div>
-
-    <!-- ================================================= -->
-    <!-- FORM -->
-    <!-- ================================================= -->
-
-    <form
-      v-else
-      class="form-card"
-      @submit.prevent="submitForm"
-    >
-
-      <!-- ================================================= -->
-      <!-- ERROR -->
-      <!-- ================================================= -->
-
-      <div
-        v-if="error"
-        class="alert error"
-      >
+    <div v-else class="form-card">
+      <div v-if="error" class="alert-error">
         {{ error }}
       </div>
 
-      <!-- ================================================= -->
-      <!-- VÉHICULE -->
-      <!-- ================================================= -->
-
-      <div class="section-title">
-        <h2>
-          Informations du véhicule
-        </h2>
-
-        <p>
-          Les champs marqués d'un * sont obligatoires.
-        </p>
-      </div>
-
-      <div class="form-grid">
-
-        <!-- PLAQUE -->
-
-        <div class="form-group">
-          <label for="plaque">
-            Plaque d'immatriculation *
-          </label>
-
-          <input
-            id="plaque"
-            v-model="form.plaqueImmatriculation"
-            type="text"
-            maxlength="30"
-            placeholder="Ex. CE-1234-AA"
-          />
-        </div>
-
-        <!-- TYPE -->
-
-        <div class="form-group">
-          <label for="type">
-            Type *
-          </label>
-
-          <input
-            id="type"
-            v-model="form.type"
-            type="text"
-            maxlength="30"
-            placeholder="Ex. BUS"
-          />
-        </div>
-
-        <!-- MARQUE -->
-
-        <div class="form-group">
-          <label for="marque">
-            Marque
-          </label>
-
-          <input
-            id="marque"
-            v-model="form.marque"
-            type="text"
-            maxlength="80"
-            placeholder="Ex. Mercedes"
-          />
-        </div>
-
-        <!-- MODÈLE -->
-
-        <div class="form-group">
-          <label for="modele">
-            Modèle
-          </label>
-
-          <input
-            id="modele"
-            v-model="form.modele"
-            type="text"
-            maxlength="80"
-            placeholder="Ex. Sprinter"
-          />
-        </div>
-
-        <!-- CAPACITÉ -->
-
-        <div class="form-group">
-          <label for="capacite">
-            Capacité *
-          </label>
-
-          <input
-            id="capacite"
-            v-model.number="form.capacite"
-            type="number"
-            min="1"
-            step="1"
-          />
-        </div>
-
-        <!-- STATUT -->
-
-        <div class="form-group">
-          <label for="statut">
-            Statut *
-          </label>
-
-          <select
-            id="statut"
-            v-model="form.statut"
-          >
-            <option value="ACTIF">
-              ACTIF
-            </option>
-
-            <option value="INACTIF">
-              INACTIF
-            </option>
-
-            <option value="MAINTENANCE">
-              MAINTENANCE
-            </option>
-          </select>
-        </div>
-
-        <!-- PROPRIÉTAIRE -->
-
-        <div class="form-group full-width">
-          <label for="proprietaire">
-            Propriétaire *
-          </label>
-
-          <select
-            id="proprietaire"
-            v-model="form.proprietaireId"
-          >
-            <option
-              value=""
-              disabled
-            >
-              Sélectionner un propriétaire
-            </option>
-
-            <option
-              v-for="proprietaire in proprietaires"
-              :key="proprietaire.id"
-              :value="proprietaire.id"
-            >
-              {{ proprietaire.nom }}
-              {{ proprietaire.prenom }}
-
-              <template
-                v-if="proprietaire.telephone"
-              >
-                — {{ proprietaire.telephone }}
-              </template>
-            </option>
-          </select>
-        </div>
-
-        <!-- GARE DE RATTACHEMENT -->
-
-        <div class="form-group full-width">
-          <label for="gare">
-            Gare de rattachement *
-          </label>
-
-          <select
-            id="gare"
-            v-model="form.gareId"
-          >
-            <option value="" disabled>
-              Sélectionner une gare
-            </option>
-
-            <option
-              v-for="gare in gares"
-              :key="gare.id"
-              :value="gare.id"
-            >
-              {{ gare.nom }}
-            </option>
-          </select>
-        </div>
-
-      </div>
-
-      <!-- ================================================= -->
-      <!-- DOCUMENTS -->
-      <!-- ================================================= -->
-
-      <div class="documents-section">
-
-        <div class="section-title documents-title">
-          <div>
-            <h2>
-              Documents du véhicule
-            </h2>
-
-            <p>
-              Au moins un document est obligatoire lors
-              de la création du véhicule.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            class="secondary-button"
-            @click="addDocument"
-          >
-            + Ajouter un document
-          </button>
-        </div>
-
-        <!-- DOCUMENTS -->
-
-        <div
-          v-if="form.documents.length === 0"
-          class="empty-documents"
-        >
-          Aucun document ajouté.
-        </div>
-
-        <div
-          v-for="(document, index) in form.documents"
-          :key="document.localId"
-          class="document-card"
-        >
-
-          <div class="document-header">
-            <h3>
-              Document {{ index + 1 }}
-            </h3>
-
-            <button
-              type="button"
-              class="remove-button"
-              @click="removeDocument(index)"
-            >
-              Supprimer
-            </button>
+      <form @submit.prevent="submit">
+        <section class="form-section">
+          <div class="section-heading">
+            <div class="section-number">01</div>
+            <div>
+              <h2>Informations du chauffeur</h2>
+              <p>Renseignements personnels et coordonnées.</p>
+            </div>
           </div>
 
           <div class="form-grid">
-
-            <!-- TYPE DOCUMENT -->
-
             <div class="form-group">
-              <label
-                :for="`document-type-${index}`"
-              >
-                Type de document *
-              </label>
-
+              <label for="nom">Nom <span>*</span></label>
               <input
-                :id="`document-type-${index}`"
-                v-model="document.typeDocument"
-                type="text"
-                maxlength="50"
-                placeholder="Ex. ASSURANCE"
-              />
-            </div>
-
-            <!-- NUMÉRO -->
-
-            <div class="form-group">
-              <label
-                :for="`document-numero-${index}`"
-              >
-                Numéro du document
-              </label>
-
-              <input
-                :id="`document-numero-${index}`"
-                v-model="document.numeroDocument"
+                id="nom"
+                v-model.trim="form.nom"
                 type="text"
                 maxlength="100"
-                placeholder="Ex. ASS-2026-001"
+                autocomplete="family-name"
+                required
               />
             </div>
 
-            <!-- DATE DÉLIVRANCE -->
+            <div class="form-group">
+              <label for="prenom">Prénom <span>*</span></label>
+              <input
+                id="prenom"
+                v-model.trim="form.prenom"
+                type="text"
+                maxlength="100"
+                autocomplete="given-name"
+                required
+              />
+            </div>
 
             <div class="form-group">
-              <label
-                :for="`document-delivrance-${index}`"
-              >
-                Date de délivrance
-              </label>
-
+              <label for="telephone">Téléphone</label>
               <input
-                :id="`document-delivrance-${index}`"
-                v-model="document.dateDelivrance"
+                id="telephone"
+                v-model.trim="form.telephone"
+                type="tel"
+                maxlength="30"
+                autocomplete="tel"
+                placeholder="Numéro de téléphone"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="statut">Statut <span>*</span></label>
+              <select id="statut" v-model="form.statut" required>
+                <option value="ACTIF">ACTIF</option>
+                <option value="INACTIF">INACTIF</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <section v-if="!isEditMode" class="form-section">
+          <div class="section-heading">
+            <div class="section-number gold">02</div>
+            <div>
+              <h2>Document initial</h2>
+              <p>Document obligatoire lors de la création.</p>
+            </div>
+          </div>
+
+          <div class="document-notice">
+            <strong>À renseigner obligatoirement</strong>
+            <p>
+              Le chauffeur et son document initial sont enregistrés
+              ensemble par le backend.
+            </p>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="typeDocument">
+                Type de document <span>*</span>
+              </label>
+              <input
+                id="typeDocument"
+                v-model.trim="form.document.typeDocument"
+                type="text"
+                maxlength="50"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="numeroDocument">Numéro du document</label>
+              <input
+                id="numeroDocument"
+                v-model.trim="form.document.numeroDocument"
+                type="text"
+                maxlength="100"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="dateDelivrance">Date de délivrance</label>
+              <input
+                id="dateDelivrance"
+                v-model="form.document.dateDelivrance"
                 type="date"
               />
             </div>
 
-            <!-- DATE EXPIRATION -->
-
             <div class="form-group">
-              <label
-                :for="`document-expiration-${index}`"
-              >
-                Date d'expiration *
+              <label for="dateExpiration">
+                Date d'expiration <span>*</span>
               </label>
-
               <input
-                :id="`document-expiration-${index}`"
-                v-model="document.dateExpiration"
+                id="dateExpiration"
+                v-model="form.document.dateExpiration"
                 type="date"
+                required
               />
             </div>
 
-            <!-- STATUT -->
-
             <div class="form-group">
-              <label
-                :for="`document-statut-${index}`"
-              >
-                Statut *
+              <label for="documentStatut">
+                Statut du document <span>*</span>
               </label>
-
               <input
-                :id="`document-statut-${index}`"
-                v-model="document.statut"
+                id="documentStatut"
+                v-model.trim="form.document.statut"
                 type="text"
                 maxlength="20"
-                placeholder="Ex. VALIDE"
+                required
               />
             </div>
 
-            <!-- OBSERVATIONS -->
-
-            <div class="form-group full-width">
-              <label
-                :for="`document-observations-${index}`"
-              >
-                Observations
-              </label>
-
+            <div class="form-group form-group-full">
+              <label for="observations">Observations</label>
               <textarea
-                :id="`document-observations-${index}`"
-                v-model="document.observations"
-                rows="3"
-                placeholder="Observations éventuelles..."
-              />
+                id="observations"
+                v-model.trim="form.document.observations"
+                rows="4"
+                placeholder="Observations complémentaires..."
+              ></textarea>
             </div>
-
           </div>
+        </section>
+
+        <div v-if="isEditMode" class="info-message">
+          <span class="info-icon">i</span>
+          <p>
+            <strong>Gestion séparée des documents</strong>
+            La modification du chauffeur ne modifie pas ses documents.
+            Utilisez le module Documents chauffeurs pour les gérer.
+          </p>
         </div>
 
-      </div>
+        <div class="form-actions">
+          <button
+            type="button"
+            class="btn-secondary"
+            :disabled="saving"
+            @click="cancel"
+          >
+            Annuler
+          </button>
 
-      <!-- ================================================= -->
-      <!-- ACTIONS -->
-      <!-- ================================================= -->
-
-      <div class="form-actions">
-
-        <button
-          type="button"
-          class="secondary-button"
-          :disabled="saving"
-          @click="cancel"
-        >
-          Annuler
-        </button>
-
-        <button
-          type="submit"
-          class="primary-button"
-          :disabled="saving"
-        >
-          {{
-            saving
-              ? 'Enregistrement...'
-              : isEditMode
-                ? 'Enregistrer les modifications'
-                : 'Créer le véhicule'
-          }}
-        </button>
-
-      </div>
-
-    </form>
-
-  </section>
+          <button
+            type="submit"
+            class="btn-primary"
+            :disabled="saving"
+          >
+            <span v-if="saving" class="button-spinner"></span>
+            {{
+              saving
+                ? 'Enregistrement...'
+                : isEditMode
+                  ? 'Enregistrer les modifications'
+                  : 'Créer le chauffeur'
+            }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 </template>
 
 <style scoped>
-.page {
-  padding: 24px;
-  max-width: 1000px;
+.chauffeur-form-page {
+  width: 100%;
+  max-width: 1150px;
+  margin: 0 auto;
+  padding: 28px 32px;
+  box-sizing: border-box;
+  color: #243247;
+}
+
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 22px;
+  color: #7b8797;
+  font-size: 13px;
+}
+
+.breadcrumb button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #7b8797;
+  font: inherit;
+  cursor: pointer;
+}
+
+.breadcrumb button:hover {
+  color: #17365d;
+}
+
+.breadcrumb strong,
+.separator {
+  color: #17365d;
+}
+
+.separator {
+  color: #c5a13b;
 }
 
 .page-header {
-  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 25px;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-icon {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 13px;
+  background: #17365d;
+  color: #e2c46b;
+  font-size: 15px;
+  font-weight: 800;
 }
 
 .page-header h1 {
   margin: 0 0 6px;
-  font-size: 28px;
+  color: #17365d;
+  font-size: 26px;
+  font-weight: 750;
 }
 
 .page-header p {
   margin: 0;
-  color: #6b7280;
+  color: #7b8797;
+  font-size: 13px;
 }
 
-.loading {
-  padding: 30px;
-  text-align: center;
-  color: #6b7280;
+.btn-back {
+  min-height: 39px;
+  padding: 8px 13px;
+  border: 1px solid #dce3eb;
+  border-radius: 7px;
+  background: white;
+  color: #17365d;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
 }
 
 .form-card {
-  background: white;
-  border: 1px solid #e5e7eb;
+  padding: 26px;
+  border: 1px solid #e7ebf0;
   border-radius: 10px;
-  padding: 24px;
+  background: white;
+  box-shadow: 0 2px 8px rgb(20 40 70 / 3%);
 }
 
-.section-title {
-  margin-bottom: 20px;
+.form-section {
+  margin-bottom: 30px;
 }
 
-.section-title h2 {
-  margin: 0 0 6px;
-  font-size: 20px;
+.form-section + .form-section {
+  padding-top: 26px;
+  border-top: 1px solid #edf0f3;
 }
 
-.section-title p {
+.section-heading {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 22px;
+}
+
+.section-number {
+  width: 39px;
+  height: 39px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: #eaf0f7;
+  color: #17365d;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.section-number.gold {
+  background: #f8f2df;
+  color: #92721d;
+}
+
+.section-heading h2 {
+  margin: 0 0 5px;
+  color: #17365d;
+  font-size: 16px;
+}
+
+.section-heading p {
   margin: 0;
-  color: #6b7280;
-  font-size: 14px;
-}
-
-.alert {
-  padding: 12px 16px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-
-.alert.error {
-  background: #fee2e2;
-  color: #991b1b;
+  color: #8993a1;
+  font-size: 12px;
 }
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(
-    2,
-    minmax(0, 1fr)
-  );
-  gap: 20px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 19px 22px;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 8px;
+  min-width: 0;
 }
 
-.form-group.full-width {
+.form-group-full {
   grid-column: 1 / -1;
 }
 
 .form-group label {
-  font-weight: 600;
-  color: #374151;
+  color: #405066;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.form-group label span {
+  color: #b54747;
 }
 
 .form-group input,
@@ -1077,134 +582,211 @@ onMounted(async () => {
 .form-group textarea {
   width: 100%;
   box-sizing: border-box;
-  padding: 10px 12px;
-  border: 1px solid #d1d5db;
+  padding: 11px 12px;
+  border: 1px solid #dfe4ea;
   border-radius: 7px;
-  font-size: 14px;
-  font-family: inherit;
+  outline: none;
+  background: white;
+  color: #243247;
+  font: inherit;
+  font-size: 13px;
+}
+
+.form-group input,
+.form-group select {
+  min-height: 42px;
+}
+
+.form-group textarea {
+  min-height: 95px;
+  resize: vertical;
 }
 
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
-  outline: none;
-  border-color: #2563eb;
+  border-color: #54769b;
+  box-shadow: 0 0 0 3px rgb(23 54 93 / 8%);
 }
 
-.documents-section {
-  margin-top: 32px;
-  padding-top: 28px;
-  border-top: 1px solid #e5e7eb;
+.document-notice {
+  margin-bottom: 22px;
+  padding: 13px 16px;
+  border: 1px solid #eadfb9;
+  border-radius: 7px;
+  background: #fcf9ee;
 }
 
-.documents-title {
+.document-notice strong {
+  color: #80651d;
+  font-size: 12px;
+}
+
+.document-notice p {
+  margin: 5px 0 0;
+  color: #81734e;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.info-message {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 20px;
-}
-
-.document-card {
-  margin-top: 20px;
-  padding: 20px;
-  border: 1px solid #d1d5db;
-  border-radius: 9px;
-  background: #f9fafb;
-}
-
-.document-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.document-header h3 {
-  margin: 0;
-  font-size: 17px;
-}
-
-.empty-documents {
-  padding: 24px;
-  text-align: center;
-  color: #6b7280;
-  border: 1px dashed #d1d5db;
+  gap: 12px;
+  margin-bottom: 25px;
+  padding: 15px;
+  border: 1px solid #dce5ef;
   border-radius: 8px;
+  background: #f3f7fb;
+}
+
+.info-icon {
+  display: grid;
+  place-items: center;
+  width: 23px;
+  height: 23px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #17365d;
+  color: white;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.info-message p {
+  margin: 0;
+  color: #53657a;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.info-message strong {
+  display: block;
+  margin-bottom: 3px;
+  color: #17365d;
+}
+
+.alert-error {
+  margin-bottom: 22px;
+  padding: 13px 15px;
+  border: 1px solid #f1caca;
+  border-radius: 8px;
+  background: #fff4f4;
+  color: #9b3030;
+  font-size: 13px;
 }
 
 .form-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 32px;
+  gap: 10px;
+  padding-top: 21px;
+  border-top: 1px solid #edf0f3;
 }
 
-.primary-button,
-.secondary-button,
-.remove-button {
-  border-radius: 8px;
-  padding: 10px 18px;
+.btn-primary,
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 41px;
+  padding: 9px 17px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
-  font-weight: 600;
-  font-family: inherit;
 }
 
-.primary-button {
-  border: none;
-  background: #2563eb;
+.btn-primary {
+  border-color: #17365d;
+  background: #17365d;
   color: white;
 }
 
-.primary-button:hover:not(:disabled) {
-  background: #1d4ed8;
+.btn-primary:hover:not(:disabled) {
+  background: #102944;
 }
 
-.secondary-button {
-  border: 1px solid #d1d5db;
-  background: #f3f4f6;
-  color: #374151;
-}
-
-.secondary-button:hover:not(:disabled) {
-  background: #e5e7eb;
-}
-
-.remove-button {
-  border: 1px solid #fecaca;
+.btn-secondary {
+  border-color: #dce3eb;
   background: white;
-  color: #b91c1c;
+  color: #536174;
 }
 
-.remove-button:hover:not(:disabled) {
-  background: #fef2f2;
+.btn-secondary:hover:not(:disabled) {
+  background: #f5f7fa;
 }
 
-button:disabled {
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-back:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 260px;
+  color: #7b8797;
+}
+
+.spinner,
+.button-spinner {
+  display: inline-block;
+  border: 3px solid #e6ebf1;
+  border-top-color: #17365d;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.spinner {
+  width: 29px;
+  height: 29px;
+}
+
+.button-spinner {
+  width: 13px;
+  height: 13px;
+  border-width: 2px;
+  border-top-color: white;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 @media (max-width: 700px) {
-  .page {
-    padding: 16px;
+  .chauffeur-form-page {
+    padding: 20px 15px;
+  }
+
+  .page-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .form-card {
+    padding: 19px 15px;
   }
 
   .form-grid {
     grid-template-columns: 1fr;
   }
 
-  .form-group.full-width {
+  .form-group-full {
     grid-column: auto;
   }
 
-  .documents-title,
-  .document-header {
-    flex-direction: column;
-    align-items: stretch;
+  .form-actions {
+    flex-direction: column-reverse;
   }
 
-  .form-actions {
-    flex-direction: column;
+  .form-actions button {
+    width: 100%;
   }
 }
 </style>

@@ -106,7 +106,32 @@ export class PresenceService {
 
     return this.sessionRepository.save(session);
   }
+ /**
+ * Vérifie qu'une session appartient à l'utilisateur,
+ * qu'elle n'est pas révoquée et qu'elle n'est pas expirée.
+ */
+async validateSession(
+  sessionId: string,
+  utilisateurId: number,
+): Promise<boolean> {
+  if (!sessionId) {
+    return false;
+  }
 
+  const session = await this.sessionRepository.findOne({
+    where: {
+      id: sessionId,
+      utilisateurId,
+      revokedAt: IsNull(),
+      expiresAt: MoreThan(new Date()),
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  return !!session;
+}
   /**
    * Révoque une session précise.
    */

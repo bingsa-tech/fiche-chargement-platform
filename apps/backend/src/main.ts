@@ -28,6 +28,7 @@ async function bootstrap(): Promise<void> {
   app.enableCors({
     origin: [
       'http://localhost:5173',
+      'http://localhost:4173',
       'https://fiche-chargement-platform-frontend.onrender.com',
     ],
     credentials: true,

@@ -1,6 +1,6 @@
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { useAuthStore } from '../../auth/auth.store';
@@ -16,6 +16,16 @@ const gareId = computed(() => authStore.gareId);
 const stats = ref<DashboardStats | null>(null);
 const loading = ref(false);
 const errorMessage = ref('');
+const logoutLoading = ref(false);
+
+const userFullName = computed(() => {
+  const prenom = user.value?.prenom?.trim() ?? '';
+  const nom = user.value?.nom?.trim() ?? '';
+
+  return `${prenom} ${nom}`.trim() ||
+    user.value?.username ||
+    'Responsable de gare';
+});
 
 const initials = computed(() => {
   const prenom = user.value?.prenom?.trim() ?? '';
@@ -25,23 +35,93 @@ const initials = computed(() => {
     return `${prenom.charAt(0)}${nom.charAt(0)}`.toUpperCase();
   }
 
-  return (
-    user.value?.username?.substring(0, 2) ?? 'RG'
-  ).toUpperCase();
+  return (user.value?.username?.substring(0, 2) ?? 'RG').toUpperCase();
 });
+
+const statistics = computed(() => [
+  {
+    label: 'Fiches de chargement',
+    value: stats.value?.fiches ?? 0,
+    description: 'Fiches enregistrées dans votre gare',
+    icon: 'document',
+    color: 'blue',
+  },
+  {
+    label: 'Véhicules',
+    value: stats.value?.vehicules ?? 0,
+    description: 'Véhicules référencés dans les fiches',
+    icon: 'vehicle',
+    color: 'gold',
+  },
+  {
+    label: 'Chauffeurs',
+    value: stats.value?.chauffeurs ?? 0,
+    description: 'Chauffeurs référencés dans les fiches',
+    icon: 'users',
+    color: 'purple',
+  },
+]);
+
+const quickActions = [
+  {
+    id: 'fiches',
+    number: '01',
+    title: 'Fiches de chargement',
+    description: 'Consulter et gérer les fiches de votre gare.',
+    icon: 'document',
+  },
+  {
+    id: 'vehicules',
+    number: '02',
+    title: 'Véhicules',
+    description: 'Gérer les véhicules affectés à votre gare.',
+    icon: 'vehicle',
+  },
+  {
+    id: 'chauffeurs',
+    number: '03',
+    title: 'Chauffeurs',
+    description: 'Consulter et gérer les chauffeurs.',
+    icon: 'users',
+  },
+  {
+    id: 'documents',
+    number: '04',
+    title: 'Documents',
+    description: 'Suivre les documents et leurs échéances.',
+    icon: 'folder',
+  },
+  {
+    id: 'alertes',
+    number: '05',
+    title: 'Alertes',
+    description: 'Surveiller les alertes de votre gare.',
+    icon: 'alert',
+  },
+  {
+    id: 'passagers',
+    number: '06',
+    title: 'Passagers',
+    description: 'Consulter les informations des passagers.',
+    icon: 'passengers',
+  },
+];
 
 async function refreshDashboard() {
   loading.value = true;
   errorMessage.value = '';
 
   try {
-    stats.value = await getDashboardStats();
+    const result = await getDashboardStats();
 
-    if (stats.value.isGlobal === true) {
+    if (result.isGlobal === true) {
+      stats.value = null;
       errorMessage.value =
         'Le périmètre reçu est global. Vérifiez le rôle et les autorisations de ce compte.';
-      stats.value = null;
+      return;
     }
+
+    stats.value = result;
   } catch (error: unknown) {
     console.error(
       'Erreur lors du chargement du dashboard Responsable Gare :',
@@ -61,14 +141,20 @@ function openModule(module: string) {
 }
 
 async function handleLogout() {
+  if (logoutLoading.value) return;
+
+  logoutLoading.value = true;
+
   try {
     await authStore.logout();
-
     await router.push({ name: 'login' });
   } catch (error: unknown) {
     console.error('Erreur lors de la déconnexion :', error);
+
     errorMessage.value =
       'La déconnexion a échoué. Réessayez.';
+  } finally {
+    logoutLoading.value = false;
   }
 }
 
@@ -80,15 +166,21 @@ onMounted(() => {
 <template>
   <main class="dashboard">
     <div class="dashboard-container">
+
       <!-- En-tête -->
       <header class="dashboard-header">
-        <div>
-          <p class="eyebrow">Espace opérationnel</p>
+        <div class="header-content">
+          <div class="eyebrow">
+            <span class="eyebrow-line"></span>
+            ESPACE RESPONSABLE DE GARE
+          </div>
 
-          <h1>Dashboard Responsable de gare</h1>
+          <h1>Tableau de bord</h1>
 
           <p class="subtitle">
-            Gestion et supervision des activités de votre gare.
+            Bienvenue,
+            <strong>{{ userFullName }}</strong>.
+            Gérez et supervisez les activités opérationnelles de votre gare.
           </p>
         </div>
 
@@ -99,203 +191,387 @@ onMounted(() => {
             :disabled="loading"
             @click="refreshDashboard"
           >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              :class="{ spinning: loading }"
+            >
+              <path d="M20 7v5h-5" />
+              <path d="M4 17v-5h5" />
+              <path d="M5.64 9A8 8 0 0 1 19 7l1 5" />
+              <path d="M4 12l1 5a8 8 0 0 0 13.36-1" />
+            </svg>
+
             {{ loading ? 'Actualisation...' : 'Actualiser' }}
           </button>
 
           <button
-            class="btn btn-primary"
+            class="btn btn-logout"
             type="button"
+            :disabled="logoutLoading"
             @click="handleLogout"
           >
-            Déconnexion
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <path d="m16 17 5-5-5-5" />
+              <path d="M21 12H9" />
+            </svg>
+
+            {{ logoutLoading ? 'Déconnexion...' : 'Déconnexion' }}
           </button>
         </div>
       </header>
 
-      <!-- Profil utilisateur -->
-      <section class="user-card">
-        <div class="user-avatar">
-          {{ initials }}
+      <!-- Bannière -->
+      <section class="welcome-banner">
+        <div class="welcome-content">
+          <div class="welcome-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="28"
+              height="28"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M3 21h18" />
+              <path d="M5 21V7l8-4v18" />
+              <path d="M19 21V11l-6-4" />
+              <path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01" />
+              <path d="M16 13v.01M16 16v.01M16 19v.01" />
+            </svg>
+          </div>
+
+          <div>
+            <span class="welcome-label">
+              FOPTRAC · GESTION OPÉRATIONNELLE
+            </span>
+
+            <h2>Supervision de votre gare</h2>
+
+            <p>
+              Pilotez les ressources, les opérations et le suivi
+              de votre établissement.
+            </p>
+          </div>
         </div>
 
-        <div class="user-info">
-          <h2>
-            {{ user?.prenom || '' }}
-            {{ user?.nom || user?.username || '' }}
-          </h2>
-
-          <p>
-            <strong>Utilisateur :</strong>
-            {{ user?.username || '—' }}
-          </p>
-
-          <p>
-            <strong>Email :</strong>
-            {{ user?.email || 'Non renseigné' }}
-          </p>
-
-          <p>
-            <strong>Rôle :</strong>
-            Responsable de gare
-          </p>
-
-          <p>
-            <strong>Gare :</strong>
-            {{ gareId || 'Non définie' }}
-          </p>
+        <div class="banner-decoration">
+          <span>RESPONSABILITÉ</span>
+          <strong>FOPTRAC</strong>
         </div>
       </section>
 
-      <!-- Chargement -->
-      <p
-        v-if="loading && !stats"
-        class="feedback"
-        role="status"
-      >
-        Chargement des statistiques de votre gare...
-      </p>
+      <!-- Profil utilisateur -->
+      <section class="section">
+        <div class="section-heading">
+          <div>
+            <span class="section-kicker">SESSION ACTIVE</span>
+            <h2>Informations du responsable</h2>
+          </div>
+        </div>
 
-      <!-- Erreur -->
-      <p
-        v-if="errorMessage"
-        class="error-message"
-        role="alert"
-      >
-        {{ errorMessage }}
-      </p>
+        <div class="user-card">
+          <div class="user-identity">
+            <div class="user-avatar">
+              {{ initials }}
+            </div>
 
-      <!-- Statistiques de la gare -->
-      <section
-        v-if="stats"
-        class="stats-grid"
-        aria-label="Statistiques de la gare"
-      >
-        <article class="stat-card">
-          <span class="stat-label">Fiches</span>
+            <div class="user-info">
+              <strong>{{ userFullName }}</strong>
+              <span>Responsable de gare</span>
+            </div>
+          </div>
 
-          <strong class="stat-value">
-            {{ stats.fiches }}
-          </strong>
+          <div class="profile-divider"></div>
 
-          <span class="stat-description">
-            Fiches enregistrées dans votre gare
-          </span>
-        </article>
+          <div class="user-detail">
+            <span class="detail-label">Identifiant utilisateur</span>
+            <strong>{{ user?.username || '—' }}</strong>
+          </div>
 
-        <article class="stat-card">
-          <span class="stat-label">Véhicules</span>
+          <div class="user-detail">
+            <span class="detail-label">Adresse courriel</span>
+            <strong>{{ user?.email || 'Non renseignée' }}</strong>
+          </div>
 
-          <strong class="stat-value">
-            {{ stats.vehicules }}
-          </strong>
+          <div class="user-detail">
+            <span class="detail-label">Gare affectée</span>
+            <strong>{{ gareId || 'Non définie' }}</strong>
+          </div>
+        </div>
+      </section>
 
-          <span class="stat-description">
-            Véhicules référencés dans les fiches de la gare
-          </span>
-        </article>
+      <!-- Statistiques -->
+      <section class="section">
+        <div class="section-heading">
+          <div>
+            <span class="section-kicker">INDICATEURS OPÉRATIONNELS</span>
+            <h2>Vue d'ensemble de votre gare</h2>
+            <p class="section-description">
+              Synthèse des principales ressources enregistrées.
+            </p>
+          </div>
+        </div>
 
-        <article class="stat-card">
-          <span class="stat-label">Chauffeurs</span>
+        <div
+          v-if="loading && !stats"
+          class="feedback-card"
+          role="status"
+        >
+          <span class="loader"></span>
+          <p>Chargement des statistiques de votre gare...</p>
+        </div>
 
-          <strong class="stat-value">
-            {{ stats.chauffeurs }}
-          </strong>
+        <div
+          v-else-if="errorMessage"
+          class="feedback-card error-card"
+          role="alert"
+        >
+          <div class="feedback-icon">!</div>
 
-          <span class="stat-description">
-            Chauffeurs référencés dans les fiches de la gare
-          </span>
-        </article>
+          <div>
+            <strong>Impossible de charger les données</strong>
+            <p>{{ errorMessage }}</p>
 
-        <article class="stat-card">
-          <span class="stat-label">Alertes</span>
+            <button
+              class="retry-button"
+              type="button"
+              @click="refreshDashboard"
+            >
+              Réessayer
+            </button>
+          </div>
+        </div>
 
-          <strong class="stat-value">—</strong>
+        <div
+          v-else-if="stats"
+          class="stats-grid"
+        >
+          <article
+            v-for="stat in statistics"
+            :key="stat.label"
+            class="stat-card"
+          >
+            <div class="stat-top">
+              <span class="stat-label">{{ stat.label }}</span>
 
-          <span class="stat-description">
-            Compteur à connecter à l'API des alertes
-          </span>
-        </article>
+              <div
+                class="stat-icon"
+                :class="`stat-icon--${stat.color}`"
+              >
+                <svg
+                  v-if="stat.icon === 'document'"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                >
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+                  <path d="M14 2v6h6M8 13h8M8 17h8" />
+                </svg>
+
+                <svg
+                  v-else-if="stat.icon === 'vehicle'"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                >
+                  <path d="M5 17h14l1-6H4l1 6Z" />
+                  <path d="m7 11 2-5h6l2 5M7 17v2m10-2v2" />
+                  <circle cx="7.5" cy="17" r="1.5" />
+                  <circle cx="16.5" cy="17" r="1.5" />
+                </svg>
+
+                <svg
+                  v-else
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                >
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+              </div>
+            </div>
+
+            <strong class="stat-value">
+              {{ stat.value }}
+            </strong>
+
+            <p class="stat-description">
+              {{ stat.description }}
+            </p>
+          </article>
+
+          <!-- Alerte non encore connectée à l'API -->
+          <article class="stat-card">
+            <div class="stat-top">
+              <span class="stat-label">Alertes</span>
+
+              <div class="stat-icon stat-icon--orange">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                >
+                  <path d="m10.3 3.9-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3.1l-8-14a2 2 0 0 0-3.4 0Z" />
+                  <path d="M12 9v4m0 4h.01" />
+                </svg>
+              </div>
+            </div>
+
+            <strong class="stat-value">—</strong>
+
+            <p class="stat-description">
+              Compteur en attente de connexion à l'API des alertes.
+            </p>
+          </article>
+        </div>
       </section>
 
       <!-- Actions rapides -->
       <section class="section">
-        <div class="section-header">
+        <div class="section-heading">
           <div>
-            <p class="eyebrow">Opérations</p>
+            <span class="section-kicker">GESTION DE LA GARE</span>
             <h2>Actions rapides</h2>
+            <p class="section-description">
+              Accès aux principaux modules opérationnels.
+            </p>
           </div>
+
+          <span class="module-count">
+            {{ quickActions.length }} modules
+          </span>
         </div>
 
         <div class="actions-grid">
           <button
+            v-for="action in quickActions"
+            :key="action.id"
             class="action-card"
             type="button"
-            @click="openModule('fiches')"
+            @click="openModule(action.id)"
           >
-            <span class="action-icon">📋</span>
-            <span>
-              <strong>Fiches de chargement</strong>
-              <small>Consulter et gérer les fiches de la gare</small>
-            </span>
-          </button>
+            <div class="action-top">
+              <span class="action-number">{{ action.number }}</span>
 
-          <button
-            class="action-card"
-            type="button"
-            @click="openModule('vehicules')"
-          >
-            <span class="action-icon">🚐</span>
-            <span>
-              <strong>Véhicules</strong>
-              <small>Gérer les véhicules de la gare</small>
-            </span>
-          </button>
+              <span class="action-arrow">→</span>
+            </div>
 
-          <button
-            class="action-card"
-            type="button"
-            @click="openModule('chauffeurs')"
-          >
-            <span class="action-icon">👤</span>
-            <span>
-              <strong>Chauffeurs</strong>
-              <small>Consulter et gérer les chauffeurs</small>
-            </span>
-          </button>
+            <div class="action-icon">
+              <svg
+                v-if="action.icon === 'document'"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+              >
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+                <path d="M14 2v6h6M8 13h8M8 17h5" />
+              </svg>
 
-          <button
-            class="action-card"
-            type="button"
-            @click="openModule('documents')"
-          >
-            <span class="action-icon">📄</span>
-            <span>
-              <strong>Documents</strong>
-              <small>Vérifier les documents et leurs échéances</small>
-            </span>
-          </button>
+              <svg
+                v-else-if="action.icon === 'vehicle'"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+              >
+                <path d="M5 17h14l1-6H4l1 6Z" />
+                <path d="m7 11 2-5h6l2 5M7 17v2m10-2v2" />
+                <circle cx="7.5" cy="17" r="1.5" />
+                <circle cx="16.5" cy="17" r="1.5" />
+              </svg>
 
-          <button
-            class="action-card"
-            type="button"
-            @click="openModule('alertes')"
-          >
-            <span class="action-icon">⚠️</span>
-            <span>
-              <strong>Alertes</strong>
-              <small>Consulter les alertes de la gare</small>
-            </span>
-          </button>
+              <svg
+                v-else-if="action.icon === 'users'"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+              >
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
 
-          <button
-            class="action-card"
-            type="button"
-            @click="openModule('passagers')"
-          >
-            <span class="action-icon">👥</span>
-            <span>
-              <strong>Passagers</strong>
-              <small>Consulter les informations passagers</small>
+              <svg
+                v-else-if="action.icon === 'folder'"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+              >
+                <path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
+              </svg>
+
+              <svg
+                v-else-if="action.icon === 'alert'"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+              >
+                <path d="m10.3 3.9-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3.1l-8-14a2 2 0 0 0-3.4 0Z" />
+                <path d="M12 9v4m0 4h.01" />
+              </svg>
+
+              <svg
+                v-else
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+              >
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              </svg>
+            </div>
+
+            <strong>{{ action.title }}</strong>
+
+            <p>{{ action.description }}</p>
+
+            <span class="action-footer">
+              Accéder au module
+              <span>→</span>
             </span>
           </button>
         </div>
@@ -303,15 +579,33 @@ onMounted(() => {
 
       <!-- Activité récente -->
       <section class="section">
-        <div class="section-header">
+        <div class="section-heading">
           <div>
-            <p class="eyebrow">Suivi</p>
+            <span class="section-kicker">SUIVI OPÉRATIONNEL</span>
             <h2>Activité récente</h2>
+            <p class="section-description">
+              Historique des dernières opérations réalisées dans votre gare.
+            </p>
           </div>
         </div>
 
         <div class="empty-state">
-          <div class="empty-icon">📊</div>
+          <div class="empty-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="30"
+              height="30"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M3 3v18h18" />
+              <path d="m19 9-5 5-4-4-3 3" />
+            </svg>
+          </div>
 
           <h3>Aucune activité disponible</h3>
 
@@ -319,20 +613,40 @@ onMounted(() => {
             Les dernières opérations de votre gare apparaîtront ici
             lorsque l'API de suivi des activités sera connectée.
           </p>
+
+          <span class="coming-soon">CONNECTEUR EN ATTENTE</span>
         </div>
       </section>
 
       <!-- Alertes -->
       <section class="section">
-        <div class="section-header">
+        <div class="section-heading">
           <div>
-            <p class="eyebrow">Surveillance</p>
+            <span class="section-kicker">SURVEILLANCE</span>
             <h2>Alertes à traiter</h2>
+            <p class="section-description">
+              Suivi des alertes concernant les ressources et les opérations.
+            </p>
           </div>
         </div>
 
         <div class="empty-state">
-          <div class="empty-icon">🔔</div>
+          <div class="empty-icon empty-icon--alert">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="30"
+              height="30"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="m10.3 3.9-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3.1l-8-14a2 2 0 0 0-3.4 0Z" />
+              <path d="M12 9v4m0 4h.01" />
+            </svg>
+          </div>
 
           <h3>Alertes non chargées</h3>
 
@@ -341,8 +655,17 @@ onMounted(() => {
             les chauffeurs seront affichées ici après connexion
             de l'API des alertes.
           </p>
+
+          <span class="coming-soon">CONNECTEUR EN ATTENTE</span>
         </div>
       </section>
+
+      <!-- Footer -->
+      <footer class="dashboard-footer">
+        <strong>FOPTRAC</strong>
+        <span>Espace de gestion et de supervision des gares</span>
+      </footer>
+
     </div>
   </main>
 </template>
@@ -351,249 +674,653 @@ onMounted(() => {
 .dashboard {
   min-height: 100%;
   padding: 32px;
-  background: #f8fafc;
+  background: var(--color-background, #f4f7fb);
 }
 
 .dashboard-container {
   width: 100%;
-  max-width: 1400px;
+  max-width: 1440px;
   margin: 0 auto;
 }
 
+/* En-tête */
+
 .dashboard-header {
   display: flex;
-  justify-content: space-between;
   align-items: flex-start;
+  justify-content: space-between;
   gap: 24px;
   margin-bottom: 28px;
 }
 
 .eyebrow {
-  margin: 0 0 6px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 12px;
+  color: var(--color-brand-accent, #c5a13b);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
 }
 
-h1,
-h2,
-h3,
-p {
-  margin-top: 0;
+.eyebrow-line {
+  width: 24px;
+  height: 2px;
+  background: var(--color-brand-accent, #c5a13b);
 }
 
-h1 {
-  margin-bottom: 8px;
-  font-size: 2rem;
-  line-height: 1.2;
-  color: #0f172a;
+.dashboard-header h1 {
+  margin: 0;
+  color: var(--color-brand-dark, #101b2d);
+  font-size: clamp(27px, 3vw, 34px);
+  font-weight: 800;
+  letter-spacing: -0.8px;
 }
 
 .subtitle {
-  margin-bottom: 0;
-  color: #64748b;
+  margin: 10px 0 0;
+  color: var(--color-text-secondary, #64748b);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.subtitle strong {
+  color: var(--color-brand-primary, #17365d);
 }
 
 .header-actions {
   display: flex;
+  align-items: center;
   gap: 10px;
   flex-wrap: wrap;
 }
 
 .btn {
-  border: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 16px;
   border-radius: 8px;
-  padding: 10px 16px;
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
+  transition: 0.2s ease;
 }
 
 .btn:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: not-allowed;
 }
 
-.btn-primary {
-  background: #0f172a;
+.btn-secondary {
+  border: 1px solid var(--color-border, #e2e8f0);
+  background: white;
+  color: var(--color-brand-primary, #17365d);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  border-color: var(--color-brand-accent, #c5a13b);
+  background: #fffcf4;
+}
+
+.btn-logout {
+  border: 1px solid #eadada;
+  background: #fffafa;
+  color: #a13e3e;
+}
+
+.btn-logout:hover:not(:disabled) {
+  border-color: #dcaeae;
+  background: #fff1f1;
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Bannière */
+
+.welcome-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 174px;
+  padding: 30px 36px;
+  margin-bottom: 34px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: linear-gradient(112deg, #101b2d 0%, #17365d 65%, #214b7c 100%);
   color: white;
 }
 
-.btn-secondary {
-  background: white;
-  color: #0f172a;
-  border: 1px solid #e2e8f0;
-}
-
-.user-card {
+.welcome-content {
   display: flex;
   align-items: center;
-  gap: 20px;
-  margin-bottom: 28px;
-  padding: 22px;
-  background: white;
-  border: 1px solid #e2e8f0;
+  gap: 22px;
+}
+
+.welcome-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 60px;
+  width: 60px;
+  height: 60px;
+  border: 1px solid rgb(230 200 110 / 45%);
   border-radius: 14px;
+  background: rgb(197 161 59 / 15%);
+  color: #e6c86e;
+}
+
+.welcome-label {
+  color: #e6c86e;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+}
+
+.welcome-content h2 {
+  margin: 8px 0 6px;
+  color: white;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.welcome-content p {
+  margin: 0;
+  color: #d2dbea;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.banner-decoration {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  color: rgb(255 255 255 / 35%);
+}
+
+.banner-decoration span {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+}
+
+.banner-decoration strong {
+  color: rgb(255 255 255 / 75%);
+  font-size: 28px;
+  letter-spacing: 0.12em;
+}
+
+/* Sections */
+
+.section {
+  margin-bottom: 34px;
+}
+
+.section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 17px;
+}
+
+.section-kicker {
+  color: var(--color-brand-accent, #c5a13b);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.section-heading h2 {
+  margin: 6px 0 0;
+  color: var(--color-brand-dark, #101b2d);
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.section-description {
+  margin: 6px 0 0;
+  color: var(--color-text-secondary, #64748b);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* Profil */
+
+.user-card {
+  display: grid;
+  grid-template-columns: 1.3fr 1px repeat(3, minmax(0, 1fr));
+  align-items: center;
+  gap: 24px;
+  padding: 24px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 12px;
+  background: white;
+  box-shadow: var(--shadow-card, 0 4px 16px rgb(15 23 42 / 5%));
+}
+
+.user-identity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
 }
 
 .user-avatar {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 64px;
-  height: 64px;
-  flex-shrink: 0;
+  flex: 0 0 50px;
+  width: 50px;
+  height: 50px;
+  border: 1px solid #e9d9a9;
   border-radius: 50%;
-  background: #0f172a;
-  color: white;
-  font-size: 1.15rem;
-  font-weight: 700;
+  background: #fbf6e8;
+  color: var(--color-brand-primary, #17365d);
+  font-size: 15px;
+  font-weight: 800;
 }
 
-.user-info h2 {
-  margin-bottom: 8px;
-  color: #0f172a;
+.user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
 }
 
-.user-info p {
-  margin-bottom: 4px;
-  color: #64748b;
-  font-size: 0.9rem;
+.user-info strong {
   overflow-wrap: anywhere;
+  color: var(--color-brand-dark, #101b2d);
+  font-size: 14px;
 }
+
+.user-info span {
+  color: var(--color-text-secondary, #64748b);
+  font-size: 11px;
+}
+
+.profile-divider {
+  width: 1px;
+  height: 42px;
+  background: var(--color-border, #e2e8f0);
+}
+
+.user-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.detail-label {
+  color: var(--color-text-secondary, #64748b);
+  font-size: 11px;
+}
+
+.user-detail strong {
+  overflow-wrap: anywhere;
+  color: var(--color-brand-dark, #101b2d);
+  font-size: 12px;
+}
+
+/* Statistiques */
 
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-  margin-bottom: 32px;
+  gap: 18px;
 }
 
 .stat-card {
   min-width: 0;
-  padding: 20px;
+  padding: 22px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 12px;
   background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
+  box-shadow: var(--shadow-card, 0 4px 16px rgb(15 23 42 / 5%));
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 22px rgb(15 23 42 / 8%);
+}
+
+.stat-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .stat-label {
-  display: block;
-  margin-bottom: 10px;
-  color: #64748b;
-  font-size: 0.85rem;
+  color: var(--color-text-secondary, #64748b);
+  font-size: 12px;
   font-weight: 600;
+}
+
+.stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+
+.stat-icon svg {
+  width: 21px;
+  height: 21px;
+}
+
+.stat-icon--blue {
+  background: #edf3fc;
+  color: #315b91;
+}
+
+.stat-icon--gold {
+  background: #fbf6e8;
+  color: #a8862d;
+}
+
+.stat-icon--purple {
+  background: #f3effc;
+  color: #7656a8;
+}
+
+.stat-icon--orange {
+  background: #fff3e8;
+  color: #c47732;
 }
 
 .stat-value {
   display: block;
-  margin-bottom: 6px;
-  color: #0f172a;
-  font-size: 2rem;
+  margin: 15px 0 6px;
+  color: var(--color-brand-dark, #101b2d);
+  font-size: 31px;
+  font-weight: 800;
+  line-height: 1.1;
 }
 
 .stat-description {
-  color: #94a3b8;
-  font-size: 0.8rem;
+  margin: 0;
+  color: var(--color-text-secondary, #64748b);
+  font-size: 11px;
+  line-height: 1.6;
 }
 
-.feedback {
-  padding: 16px;
-  color: #475569;
+/* Chargement et erreurs */
+
+.feedback-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 110px;
+  padding: 24px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 12px;
+  background: white;
 }
 
-.error-message {
-  margin-bottom: 24px;
-  padding: 16px;
+.feedback-card p {
+  margin: 0;
+  color: var(--color-text-secondary, #64748b);
+  font-size: 13px;
+}
+
+.loader {
+  width: 22px;
+  height: 22px;
+  border: 3px solid #e2e8f0;
+  border-top-color: var(--color-brand-primary, #17365d);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.error-card {
+  align-items: flex-start;
+  border-color: #f3d5d5;
+  background: #fffafa;
+}
+
+.error-card strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #991b1b;
+  font-size: 14px;
+}
+
+.feedback-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #fee2e2;
   color: #b91c1c;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 10px;
+  font-weight: 800;
 }
 
-.section {
-  margin-bottom: 32px;
+.retry-button {
+  padding: 0;
+  margin-top: 12px;
+  border: none;
+  background: transparent;
+  color: var(--color-brand-primary, #17365d);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
 }
 
-.section-header {
-  margin-bottom: 16px;
+.retry-button:hover {
+  text-decoration: underline;
 }
 
-.section-header h2 {
-  margin-bottom: 0;
-  color: #0f172a;
-  font-size: 1.25rem;
+/* Actions rapides */
+
+.module-count {
+  padding: 7px 12px;
+  border: 1px solid #e9d9a9;
+  border-radius: 20px;
+  background: #fbf6e8;
+  color: #927323;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .actions-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  gap: 18px;
 }
 
 .action-card {
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
-  gap: 14px;
-  width: 100%;
-  padding: 18px;
-  text-align: left;
-  background: white;
-  border: 1px solid #e2e8f0;
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid var(--color-border, #e2e8f0);
   border-radius: 12px;
+  background: white;
+  text-align: left;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: var(--shadow-card, 0 4px 16px rgb(15 23 42 / 5%));
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .action-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgb(15 23 42 / 8%);
+  transform: translateY(-3px);
+  border-color: #d7c184;
+  box-shadow: 0 8px 22px rgb(15 23 42 / 8%);
+}
+
+.action-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.action-number {
+  color: #a7b1c0;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.action-arrow {
+  color: var(--color-brand-accent, #c5a13b);
+  font-size: 20px;
 }
 
 .action-icon {
-  font-size: 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: 16px 0;
+  border-radius: 10px;
+  background: #edf3fc;
+  color: var(--color-brand-primary, #17365d);
 }
 
-.action-card strong {
-  display: block;
-  margin-bottom: 5px;
-  color: #0f172a;
+.action-icon svg {
+  width: 22px;
+  height: 22px;
 }
 
-.action-card small {
-  display: block;
-  color: #64748b;
-  line-height: 1.4;
+.action-card > strong {
+  color: var(--color-brand-dark, #101b2d);
+  font-size: 14px;
+  font-weight: 800;
 }
+
+.action-card > p {
+  min-height: 38px;
+  margin: 8px 0 0;
+  color: var(--color-text-secondary, #64748b);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.action-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding-top: 14px;
+  margin-top: 16px;
+  border-top: 1px solid var(--color-border, #e2e8f0);
+  color: var(--color-text-secondary, #64748b);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.action-footer span {
+  color: var(--color-brand-accent, #c5a13b);
+  font-size: 17px;
+}
+
+/* États vides */
 
 .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   padding: 36px 24px;
-  text-align: center;
-  background: white;
   border: 1px dashed #cbd5e1;
-  border-radius: 14px;
+  border-radius: 12px;
+  background: white;
+  text-align: center;
 }
 
 .empty-icon {
-  margin-bottom: 12px;
-  font-size: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 14px;
+  border-radius: 14px;
+  background: #edf3fc;
+  color: var(--color-brand-primary, #17365d);
+}
+
+.empty-icon--alert {
+  background: #fff3e8;
+  color: #c47732;
 }
 
 .empty-state h3 {
-  margin-bottom: 8px;
-  color: #0f172a;
+  margin: 0 0 8px;
+  color: var(--color-brand-dark, #101b2d);
+  font-size: 15px;
 }
 
 .empty-state p {
   max-width: 600px;
-  margin: 0 auto;
-  color: #64748b;
-  line-height: 1.6;
+  margin: 0;
+  color: var(--color-text-secondary, #64748b);
+  font-size: 12px;
+  line-height: 1.7;
 }
 
-@media (max-width: 1000px) {
+.coming-soon {
+  padding: 6px 10px;
+  margin-top: 16px;
+  border-radius: 20px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+/* Pied de page */
+
+.dashboard-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 0 5px;
+  border-top: 1px solid var(--color-border, #e2e8f0);
+  color: var(--color-text-secondary, #64748b);
+  font-size: 11px;
+}
+
+.dashboard-footer strong {
+  color: var(--color-brand-primary, #17365d);
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+/* Responsive */
+
+@media (max-width: 1100px) {
+  .user-card {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .profile-divider {
+    display: none;
+  }
+
   .stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -605,11 +1332,52 @@ h1 {
 
 @media (max-width: 700px) {
   .dashboard {
-    padding: 20px;
+    padding: 20px 16px;
   }
 
   .dashboard-header {
     flex-direction: column;
+    align-items: stretch;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .btn {
+    flex: 1;
+  }
+
+  .welcome-banner {
+    min-height: auto;
+    padding: 25px 20px;
+  }
+
+  .welcome-content {
+    gap: 14px;
+  }
+
+  .welcome-icon {
+    flex-basis: 48px;
+    width: 48px;
+    height: 48px;
+  }
+
+  .welcome-content h2 {
+    font-size: 19px;
+  }
+
+  .welcome-content p {
+    font-size: 11px;
+  }
+
+  .banner-decoration {
+    display: none;
+  }
+
+  .user-card {
+    grid-template-columns: 1fr;
+    gap: 18px;
   }
 
   .stats-grid,
@@ -617,9 +1385,13 @@ h1 {
     grid-template-columns: 1fr;
   }
 
-  .user-card {
+  .section-heading {
     align-items: flex-start;
+  }
+
+  .dashboard-footer {
     flex-direction: column;
+    gap: 7px;
   }
 }
 </style>

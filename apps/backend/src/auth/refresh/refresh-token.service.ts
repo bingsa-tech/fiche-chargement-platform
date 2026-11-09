@@ -1,11 +1,6 @@
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-
 import { randomBytes, createHash } from 'crypto';
 
 import { RefreshToken } from './entities/refresh-token.entity';
@@ -27,9 +22,6 @@ export class RefreshTokenService {
 
   /**
    * Hash le Refresh Token avant son stockage en base.
-   *
-   * Le token brut ne doit jamais être enregistré
-   * dans PostgreSQL.
    */
   hashToken(token: string): string {
     return createHash('sha256')
@@ -39,9 +31,7 @@ export class RefreshTokenService {
 
   /**
    * Crée un Refresh Token pour un utilisateur.
-   *
-   * Le token brut est retourné une seule fois
-   * au code appelant.
+   * Le token brut est retourné une seule fois.
    */
   async create(
     user: Utilisateur,
@@ -54,25 +44,21 @@ export class RefreshTokenService {
     refreshToken: RefreshToken;
   }> {
     const token = this.generateToken();
-
     const tokenHash = this.hashToken(token);
 
-   const refreshToken =
-  this.refreshTokenRepository.create({
-    userId: user.id,
-    sessionId: sessionId ?? null,
-    tokenHash,
-    expiresAt,
-    revokedAt: null,
-    replacedByTokenId: null,
-    userAgent: userAgent ?? null,
-    ipAddress: ipAddress ?? null,
-  });
+    const refreshToken = this.refreshTokenRepository.create({
+      userId: user.id,
+      sessionId: sessionId ?? null,
+      tokenHash,
+      expiresAt,
+      revokedAt: null,
+      replacedBy: null,
+      userAgent: userAgent ?? null,
+      ipAddress: ipAddress ?? null,
+    });
 
     const savedToken =
-      await this.refreshTokenRepository.save(
-        refreshToken,
-      );
+      await this.refreshTokenRepository.save(refreshToken);
 
     return {
       token,
@@ -87,14 +73,11 @@ export class RefreshTokenService {
   async findValidToken(
     token: string,
   ): Promise<RefreshToken | null> {
-    const tokenHash =
-      this.hashToken(token);
+    const tokenHash = this.hashToken(token);
 
     const refreshToken =
       await this.refreshTokenRepository.findOne({
-        where: {
-          tokenHash,
-        },
+        where: { tokenHash },
         relations: {
           user: true,
         },
@@ -108,10 +91,7 @@ export class RefreshTokenService {
       return null;
     }
 
-    if (
-      refreshToken.expiresAt.getTime() <=
-      Date.now()
-    ) {
+    if (refreshToken.expiresAt.getTime() <= Date.now()) {
       return null;
     }
 
@@ -124,23 +104,18 @@ export class RefreshTokenService {
   async revoke(
     refreshToken: RefreshToken,
   ): Promise<RefreshToken> {
-    refreshToken.revokedAt =
-      new Date();
+    refreshToken.revokedAt = new Date();
 
-    return this.refreshTokenRepository.save(
-      refreshToken,
-    );
+    return this.refreshTokenRepository.save(refreshToken);
   }
 
   /**
-   * Révoque un Refresh Token à partir
-   * de sa valeur brute.
+   * Révoque un Refresh Token à partir de sa valeur brute.
    */
   async revokeByToken(
     token: string,
   ): Promise<boolean> {
-    const refreshToken =
-      await this.findToken(token);
+    const refreshToken = await this.findToken(token);
 
     if (!refreshToken) {
       return false;
@@ -158,51 +133,36 @@ export class RefreshTokenService {
   async findToken(
     token: string,
   ): Promise<RefreshToken | null> {
-    const tokenHash =
-      this.hashToken(token);
+    const tokenHash = this.hashToken(token);
 
     return this.refreshTokenRepository.findOne({
-      where: {
-        tokenHash,
-      },
+      where: { tokenHash },
     });
   }
 
   /**
-   * Marque un token comme remplacé par
-   * un nouveau Refresh Token.
+   * Marque un token comme remplacé par un nouveau token.
    */
   async markAsReplaced(
     refreshToken: RefreshToken,
     replacement: RefreshToken,
   ): Promise<RefreshToken> {
-    refreshToken.revokedAt =
-      new Date();
+    refreshToken.revokedAt = new Date();
+    refreshToken.replacedBy = replacement;
 
-    refreshToken.replacedByTokenId =
-      replacement.id;
-
-    return this.refreshTokenRepository.save(
-      refreshToken,
-    );
+    return this.refreshTokenRepository.save(refreshToken);
   }
 
   /**
    * Supprime les Refresh Tokens expirés.
-   *
-   * Les tokens révoqués sont également supprimés
-   * lorsqu'ils sont expirés.
    */
   async deleteExpired(): Promise<number> {
-    const result =
-      await this.refreshTokenRepository
-        .createQueryBuilder()
-        .delete()
-        .from(RefreshToken)
-        .where(
-          'expires_at < CURRENT_TIMESTAMP',
-        )
-        .execute();
+    const result = await this.refreshTokenRepository
+      .createQueryBuilder()
+      .delete()
+      .from(RefreshToken)
+      .where('expires_at < CURRENT_TIMESTAMP')
+      .execute();
 
     return result.affected ?? 0;
   }
@@ -211,11 +171,8 @@ export class RefreshTokenService {
    * Calcule une date d'expiration à partir
    * d'un nombre de jours.
    */
-  getExpirationDate(
-    days: number,
-  ): Date {
-    const expiration =
-      new Date();
+  getExpirationDate(days: number): Date {
+    const expiration = new Date();
 
     expiration.setDate(
       expiration.getDate() + days,
@@ -224,4 +181,3 @@ export class RefreshTokenService {
     return expiration;
   }
 }
-

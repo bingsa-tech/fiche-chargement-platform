@@ -1,12 +1,7 @@
 import api from './axios';
-
 import type { Role } from '../types/role.types';
 
-/**
- * Récupère tous les rôles.
- */
 export async function getRoles(): Promise<Role[]> {
-  const response = await api.get<Role[]>('/roles');
-
+  const response = await api.get<Role[]>('/api/roles/');
   return response.data;
 }

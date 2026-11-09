@@ -1,0 +1,38 @@
+
+/* =========================================
+   STYLES GLOBAUX DE L'APPLICATION
+========================================= */
+
+html,
+body {
+  width: 100%;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+#app {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  text-align: left;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+}
+
+::selection {
+  background: rgb(37 99 235 / 15%);
+  color: var(--color-text-primary);
+}

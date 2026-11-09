@@ -1,0 +1,44 @@
+
+/* =========================================
+   FOPTRAC - IDENTITE VISUELLE
+========================================= */
+
+/* Couleur institutionnelle */
+.brand-primary {
+  color: var(--color-brand-primary);
+}
+
+.brand-accent {
+  color: var(--color-brand-accent);
+}
+
+.brand-dark {
+  color: var(--color-brand-dark);
+}
+
+/* Arriere-plans */
+.brand-background {
+  background-color: var(--color-brand-dark);
+}
+
+.brand-background-primary {
+  background-color: var(--color-brand-primary);
+}
+
+.brand-background-accent {
+  background-color: var(--color-brand-accent);
+}
+
+/* Degrades institutionnels */
+.brand-gradient {
+  background: linear-gradient(
+    110deg,
+    var(--color-brand-dark),
+    var(--color-brand-primary)
+  );
+}
+
+/* Accent decoratif */
+.brand-accent-border {
+  border-left: 3px solid var(--color-brand-accent);
+}

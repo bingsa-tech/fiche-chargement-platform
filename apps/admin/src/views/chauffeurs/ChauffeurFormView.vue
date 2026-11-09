@@ -1,3 +1,4 @@
+
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -20,31 +21,17 @@ const loading = ref(false);
 const saving = ref(false);
 const error = ref<string | null>(null);
 
-const isEditMode = computed(() => {
-  return Boolean(route.params.id);
-});
+const isEditMode = computed(() => Boolean(route.params.id));
 
 const chauffeurId = computed(() => {
   return route.params.id as string | undefined;
 });
 
-/**
- * Formulaire principal.
- *
- * En création :
- * - informations du chauffeur
- * - document initial obligatoire
- *
- * En modification :
- * - seules les informations du chauffeur
- *   sont envoyées au PATCH.
- */
 const form = reactive<CreateChauffeurPayload>({
   nom: '',
   prenom: '',
   telephone: '',
   statut: 'ACTIF',
-
   document: {
     typeDocument: '',
     numeroDocument: '',
@@ -55,9 +42,6 @@ const form = reactive<CreateChauffeurPayload>({
   },
 });
 
-/**
- * Réinitialise complètement le formulaire.
- */
 function resetForm(): void {
   form.nom = '';
   form.prenom = '';
@@ -72,21 +56,14 @@ function resetForm(): void {
   form.document.observations = '';
 }
 
-/**
- * Charge un chauffeur existant en mode modification.
- */
 async function loadChauffeur(): Promise<void> {
-  if (!chauffeurId.value) {
-    return;
-  }
+  if (!chauffeurId.value) return;
 
   loading.value = true;
   error.value = null;
 
   try {
-    const chauffeur = await getChauffeur(
-      chauffeurId.value,
-    );
+    const chauffeur = await getChauffeur(chauffeurId.value);
 
     form.nom = chauffeur.nom;
     form.prenom = chauffeur.prenom;
@@ -94,7 +71,6 @@ async function loadChauffeur(): Promise<void> {
     form.statut = chauffeur.statut;
   } catch (err) {
     console.error(err);
-
     error.value =
       'Impossible de charger les informations du chauffeur.';
   } finally {
@@ -102,22 +78,9 @@ async function loadChauffeur(): Promise<void> {
   }
 }
 
-/**
- * Soumission du formulaire.
- *
- * Création :
- * POST /chauffeurs
- *
- * Le backend crée dans une transaction :
- * - le chauffeur
- * - son document initial
- *
- * Modification :
- * PATCH /chauffeurs/:id
- *
- * Le document n'est pas modifié par cet endpoint.
- */
 async function submit(): Promise<void> {
+  if (saving.value) return;
+
   error.value = null;
   saving.value = true;
 
@@ -130,25 +93,20 @@ async function submit(): Promise<void> {
         statut: form.statut,
       };
 
-      await updateChauffeur(
-        chauffeurId.value,
-        payload,
-      );
+      await updateChauffeur(chauffeurId.value, payload);
     } else {
       const payload: CreateChauffeurPayload = {
         nom: form.nom,
         prenom: form.prenom,
         telephone: form.telephone || undefined,
         statut: form.statut,
-
         document: {
           typeDocument: form.document.typeDocument,
           numeroDocument:
             form.document.numeroDocument || undefined,
           dateDelivrance:
             form.document.dateDelivrance || undefined,
-          dateExpiration:
-            form.document.dateExpiration,
+          dateExpiration: form.document.dateExpiration,
           statut: form.document.statut,
           observations:
             form.document.observations || undefined,
@@ -158,9 +116,7 @@ async function submit(): Promise<void> {
       await createChauffeur(payload);
     }
 
-    await router.push({
-      name: 'chauffeurs',
-    });
+    await router.push({ name: 'chauffeurs' });
   } catch (err) {
     console.error(err);
 
@@ -172,13 +128,8 @@ async function submit(): Promise<void> {
   }
 }
 
-/**
- * Annule l'opération et retourne à la liste.
- */
 function cancel(): void {
-  router.push({
-    name: 'chauffeurs',
-  });
+  router.push({ name: 'chauffeurs' });
 }
 
 onMounted(async () => {
@@ -191,179 +142,180 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="chauffeur-form">
-    <div class="page-header">
-      <div>
-        <h1>
-          {{
-            isEditMode
-              ? 'Modifier le chauffeur'
-              : 'Nouveau chauffeur'
-          }}
-        </h1>
+  <div class="chauffeur-form-page">
+    <div class="breadcrumb">
+      <span>Administration</span>
+      <span class="breadcrumb-separator">/</span>
+      <button type="button" @click="cancel">
+        Chauffeurs
+      </button>
+      <span class="breadcrumb-separator">/</span>
+      <strong>
+        {{ isEditMode ? 'Modification' : 'Nouveau chauffeur' }}
+      </strong>
+    </div>
 
-        <p>
-          {{
-            isEditMode
-              ? 'Modifier les informations du chauffeur.'
-              : 'Créer un chauffeur avec son document initial.'
-          }}
-        </p>
+    <header class="page-header">
+      <div class="header-content">
+        <div class="header-icon">
+          <span>CH</span>
+        </div>
+
+        <div>
+          <h1>
+            {{ isEditMode ? 'Modifier le chauffeur' : 'Nouveau chauffeur' }}
+          </h1>
+          <p>
+            {{
+              isEditMode
+                ? 'Modifiez les informations du chauffeur.'
+                : 'Enregistrez un chauffeur et son document initial.'
+            }}
+          </p>
+        </div>
       </div>
-    </div>
 
-    <!-- Chargement du chauffeur en mode modification -->
-    <div
-      v-if="loading"
-      class="loading"
-    >
-      Chargement...
-    </div>
-
-    <div
-      v-else
-      class="form-container"
-    >
-      <!-- Message d'erreur -->
-      <div
-        v-if="error"
-        class="alert-error"
+      <button
+        type="button"
+        class="btn-back"
+        :disabled="saving"
+        @click="cancel"
       >
-        {{ error }}
+        <span>←</span>
+        Retour à la liste
+      </button>
+    </header>
+
+    <div v-if="loading" class="loading-state">
+      <span class="spinner"></span>
+      <p>Chargement des informations du chauffeur...</p>
+    </div>
+
+    <div v-else class="form-card">
+      <div v-if="error" class="alert-error">
+        <span>{{ error }}</span>
+        <button
+          v-if="isEditMode"
+          type="button"
+          @click="loadChauffeur"
+        >
+          Réessayer
+        </button>
       </div>
 
-      <!--
-        IMPORTANT :
-        submit() est explicitement appelé ici.
-      -->
       <form @submit.prevent="submit">
-        <!-- ========================================= -->
-        <!-- INFORMATIONS CHAUFFEUR                    -->
-        <!-- ========================================= -->
-
-        <section>
-          <h2>Informations du chauffeur</h2>
+        <section class="form-section">
+          <div class="section-heading">
+            <div class="section-icon">01</div>
+            <div>
+              <h2>Informations du chauffeur</h2>
+              <p>Renseignements personnels et coordonnées.</p>
+            </div>
+          </div>
 
           <div class="form-grid">
-            <!-- Nom -->
             <div class="form-group">
-              <label for="nom">
-                Nom *
-              </label>
-
+              <label for="nom">Nom <span>*</span></label>
               <input
                 id="nom"
                 v-model.trim="form.nom"
                 type="text"
                 maxlength="100"
+                placeholder="Nom du chauffeur"
+                autocomplete="family-name"
                 required
               />
             </div>
 
-            <!-- Prénom -->
             <div class="form-group">
-              <label for="prenom">
-                Prénom *
-              </label>
-
+              <label for="prenom">Prénom <span>*</span></label>
               <input
                 id="prenom"
                 v-model.trim="form.prenom"
                 type="text"
                 maxlength="100"
+                placeholder="Prénom du chauffeur"
+                autocomplete="given-name"
                 required
               />
             </div>
 
-            <!-- Téléphone -->
             <div class="form-group">
-              <label for="telephone">
-                Téléphone
-              </label>
-
+              <label for="telephone">Téléphone</label>
               <input
                 id="telephone"
                 v-model.trim="form.telephone"
                 type="tel"
                 maxlength="30"
+                placeholder="Numéro de téléphone"
+                autocomplete="tel"
               />
             </div>
 
-            <!-- Statut -->
             <div class="form-group">
-              <label for="statut">
-                Statut *
-              </label>
-
+              <label for="statut">Statut <span>*</span></label>
               <select
                 id="statut"
                 v-model="form.statut"
                 required
               >
-                <option value="ACTIF">
-                  ACTIF
-                </option>
-
-                <option value="INACTIF">
-                  INACTIF
-                </option>
+                <option value="ACTIF">ACTIF</option>
+                <option value="INACTIF">INACTIF</option>
               </select>
             </div>
           </div>
         </section>
 
-        <!-- ========================================= -->
-        <!-- DOCUMENT INITIAL                           -->
-        <!-- ========================================= -->
+        <section v-if="!isEditMode" class="form-section">
+          <div class="section-heading">
+            <div class="section-icon gold">02</div>
+            <div>
+              <h2>Document initial</h2>
+              <p>
+                Le premier document est enregistré avec le chauffeur.
+              </p>
+            </div>
+          </div>
 
-        <!--
-          Le document initial est obligatoire uniquement
-          lors de la création du chauffeur.
-        -->
-        <section v-if="!isEditMode">
-          <h2>Document initial</h2>
-
-          <p class="section-description">
-            Un document est obligatoire lors de la création
-            d'un nouveau chauffeur.
-          </p>
+          <div class="document-notice">
+            <strong>Document obligatoire</strong>
+            <p>
+              Complétez les informations du document initial.
+              Les documents ajoutés ultérieurement seront gérés
+              dans le module de gestion des documents.
+            </p>
+          </div>
 
           <div class="form-grid">
-            <!-- Type document -->
             <div class="form-group">
               <label for="typeDocument">
-                Type de document *
+                Type de document <span>*</span>
               </label>
-
               <input
                 id="typeDocument"
                 v-model.trim="form.document.typeDocument"
                 type="text"
                 maxlength="50"
+                placeholder="Ex. : Permis de conduire"
                 required
               />
             </div>
 
-            <!-- Numéro document -->
             <div class="form-group">
               <label for="numeroDocument">
                 Numéro du document
               </label>
-
               <input
                 id="numeroDocument"
                 v-model.trim="form.document.numeroDocument"
                 type="text"
                 maxlength="100"
+                placeholder="Numéro du document"
               />
             </div>
 
-            <!-- Date délivrance -->
             <div class="form-group">
-              <label for="dateDelivrance">
-                Date de délivrance
-              </label>
-
+              <label for="dateDelivrance">Date de délivrance</label>
               <input
                 id="dateDelivrance"
                 v-model="form.document.dateDelivrance"
@@ -371,12 +323,10 @@ onMounted(async () => {
               />
             </div>
 
-            <!-- Date expiration -->
             <div class="form-group">
               <label for="dateExpiration">
-                Date d'expiration *
+                Date d'expiration <span>*</span>
               </label>
-
               <input
                 id="dateExpiration"
                 v-model="form.document.dateExpiration"
@@ -385,51 +335,40 @@ onMounted(async () => {
               />
             </div>
 
-            <!-- Statut document -->
             <div class="form-group">
               <label for="documentStatut">
-                Statut du document *
+                Statut du document <span>*</span>
               </label>
-
               <input
                 id="documentStatut"
                 v-model.trim="form.document.statut"
                 type="text"
                 maxlength="20"
+                placeholder="Statut du document"
                 required
               />
             </div>
 
-            <!-- Observations -->
             <div class="form-group form-group-full">
-              <label for="observations">
-                Observations
-              </label>
-
+              <label for="observations">Observations</label>
               <textarea
                 id="observations"
                 v-model.trim="form.document.observations"
                 rows="4"
+                placeholder="Informations complémentaires sur le document..."
               ></textarea>
             </div>
           </div>
         </section>
 
-        <!-- ========================================= -->
-        <!-- INFORMATION MODE MODIFICATION              -->
-        <!-- ========================================= -->
-
-        <div
-          v-if="isEditMode"
-          class="info-message"
-        >
-          Les documents du chauffeur sont gérés séparément.
-          La modification du chauffeur ne modifie pas ses documents.
+        <div v-if="isEditMode" class="info-message">
+          <span class="info-icon">i</span>
+          <p>
+            <strong>Gestion des documents séparée</strong>
+            Les documents du chauffeur ne sont pas modifiés par ce
+            formulaire. Utilisez le module des documents pour les gérer.
+          </p>
         </div>
-
-        <!-- ========================================= -->
-        <!-- ACTIONS                                    -->
-        <!-- ========================================= -->
 
         <div class="form-actions">
           <button
@@ -446,10 +385,13 @@ onMounted(async () => {
             class="btn-primary"
             :disabled="saving"
           >
+            <span v-if="saving" class="button-spinner"></span>
             {{
               saving
                 ? 'Enregistrement...'
-                : 'Enregistrer'
+                : isEditMode
+                  ? 'Enregistrer les modifications'
+                  : 'Créer le chauffeur'
             }}
           </button>
         </div>
@@ -459,145 +401,409 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.chauffeur-form {
-  padding: 24px;
-  max-width: 1100px;
+.chauffeur-form-page {
+  width: 100%;
+  max-width: 1150px;
   margin: 0 auto;
+  padding: 28px 32px;
+  box-sizing: border-box;
+  color: #243247;
+}
+
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 22px;
+  color: #7b8797;
+  font-size: 13px;
+}
+
+.breadcrumb button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #7b8797;
+  font: inherit;
+  cursor: pointer;
+}
+
+.breadcrumb button:hover {
+  color: #17365d;
+}
+
+.breadcrumb strong {
+  color: #17365d;
+}
+
+.breadcrumb-separator {
+  color: #c5a13b;
 }
 
 .page-header {
-  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 25px;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-icon {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 13px;
+  background: #17365d;
+  color: #e2c46b;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 1px;
 }
 
 .page-header h1 {
   margin: 0 0 6px;
-  font-size: 28px;
+  color: #17365d;
+  font-size: 26px;
+  font-weight: 750;
 }
 
 .page-header p {
   margin: 0;
-  color: #666;
+  color: #7b8797;
+  font-size: 13px;
 }
 
-.form-container {
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 39px;
+  padding: 8px 13px;
+  border: 1px solid #dce3eb;
+  border-radius: 7px;
   background: white;
-  border-radius: 8px;
-  padding: 24px;
+  color: #17365d;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
 }
 
-section {
-  margin-bottom: 32px;
+.btn-back:hover {
+  background: #f5f7fa;
 }
 
-section h2 {
-  margin: 0 0 18px;
-  font-size: 20px;
+.form-card {
+  padding: 26px;
+  border: 1px solid #e7ebf0;
+  border-radius: 10px;
+  background: white;
+  box-shadow: 0 2px 8px rgb(20 40 70 / 3%);
 }
 
-.section-description {
-  margin: -8px 0 20px;
-  color: #666;
+.form-section {
+  margin-bottom: 30px;
+}
+
+.form-section + .form-section {
+  padding-top: 26px;
+  border-top: 1px solid #edf0f3;
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 22px;
+}
+
+.section-icon {
+  width: 39px;
+  height: 39px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 9px;
+  background: #eaf0f7;
+  color: #17365d;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.section-icon.gold {
+  background: #f8f2df;
+  color: #92721d;
+}
+
+.section-heading h2 {
+  margin: 0 0 5px;
+  color: #17365d;
+  font-size: 16px;
+  font-weight: 750;
+}
+
+.section-heading p {
+  margin: 0;
+  color: #8993a1;
+  font-size: 12px;
 }
 
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+  gap: 19px 22px;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 8px;
+  min-width: 0;
 }
 
 .form-group-full {
   grid-column: 1 / -1;
 }
 
-label {
-  font-weight: 600;
-  font-size: 14px;
+.form-group label {
+  color: #405066;
+  font-size: 12px;
+  font-weight: 700;
 }
 
-input,
-select,
-textarea {
+.form-group label span {
+  color: #b54747;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
   width: 100%;
   box-sizing: border-box;
-  padding: 10px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font: inherit;
-}
-
-textarea {
-  resize: vertical;
-}
-
-input:focus,
-select:focus,
-textarea:focus {
+  padding: 11px 12px;
+  border: 1px solid #dfe4ea;
+  border-radius: 7px;
   outline: none;
-  border-color: #2563eb;
+  background: #fff;
+  color: #243247;
+  font: inherit;
+  font-size: 13px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.alert-error {
-  margin-bottom: 20px;
-  padding: 12px 16px;
-  border-radius: 6px;
-  background: #fee2e2;
-  color: #991b1b;
+.form-group input,
+.form-group select {
+  min-height: 42px;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 95px;
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: #a2aab5;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: #54769b;
+  box-shadow: 0 0 0 3px rgb(23 54 93 / 8%);
+}
+
+.document-notice {
+  margin: 0 0 22px;
+  padding: 13px 16px;
+  border: 1px solid #eadfb9;
+  border-radius: 7px;
+  background: #fcf9ee;
+}
+
+.document-notice strong {
+  color: #80651d;
+  font-size: 12px;
+}
+
+.document-notice p {
+  margin: 5px 0 0;
+  color: #81734e;
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .info-message {
-  margin-bottom: 24px;
-  padding: 12px 16px;
-  border-radius: 6px;
-  background: #eff6ff;
-  color: #1e40af;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 25px;
+  padding: 15px;
+  border: 1px solid #dce5ef;
+  border-radius: 8px;
+  background: #f3f7fb;
 }
 
-.loading {
-  padding: 40px;
-  text-align: center;
-  color: #666;
+.info-icon {
+  display: grid;
+  place-items: center;
+  width: 23px;
+  height: 23px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #17365d;
+  color: white;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.info-message p {
+  margin: 0;
+  color: #53657a;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.info-message strong {
+  display: block;
+  margin-bottom: 3px;
+  color: #17365d;
+}
+
+.alert-error {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+  padding: 13px 15px;
+  border: 1px solid #f1caca;
+  border-radius: 8px;
+  background: #fff4f4;
+  color: #9b3030;
+  font-size: 13px;
+}
+
+.alert-error button {
+  border: 0;
+  background: transparent;
+  color: #8b2525;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .form-actions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  padding-top: 20px;
-  border-top: 1px solid #e5e7eb;
+  padding-top: 21px;
+  border-top: 1px solid #edf0f3;
 }
 
 .btn-primary,
 .btn-secondary {
-  border: none;
-  border-radius: 6px;
-  padding: 10px 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 41px;
+  padding: 9px 17px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
-  font-size: 14px;
+  transition: background 0.2s ease;
 }
 
 .btn-primary {
-  background: #2563eb;
+  border-color: #17365d;
+  background: #17365d;
   color: white;
 }
 
+.btn-primary:hover:not(:disabled) {
+  background: #102944;
+}
+
 .btn-secondary {
-  background: #e5e7eb;
-  color: #111827;
+  border-color: #dce3eb;
+  background: white;
+  color: #536174;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #f5f7fa;
 }
 
 .btn-primary:disabled,
-.btn-secondary:disabled {
+.btn-secondary:disabled,
+.btn-back:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-@media (max-width: 768px) {
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 260px;
+  color: #7b8797;
+  text-align: center;
+}
+
+.loading-state p {
+  font-size: 13px;
+}
+
+.spinner,
+.button-spinner {
+  display: inline-block;
+  border: 3px solid #e6ebf1;
+  border-top-color: #17365d;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.spinner {
+  width: 29px;
+  height: 29px;
+}
+
+.button-spinner {
+  width: 13px;
+  height: 13px;
+  border-width: 2px;
+  border-top-color: #fff;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 700px) {
+  .chauffeur-form-page {
+    padding: 20px 15px;
+  }
+
+  .page-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .form-card {
+    padding: 19px 15px;
+  }
+
   .form-grid {
     grid-template-columns: 1fr;
   }
@@ -606,9 +812,12 @@ textarea:focus {
     grid-column: auto;
   }
 
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
+  .form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .form-actions button {
+    width: 100%;
   }
 }
 </style>

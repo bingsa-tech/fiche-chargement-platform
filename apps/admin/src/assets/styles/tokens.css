@@ -1,35 +1,69 @@
 :root {
-  /* Couleurs */
-  --color-primary: #17365d;
-  --color-primary-hover: #214b7c;
-  --color-accent: #2563eb;
+  /* =========================================
+     IDENTITÉ INSTITUTIONNELLE FOPTRAC
+  ========================================= */
+  --color-brand-primary: #17365d;
+  --color-brand-primary-hover: #214b7c;
+  --color-brand-dark: #101b2d;
+  --color-brand-accent: #c5a13b;
+  --color-brand-accent-light: #e6c86e;
 
+  /* Alias de compatibilité */
+  --color-primary: var(--color-brand-primary);
+  --color-primary-hover: var(--color-brand-primary-hover);
+  --color-primary-dark: var(--color-brand-dark);
+  --color-sidebar: var(--color-brand-dark);
+
+  /* Accent et couleurs fonctionnelles */
+  --color-accent: #2563eb;
   --color-success: #16a34a;
   --color-warning: #d97706;
   --color-danger: #dc2626;
   --color-info: #0284c7;
 
-  /* Fonds */
-  --color-background: #f1f5f9;
+  /* =========================================
+     SURFACES
+  ========================================= */
+  --color-background: #f4f7fb;
   --color-surface: #ffffff;
+  --color-surface-secondary: #f8fafc;
   --color-border: #e2e8f0;
 
-  /* Texte */
+  /* =========================================
+     TYPOGRAPHIE
+  ========================================= */
   --color-text: #172033;
+  --color-text-primary: #172033;
+  --color-text-secondary: #64748b;
   --color-text-muted: #64748b;
+  --color-foreground: #172033;
+  --color-muted: #64748b;
 
-  /* Dimensions */
+  --font-family: Inter, system-ui, sans-serif;
+  --font-sans: var(--font-family);
+
+  /* =========================================
+     DIMENSIONS
+  ========================================= */
+  --sidebar-width: 260px;
+  --header-height: 72px;
+
+  /* =========================================
+     ESPACEMENTS
+  ========================================= */
+  --spacing-page: 24px;
+  --spacing-section: 32px;
+
+  /* =========================================
+     FORMES
+  ========================================= */
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;
 
-  /* Espacements */
-  --spacing-page: 24px;
-  --spacing-section: 32px;
-
-  /* Ombres */
-  --shadow-card: 0 2px 8px rgb(15 23 42 / 5%);
-
-  /* Typographie */
-  --font-family: Inter, system-ui, sans-serif;
+  /* =========================================
+     OMBRES
+  ========================================= */
+  --shadow-card: 0 4px 16px rgb(15 23 42 / 5%);
+  --shadow-dropdown: 0 8px 24px rgb(15 23 42 / 10%);
 }
