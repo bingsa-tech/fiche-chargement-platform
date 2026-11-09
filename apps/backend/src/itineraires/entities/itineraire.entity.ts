@@ -23,50 +23,50 @@ import { ItineraireStatut } from '../enums/itineraire-statut.enum';
 )
 export class Itineraire {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column('uuid', {
     name: 'destination_id',
   })
-  destinationId: string;
+  destinationId!: string;
 
   @Column({
     type: 'varchar',
     length: 30,
   })
-  code: string;
+  code!: string;
 
   @Column({
     type: 'varchar',
     length: 150,
   })
-  libelle: string;
+  libelle!: string;
 
   @Column({
     type: 'text',
     nullable: true,
   })
-  description: string | null;
+  description!: string | null;
 
   @Column({
     type: 'varchar',
     length: 20,
   })
-  statut: ItineraireStatut;
+  statut!: ItineraireStatut;
 
   @CreateDateColumn({
     name: 'created_at',
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
   })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({
     name: 'updated_at',
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
   })
-  updatedAt: Date;
+  updatedAt!: Date;
 
   // =========================
   // RELATIONS
@@ -84,11 +84,11 @@ export class Itineraire {
     name: 'destination_id',
     referencedColumnName: 'id',
   })
-  destination: Destination;
+  destination!: Destination;
 
   @OneToMany(
     () => Fiche,
     (fiche) => fiche.itineraire,
   )
-  fiches: Fiche[];
+  fiches!: Fiche[];
 }

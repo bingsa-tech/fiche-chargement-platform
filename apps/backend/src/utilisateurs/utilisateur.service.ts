@@ -5,15 +5,16 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 
 import { Utilisateur } from './entities/utilisateur.entity';
 import { Role } from '../roles/entities/role.entity';
 import { CreateUtilisateurDto } from './dto/create-utilisateur.dto';
+import { AuditService } from '../audit/audit.service';
 
 interface CurrentUser {
-  id: number;
+  sub: number;
   username: string;
   role: string;
   gareId: string | null;
@@ -24,10 +25,82 @@ export class UtilisateursService {
   constructor(
     @InjectRepository(Utilisateur)
     private readonly utilisateursRepository: Repository<Utilisateur>,
-
     @InjectRepository(Role)
     private readonly rolesRepository: Repository<Role>,
+    private readonly auditService: AuditService,
+    private readonly dataSource: DataSource,
   ) {}
+
+  // =====================================================
+  // HELPERS
+  // =====================================================
+
+  private validateCurrentUser(currentUser: CurrentUser): void {
+    if (
+      !currentUser ||
+      !Number.isInteger(currentUser.sub) ||
+      currentUser.sub <= 0
+    ) {
+      throw new ForbiddenException(
+        'Identité de l’utilisateur authentifié invalide.',
+      );
+    }
+  }
+
+  /**
+   * Snapshot limité aux données non sensibles.
+   * Ne jamais inclure passwordHash, même sous forme de hash.
+   */
+  private createUtilisateurSnapshot(utilisateur: Utilisateur) {
+    return {
+      id: utilisateur.id,
+      username: utilisateur.username,
+      email: utilisateur.email,
+      nom: utilisateur.nom,
+      prenom: utilisateur.prenom,
+      telephone: utilisateur.telephone,
+      actif: utilisateur.actif,
+      bloque: utilisateur.bloque,
+      role: utilisateur.role?.code ?? null,
+      gareId: utilisateur.gareId ?? null,
+    };
+  }
+
+  private sanitizeUtilisateur(
+    utilisateur: Utilisateur,
+  ): Omit<Utilisateur, 'passwordHash'> {
+    const {
+      passwordHash: _passwordHash,
+      ...safeUtilisateur
+    } = utilisateur;
+
+    return safeUtilisateur;
+  }
+
+  private async findUtilisateurForMutation(
+    id: number,
+    manager?: EntityManager,
+  ): Promise<Utilisateur> {
+    const repository = manager
+      ? manager.getRepository(Utilisateur)
+      : this.utilisateursRepository;
+
+    const utilisateur = await repository.findOne({
+      where: { id },
+      relations: {
+        role: true,
+        gare: true,
+      },
+    });
+
+    if (!utilisateur) {
+      throw new NotFoundException(
+        `Utilisateur avec l'identifiant ${id} introuvable`,
+      );
+    }
+
+    return utilisateur;
+  }
 
   // =====================================================
   // CREATE
@@ -36,17 +109,14 @@ export class UtilisateursService {
   async create(
     data: CreateUtilisateurDto,
     currentUser: CurrentUser,
+    appareilId: string | null = null,
   ): Promise<Omit<Utilisateur, 'passwordHash'>> {
-    // ---------------------------------------------------
-    // 1. Vérification du username
-    // ---------------------------------------------------
+    this.validateCurrentUser(currentUser);
 
-    const existingUsername =
-      await this.utilisateursRepository.findOne({
-        where: {
-          username: data.username,
-        },
-      });
+    // 1. Vérification du username
+    const existingUsername = await this.utilisateursRepository.findOne({
+      where: { username: data.username },
+    });
 
     if (existingUsername) {
       throw new ConflictException(
@@ -54,16 +124,10 @@ export class UtilisateursService {
       );
     }
 
-    // ---------------------------------------------------
     // 2. Vérification de l'email
-    // ---------------------------------------------------
-
-    const existingEmail =
-      await this.utilisateursRepository.findOne({
-        where: {
-          email: data.email,
-        },
-      });
+    const existingEmail = await this.utilisateursRepository.findOne({
+      where: { email: data.email },
+    });
 
     if (existingEmail) {
       throw new ConflictException(
@@ -71,10 +135,7 @@ export class UtilisateursService {
       );
     }
 
-    // ---------------------------------------------------
     // 3. Vérification du rôle demandé
-    // ---------------------------------------------------
-
     if (!data.roleId) {
       throw new ConflictException(
         "Le rôle de l'utilisateur est obligatoire",
@@ -82,9 +143,7 @@ export class UtilisateursService {
     }
 
     const role = await this.rolesRepository.findOne({
-      where: {
-        id: data.roleId,
-      },
+      where: { id: data.roleId },
     });
 
     if (!role) {
@@ -99,18 +158,9 @@ export class UtilisateursService {
       );
     }
 
-    // ---------------------------------------------------
     // 4. Règles métier de création
-    // ---------------------------------------------------
-
     if (currentUser.role === 'RESPONSABLE_GARE') {
-      // Le responsable de gare ne peut créer
-      // que AGENT ou CONTROLEUR.
-
-      const allowedRoles = [
-        'AGENT',
-        'CONTROLEUR',
-      ];
+      const allowedRoles = ['AGENT', 'CONTROLEUR'];
 
       if (!allowedRoles.includes(role.code)) {
         throw new ForbiddenException(
@@ -118,22 +168,18 @@ export class UtilisateursService {
         );
       }
 
-      // Le responsable doit être associé à une gare.
       if (!currentUser.gareId) {
         throw new ForbiddenException(
-          'Le responsable de gare n\'est associé à aucune gare',
+          "Le responsable de gare n'est associé à aucune gare",
         );
       }
 
-      // La gare demandée est obligatoire.
       if (!data.gareId) {
         throw new ForbiddenException(
           'La gare est obligatoire pour la création de cet utilisateur',
         );
       }
 
-      // Le responsable ne peut créer un compte
-      // que dans sa propre gare.
       if (data.gareId !== currentUser.gareId) {
         throw new ForbiddenException(
           'Vous ne pouvez créer un utilisateur que dans votre propre gare',
@@ -141,20 +187,14 @@ export class UtilisateursService {
       }
     }
 
-    // ---------------------------------------------------
     // 5. Vérification de la gare demandée
-    // ---------------------------------------------------
-
     if (data.gareId) {
-      const gareExists =
-        await this.utilisateursRepository.manager
-          .createQueryBuilder()
-          .select('gare.id')
-          .from('gare', 'gare')
-          .where('gare.id = :gareId', {
-            gareId: data.gareId,
-          })
-          .getRawOne();
+      const gareExists = await this.utilisateursRepository.manager
+        .createQueryBuilder()
+        .select('gare.id')
+        .from('gare', 'gare')
+        .where('gare.id = :gareId', { gareId: data.gareId })
+        .getRawOne();
 
       if (!gareExists) {
         throw new NotFoundException(
@@ -163,21 +203,14 @@ export class UtilisateursService {
       }
     }
 
-    // ---------------------------------------------------
     // 6. Hash du mot de passe
-    // ---------------------------------------------------
+    const passwordHash = await bcrypt.hash(data.password, 10);
 
-    const passwordHash = await bcrypt.hash(
-      data.password,
-      10,
-    );
+    // 7. Création et audit dans la même transaction
+    return this.dataSource.transaction(async (manager) => {
+      const repository = manager.getRepository(Utilisateur);
 
-    // ---------------------------------------------------
-    // 7. Création de l'utilisateur
-    // ---------------------------------------------------
-
-    const utilisateur =
-      this.utilisateursRepository.create({
+      const utilisateur = repository.create({
         username: data.username,
         email: data.email,
         passwordHash,
@@ -190,37 +223,50 @@ export class UtilisateursService {
         role,
       });
 
-    const savedUtilisateur =
-      await this.utilisateursRepository.save(
-        utilisateur,
+      const savedUtilisateur = await repository.save(utilisateur);
+
+      const utilisateurAvecRelations = await repository.findOne({
+        where: { id: savedUtilisateur.id },
+        relations: { role: true, gare: true },
+      });
+
+      if (!utilisateurAvecRelations) {
+        throw new NotFoundException(
+          "L'utilisateur créé est introuvable après sauvegarde",
+        );
+      }
+
+      await this.auditService.createLog(
+        {
+          utilisateurId: currentUser.sub,
+          action: 'CREATE',
+          entite: 'UTILISATEUR',
+          entiteId: String(utilisateurAvecRelations.id),
+          ancienneValeur: null,
+          nouvelleValeur: this.createUtilisateurSnapshot(
+            utilisateurAvecRelations,
+          ),
+          appareilId,
+        },
+        manager,
       );
 
-    // ---------------------------------------------------
-    // 8. Ne jamais retourner passwordHash
-    // ---------------------------------------------------
-
-    return this.sanitizeUtilisateur(
-      savedUtilisateur,
-    );
+      return this.sanitizeUtilisateur(utilisateurAvecRelations);
+    });
   }
 
   // =====================================================
   // FIND ALL
   // =====================================================
 
-  async findAll(): Promise<
-    Array<Omit<Utilisateur, 'passwordHash'>>
-  > {
-    const utilisateurs =
-      await this.utilisateursRepository.find({
-        relations: {
-          role: true,
-          gare: true,
-        },
-        order: {
-          id: 'ASC',
-        },
-      });
+  async findAll(): Promise<Array<Omit<Utilisateur, 'passwordHash'>>> {
+    const utilisateurs = await this.utilisateursRepository.find({
+      relations: {
+        role: true,
+        gare: true,
+      },
+      order: { id: 'ASC' },
+    });
 
     return utilisateurs.map((utilisateur) =>
       this.sanitizeUtilisateur(utilisateur),
@@ -233,94 +279,6 @@ export class UtilisateursService {
 
   async findOne(
     id: number,
-  ): Promise<Omit<Utilisateur, 'passwordHash'>> {
-    const utilisateur =
-      await this.utilisateursRepository.findOne({
-        where: { id },
-        relations: {
-          role: true,
-          gare: true,
-        },
-      });
-
-    if (!utilisateur) {
-      throw new NotFoundException(
-        `Utilisateur avec l'identifiant ${id} introuvable`,
-      );
-    }
-
-    return this.sanitizeUtilisateur(
-      utilisateur,
-    );
-  }
-
-  // =====================================================
-  // FIND BY USERNAME
-  // Utilisé notamment par l'authentification
-  // =====================================================
-
-  async findByUsername(
-    username: string,
-  ): Promise<Utilisateur | null> {
-    return this.utilisateursRepository.findOne({
-      where: {
-        username,
-      },
-      relations: {
-        role: true,
-        gare: true,
-      },
-    });
-  }
-
-  // =====================================================
-  // FIND BY USERNAME + ROLE + GARE
-  // Utilisé par AuthService
-  //
-  // IMPORTANT :
-  // passwordHash reste disponible ici car AuthService
-  // l'utilise avec bcrypt.compare().
-  // =====================================================
-
-  async findByUsernameWithRole(
-    username: string,
-  ): Promise<Utilisateur | null> {
-    return this.utilisateursRepository.findOne({
-      where: {
-        username,
-      },
-      relations: {
-        role: true,
-        gare: true,
-      },
-    });
-  }
-
-  // =====================================================
-  // FIND BY EMAIL
-  // =====================================================
-
-  async findByEmail(
-    email: string,
-  ): Promise<Utilisateur | null> {
-    return this.utilisateursRepository.findOne({
-      where: {
-        email,
-      },
-      relations: {
-        role: true,
-        gare: true,
-      },
-    });
-  }
-
-  // =====================================================
-  // UPDATE
-  // =====================================================
-
-  async update(
-    id: number,
-    data: Partial<Utilisateur>,
   ): Promise<Omit<Utilisateur, 'passwordHash'>> {
     const utilisateur = await this.utilisateursRepository.findOne({
       where: { id },
@@ -336,139 +294,187 @@ export class UtilisateursService {
       );
     }
 
-    // ---------------------------------------------------
-    // Vérification username
-    // ---------------------------------------------------
+    return this.sanitizeUtilisateur(utilisateur);
+  }
 
-    if (
-      data.username &&
-      data.username !== utilisateur.username
-    ) {
-      const existingUsername =
-        await this.utilisateursRepository.findOne({
-          where: {
-            username: data.username,
-          },
+  // =====================================================
+  // FIND BY USERNAME
+  // Utilisé notamment par l'authentification
+  // =====================================================
+
+  async findByUsername(username: string): Promise<Utilisateur | null> {
+    return this.utilisateursRepository.findOne({
+      where: { username },
+      relations: {
+        role: true,
+        gare: true,
+      },
+    });
+  }
+
+  // =====================================================
+  // FIND BY USERNAME + ROLE + GARE
+  // Utilisé par AuthService.
+  // passwordHash reste disponible pour bcrypt.compare().
+  // =====================================================
+
+  async findByUsernameWithRole(
+    username: string,
+  ): Promise<Utilisateur | null> {
+    return this.utilisateursRepository.findOne({
+      where: { username },
+      relations: {
+        role: true,
+        gare: true,
+      },
+    });
+  }
+
+  // =====================================================
+  // FIND BY EMAIL
+  // =====================================================
+
+  async findByEmail(email: string): Promise<Utilisateur | null> {
+    return this.utilisateursRepository.findOne({
+      where: { email },
+      relations: {
+        role: true,
+        gare: true,
+      },
+    });
+  }
+
+  // =====================================================
+  // UPDATE
+  // =====================================================
+
+  async update(
+    id: number,
+    data: Partial<Utilisateur>,
+    currentUser: CurrentUser,
+    appareilId: string | null = null,
+  ): Promise<Omit<Utilisateur, 'passwordHash'>> {
+    this.validateCurrentUser(currentUser);
+
+    return this.dataSource.transaction(async (manager) => {
+      const repository = manager.getRepository(Utilisateur);
+
+      const utilisateur = await this.findUtilisateurForMutation(
+        id,
+        manager,
+      );
+
+      const ancienneValeur =
+        this.createUtilisateurSnapshot(utilisateur);
+
+      // Vérification username
+      if (
+        data.username &&
+        data.username !== utilisateur.username
+      ) {
+        const existingUsername = await repository.findOne({
+          where: { username: data.username },
         });
 
-      if (
-        existingUsername &&
-        existingUsername.id !== id
-      ) {
-        throw new ConflictException(
-          `Le nom d'utilisateur "${data.username}" existe déjà`,
-        );
+        if (existingUsername && existingUsername.id !== id) {
+          throw new ConflictException(
+            `Le nom d'utilisateur "${data.username}" existe déjà`,
+          );
+        }
       }
-    }
 
-    // ---------------------------------------------------
-    // Vérification email
-    // ---------------------------------------------------
-
-    if (
-      data.email &&
-      data.email !== utilisateur.email
-    ) {
-      const existingEmail =
-        await this.utilisateursRepository.findOne({
-          where: {
-            email: data.email,
-          },
+      // Vérification email
+      if (data.email && data.email !== utilisateur.email) {
+        const existingEmail = await repository.findOne({
+          where: { email: data.email },
         });
 
-      if (
-        existingEmail &&
-        existingEmail.id !== id
-      ) {
-        throw new ConflictException(
-          `L'adresse email "${data.email}" existe déjà`,
-        );
+        if (existingEmail && existingEmail.id !== id) {
+          throw new ConflictException(
+            `L'adresse email "${data.email}" existe déjà`,
+          );
+        }
       }
-    }
 
-    // ---------------------------------------------------
-    // Mot de passe
-    //
-    // Si passwordHash est fourni directement, on le laisse
-    // uniquement pour compatibilité interne.
-    //
-    // Le changement de mot de passe doit idéalement être
-    // traité via un DTO dédié.
-    // ---------------------------------------------------
-
-    if (
-      'passwordHash' in data &&
-      data.passwordHash
-    ) {
-      utilisateur.passwordHash =
-        await bcrypt.hash(
+      // Compatibilité avec l'ancien comportement.
+      // La valeur reçue est hashée avant d'être persistée.
+      if ('passwordHash' in data && data.passwordHash) {
+        utilisateur.passwordHash = await bcrypt.hash(
           data.passwordHash,
           10,
         );
-    }
+      }
 
-    // ---------------------------------------------------
-    // Mise à jour des champs autorisés
-    // ---------------------------------------------------
+      // Mise à jour des champs autorisés
+      if (data.username !== undefined) {
+        utilisateur.username = data.username;
+      }
+      if (data.email !== undefined) {
+        utilisateur.email = data.email;
+      }
+      if (data.nom !== undefined) {
+        utilisateur.nom = data.nom;
+      }
+      if (data.prenom !== undefined) {
+        utilisateur.prenom = data.prenom;
+      }
+      if (data.telephone !== undefined) {
+        utilisateur.telephone = data.telephone;
+      }
+      if (data.actif !== undefined) {
+        utilisateur.actif = data.actif;
+      }
+      if (data.bloque !== undefined) {
+        utilisateur.bloque = data.bloque;
+      }
+      if (data.gareId !== undefined) {
+        utilisateur.gareId = data.gareId;
+      }
+      if (data.role !== undefined) {
+        utilisateur.role = data.role;
+      }
 
-    if (data.username !== undefined) {
-      utilisateur.username = data.username;
-    }
+      const savedUtilisateur = await repository.save(utilisateur);
 
-    if (data.email !== undefined) {
-      utilisateur.email = data.email;
-    }
+      const utilisateurAvecRelations = await repository.findOne({
+        where: { id: savedUtilisateur.id },
+        relations: { role: true, gare: true },
+      });
 
-    if (data.nom !== undefined) {
-      utilisateur.nom = data.nom;
-    }
+      if (!utilisateurAvecRelations) {
+        throw new NotFoundException(
+          `Utilisateur avec l'identifiant ${id} introuvable après modification`,
+        );
+      }
 
-    if (data.prenom !== undefined) {
-      utilisateur.prenom = data.prenom;
-    }
-
-    if (data.telephone !== undefined) {
-      utilisateur.telephone = data.telephone;
-    }
-
-    if (data.actif !== undefined) {
-      utilisateur.actif = data.actif;
-    }
-
-    if (data.bloque !== undefined) {
-      utilisateur.bloque = data.bloque;
-    }
-
-    if (data.gareId !== undefined) {
-      utilisateur.gareId = data.gareId;
-    }
-
-    if (data.role !== undefined) {
-      utilisateur.role = data.role;
-    }
-
-    const savedUtilisateur =
-      await this.utilisateursRepository.save(
-        utilisateur,
+      await this.auditService.createLog(
+        {
+          utilisateurId: currentUser.sub,
+          action: 'UPDATE',
+          entite: 'UTILISATEUR',
+          entiteId: String(id),
+          ancienneValeur,
+          nouvelleValeur: this.createUtilisateurSnapshot(
+            utilisateurAvecRelations,
+          ),
+          appareilId,
+        },
+        manager,
       );
 
-    return this.sanitizeUtilisateur(
-      savedUtilisateur,
-    );
+      return this.sanitizeUtilisateur(utilisateurAvecRelations);
+    });
   }
 
   // =====================================================
   // UPDATE LAST LOGIN
-  // Utilisé par AuthService
+  // Opération technique d'authentification, non auditée ici.
   // =====================================================
 
-  async updateLastLogin(
-    id: number,
-  ): Promise<void> {
-    const utilisateur =
-      await this.utilisateursRepository.findOne({
-        where: { id },
-      });
+  async updateLastLogin(id: number): Promise<void> {
+    const utilisateur = await this.utilisateursRepository.findOne({
+      where: { id },
+    });
 
     if (!utilisateur) {
       throw new NotFoundException(
@@ -477,10 +483,7 @@ export class UtilisateursService {
     }
 
     utilisateur.lastLoginAt = new Date();
-
-    await this.utilisateursRepository.save(
-      utilisateur,
-    );
+    await this.utilisateursRepository.save(utilisateur);
   }
 
   // =====================================================
@@ -490,17 +493,11 @@ export class UtilisateursService {
   async activate(
     id: number,
   ): Promise<Omit<Utilisateur, 'passwordHash'>> {
-    const utilisateur =
-      await this.findUtilisateurForMutation(id);
-
+    const utilisateur = await this.findUtilisateurForMutation(id);
     utilisateur.actif = true;
     utilisateur.bloque = false;
 
-    const saved =
-      await this.utilisateursRepository.save(
-        utilisateur,
-      );
-
+    const saved = await this.utilisateursRepository.save(utilisateur);
     return this.sanitizeUtilisateur(saved);
   }
 
@@ -511,16 +508,10 @@ export class UtilisateursService {
   async deactivate(
     id: number,
   ): Promise<Omit<Utilisateur, 'passwordHash'>> {
-    const utilisateur =
-      await this.findUtilisateurForMutation(id);
-
+    const utilisateur = await this.findUtilisateurForMutation(id);
     utilisateur.actif = false;
 
-    const saved =
-      await this.utilisateursRepository.save(
-        utilisateur,
-      );
-
+    const saved = await this.utilisateursRepository.save(utilisateur);
     return this.sanitizeUtilisateur(saved);
   }
 
@@ -531,16 +522,10 @@ export class UtilisateursService {
   async block(
     id: number,
   ): Promise<Omit<Utilisateur, 'passwordHash'>> {
-    const utilisateur =
-      await this.findUtilisateurForMutation(id);
-
+    const utilisateur = await this.findUtilisateurForMutation(id);
     utilisateur.bloque = true;
 
-    const saved =
-      await this.utilisateursRepository.save(
-        utilisateur,
-      );
-
+    const saved = await this.utilisateursRepository.save(utilisateur);
     return this.sanitizeUtilisateur(saved);
   }
 
@@ -551,16 +536,10 @@ export class UtilisateursService {
   async unblock(
     id: number,
   ): Promise<Omit<Utilisateur, 'passwordHash'>> {
-    const utilisateur =
-      await this.findUtilisateurForMutation(id);
-
+    const utilisateur = await this.findUtilisateurForMutation(id);
     utilisateur.bloque = false;
 
-    const saved =
-      await this.utilisateursRepository.save(
-        utilisateur,
-      );
-
+    const saved = await this.utilisateursRepository.save(utilisateur);
     return this.sanitizeUtilisateur(saved);
   }
 
@@ -568,48 +547,38 @@ export class UtilisateursService {
   // DELETE
   // =====================================================
 
-  async remove(id: number): Promise<void> {
-    const utilisateur =
-      await this.findUtilisateurForMutation(id);
-
-    await this.utilisateursRepository.remove(
-      utilisateur,
-    );
-  }
-
-  // =====================================================
-  // HELPERS
-  // =====================================================
-
-  private sanitizeUtilisateur(
-    utilisateur: Utilisateur,
-  ): Omit<Utilisateur, 'passwordHash'> {
-    const {
-      passwordHash: _passwordHash,
-      ...safeUtilisateur
-    } = utilisateur;
-
-    return safeUtilisateur;
-  }
-
-  private async findUtilisateurForMutation(
+  async remove(
     id: number,
-  ): Promise<Utilisateur> {
-    const utilisateur =
-      await this.utilisateursRepository.findOne({
-        where: { id },
-        relations: {
-          role: true,
-          gare: true,
-        },
-      });
+    currentUser: CurrentUser,
+    appareilId: string | null = null,
+  ): Promise<void> {
+    this.validateCurrentUser(currentUser);
 
-    if (!utilisateur) {
-      throw new NotFoundException(
-        `Utilisateur avec l'identifiant ${id} introuvable`,
+    await this.dataSource.transaction(async (manager) => {
+      const repository = manager.getRepository(Utilisateur);
+
+      const utilisateur = await this.findUtilisateurForMutation(
+        id,
+        manager,
       );
-    }
 
-    return utilisateur;
+      const ancienneValeur =
+        this.createUtilisateurSnapshot(utilisateur);
+
+      await repository.remove(utilisateur);
+
+      await this.auditService.createLog(
+        {
+          utilisateurId: currentUser.sub,
+          action: 'DELETE',
+          entite: 'UTILISATEUR',
+          entiteId: String(id),
+          ancienneValeur,
+          nouvelleValeur: null,
+          appareilId,
+        },
+        manager,
+      );
+    });
   }
 }

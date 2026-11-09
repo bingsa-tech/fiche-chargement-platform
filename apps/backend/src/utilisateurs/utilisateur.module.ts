@@ -7,7 +7,7 @@ import { Gare } from '../gares/entities/gare.entity';
 
 import { UtilisateursController } from './utilisateur.controller';
 import { UtilisateursService } from './utilisateur.service';
-
+import { AuditModule } from '../audit/audit.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -15,6 +15,7 @@ import { UtilisateursService } from './utilisateur.service';
       Role,
       Gare,
     ]),
+    AuditModule,
   ],
   controllers: [
     UtilisateursController,

@@ -5,9 +5,11 @@ import { GaresController } from './gares.controller';
 import { GaresService } from './gares.service';
 import { Gare } from './entities/gare.entity';
 
+import {AuditModule} from "../audit/audit.module";
 @Module({
   imports: [
     TypeOrmModule.forFeature([Gare]),
+    AuditModule,
   ],
   controllers: [GaresController],
   providers: [GaresService],

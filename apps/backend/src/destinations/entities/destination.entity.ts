@@ -14,53 +14,53 @@ import { DestinationStatut } from '../enums/destination-statut.enum';
 @Entity('destination', { schema: 'public' })
 export class Destination {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({
     type: 'varchar',
     length: 30,
     unique: true,
   })
-  code: string;
+  code!: string;
 
   @Column({
     type: 'varchar',
     length: 150,
   })
-  nom: string;
+  nom!: string;
 
   @Column({
     type: 'varchar',
     length: 100,
   })
-  ville: string;
+  ville!: string;
 
   @Column({
     type: 'varchar',
     length: 100,
   })
-  pays: string;
+  pays!: string;
 
   @Column({
     type: 'varchar',
     length: 20,
     name: 'statut',
   })
-  statut: DestinationStatut;
+  statut!: DestinationStatut;
 
   @CreateDateColumn({
     name: 'created_at',
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
   })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({
     name: 'updated_at',
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
   })
-  updatedAt: Date;
+  updatedAt!: Date;
 
   // =========================
   // RELATIONS
@@ -70,11 +70,11 @@ export class Destination {
     () => Fiche,
     (fiche) => fiche.destination,
   )
-  fiches: Fiche[];
+  fiches!: Fiche[];
 
   @OneToMany(
     () => Itineraire,
     (itineraire) => itineraire.destination,
   )
-  itineraires: Itineraire[];
+  itineraires!: Itineraire[];
 }

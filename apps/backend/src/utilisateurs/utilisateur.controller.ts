@@ -1,3 +1,4 @@
+
 import {
   Body,
   Controller,
@@ -18,6 +19,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
+import { Request } from 'express';
+
 import { UtilisateursService } from './utilisateur.service';
 
 import { CreateUtilisateurDto } from './dto/create-utilisateur.dto';
@@ -33,6 +36,15 @@ import {
   PERMISSION_RESOURCES,
 } from '../config/permissions.config';
 
+interface AuthenticatedRequest extends Request {
+  user: {
+    sub: number;
+    username: string;
+    role: string;
+    gareId: string | null;
+  };
+}
+
 @ApiTags('Utilisateurs')
 @ApiBearerAuth()
 @UseGuards(
@@ -46,6 +58,18 @@ export class UtilisateursController {
   ) {}
 
   // =====================================================
+  // HELPER : IDENTIFIANT DE L'APPAREIL
+  // =====================================================
+
+  private getAppareilId(req: AuthenticatedRequest): string | null {
+    const appareilId = req.headers['x-device-id'];
+
+    return typeof appareilId === 'string'
+      ? appareilId
+      : null;
+  }
+
+  // =====================================================
   // CREATE
   // ADMIN + RESPONSABLE_GARE
   // =====================================================
@@ -56,15 +80,13 @@ export class UtilisateursController {
     PERMISSION_ACTIONS.CREATE,
   )
   create(
-    @Body()
-    createUtilisateurDto: CreateUtilisateurDto,
-
-    @Req()
-    req: any,
+    @Body() createUtilisateurDto: CreateUtilisateurDto,
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.utilisateursService.create(
       createUtilisateurDto,
       req.user,
+      this.getAppareilId(req),
     );
   }
 
@@ -93,8 +115,7 @@ export class UtilisateursController {
     PERMISSION_ACTIONS.READ,
   )
   findOne(
-    @Param('id', ParseIntPipe)
-    id: number,
+    @Param('id', ParseIntPipe) id: number,
   ) {
     return this.utilisateursService.findOne(id);
   }
@@ -110,15 +131,15 @@ export class UtilisateursController {
     PERMISSION_ACTIONS.UPDATE,
   )
   update(
-    @Param('id', ParseIntPipe)
-    id: number,
-
-    @Body()
-    updateUtilisateurDto: UpdateUtilisateurDto,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateUtilisateurDto: UpdateUtilisateurDto,
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.utilisateursService.update(
       id,
       updateUtilisateurDto,
+      req.user,
+      this.getAppareilId(req),
     );
   }
 
@@ -134,9 +155,13 @@ export class UtilisateursController {
   )
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(
-    @Param('id', ParseIntPipe)
-    id: number,
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthenticatedRequest,
   ): Promise<void> {
-    await this.utilisateursService.remove(id);
+    await this.utilisateursService.remove(
+      id,
+      req.user,
+      this.getAppareilId(req),
+    );
   }
 }
