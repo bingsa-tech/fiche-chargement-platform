@@ -1,6 +1,6 @@
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
@@ -54,6 +54,10 @@ const menuItems = [
   { id: 'alertes', label: 'Alertes', icon: '◷' },
 ];
 
+const currentSection = computed(() =>
+  menuItems.find(item => item.id === activeSection.value)
+);
+
 function goToLogin() {
   router.push({ name: 'login' });
 }
@@ -65,115 +69,170 @@ function goToHome() {
 
 <template>
   <main class="demo-page">
+    <!-- En-tête -->
     <header class="demo-header">
       <div class="demo-brand">
-        <img src="../../assets/logo.png" alt="Logo" />
-        <div>
+        <img src="../../assets/logo.png" alt="Logo Fiche Chargement" />
+
+        <div class="brand-text">
           <strong>FICHE CHARGEMENT</strong>
-          <span>Environnement de démonstration</span>
+          <span>Plateforme de gestion et de suivi</span>
         </div>
       </div>
 
       <div class="demo-header-actions">
         <span class="demo-mode">
-          <span></span>
+          <span class="mode-indicator"></span>
           MODE DÉMONSTRATION
         </span>
+
         <button class="login-button" @click="goToLogin">
-          Connexion réelle →
+          <span>Connexion réelle</span>
+          <span class="button-arrow">→</span>
         </button>
       </div>
     </header>
 
+    <!-- Information démonstration -->
     <div class="demo-banner">
-      <span>ℹ</span>
-      Vous consultez une démonstration. Toutes les informations affichées
-      sont fictives et aucune opération réelle n'est effectuée.
+      <span class="banner-icon">ⓘ</span>
+
+      <p>
+        <strong>Environnement de démonstration :</strong>
+        toutes les informations affichées sont fictives et aucune opération
+        réelle n'est effectuée.
+      </p>
     </div>
 
     <div class="demo-layout">
+      <!-- Barre latérale -->
       <aside class="demo-sidebar">
-        <div class="sidebar-heading">ESPACE DE TRAVAIL</div>
+        <div class="sidebar-heading">
+          <span class="sidebar-heading-line"></span>
+          ESPACE DE TRAVAIL
+        </div>
 
-        <button
-          v-for="item in menuItems"
-          :key="item.id"
-          class="menu-item"
-          :class="{ active: activeSection === item.id }"
-          @click="activeSection = item.id"
-        >
-          <span class="menu-icon">{{ item.icon }}</span>
-          {{ item.label }}
-        </button>
+        <nav class="sidebar-navigation" aria-label="Navigation de démonstration">
+          <button
+            v-for="item in menuItems"
+            :key="item.id"
+            class="menu-item"
+            :class="{ active: activeSection === item.id }"
+            :aria-current="activeSection === item.id ? 'page' : undefined"
+            @click="activeSection = item.id"
+          >
+            <span class="menu-icon">{{ item.icon }}</span>
+            <span class="menu-label">{{ item.label }}</span>
+            <span v-if="activeSection === item.id" class="active-indicator"></span>
+          </button>
+        </nav>
 
         <div class="sidebar-bottom">
           <div class="demo-user">
             <div class="user-avatar">D</div>
-            <div>
+
+            <div class="user-information">
               <strong>Utilisateur démo</strong>
               <span>Accès en lecture seule</span>
             </div>
           </div>
 
           <button class="back-button" @click="goToHome">
-            ← Retour à l'accueil
+            <span>←</span>
+            Retour à l'accueil
           </button>
         </div>
       </aside>
 
+      <!-- Contenu principal -->
       <section class="demo-content">
         <div class="content-heading">
-          <div>
-            <span class="eyebrow">TABLEAU DE BORD / DÉMONSTRATION</span>
-            <h1>
-              {{
-                menuItems.find(item => item.id === activeSection)?.label
-                ?? 'Vue générale'
-              }}
-            </h1>
-            <p>Bienvenue dans l'environnement de démonstration.</p>
+          <div class="heading-information">
+            <div class="breadcrumb">
+              <span>TABLEAU DE BORD</span>
+              <span class="breadcrumb-separator">/</span>
+              <span>DÉMONSTRATION</span>
+            </div>
+
+            <h1>{{ currentSection?.label ?? 'Vue générale' }}</h1>
+
+            <p>
+              Bienvenue dans l'environnement de démonstration de Fiche Chargement.
+            </p>
           </div>
 
-          <span class="readonly-badge">LECTURE SEULE</span>
+          <span class="readonly-badge">
+            <span class="readonly-dot"></span>
+            LECTURE SEULE
+          </span>
         </div>
 
+        <!-- Vue générale -->
         <template v-if="activeSection === 'overview'">
+          <div class="section-intro">
+            <div>
+              <h2>Vue d'ensemble</h2>
+              <p>Présentation des principales données de la plateforme.</p>
+            </div>
+
+            <span class="sample-label">DONNÉES FICTIVES</span>
+          </div>
+
           <div class="stats-grid">
             <article class="stat-card">
-              <div class="stat-icon blue">⌂</div>
-              <span>Gares enregistrées</span>
-              <strong>{{ demoData.gares }}</strong>
-              <small>Données fictives</small>
+              <div class="stat-card-top">
+                <div class="stat-icon blue">⌂</div>
+                <span class="stat-reference">01</span>
+              </div>
+
+              <span class="stat-label">Gares enregistrées</span>
+              <strong class="stat-value">{{ demoData.gares }}</strong>
+              <small>Exemples de données</small>
             </article>
 
             <article class="stat-card">
-              <div class="stat-icon purple">▣</div>
-              <span>Véhicules</span>
-              <strong>{{ demoData.vehicules }}</strong>
-              <small>Données fictives</small>
+              <div class="stat-card-top">
+                <div class="stat-icon purple">▣</div>
+                <span class="stat-reference">02</span>
+              </div>
+
+              <span class="stat-label">Véhicules</span>
+              <strong class="stat-value">{{ demoData.vehicules }}</strong>
+              <small>Exemples de données</small>
             </article>
 
             <article class="stat-card">
-              <div class="stat-icon green">♙</div>
-              <span>Chauffeurs</span>
-              <strong>{{ demoData.chauffeurs }}</strong>
-              <small>Données fictives</small>
+              <div class="stat-card-top">
+                <div class="stat-icon green">♙</div>
+                <span class="stat-reference">03</span>
+              </div>
+
+              <span class="stat-label">Chauffeurs</span>
+              <strong class="stat-value">{{ demoData.chauffeurs }}</strong>
+              <small>Exemples de données</small>
             </article>
 
             <article class="stat-card">
-              <div class="stat-icon orange">▤</div>
-              <span>Fiches de chargement</span>
-              <strong>{{ demoData.fiches }}</strong>
-              <small>Données fictives</small>
+              <div class="stat-card-top">
+                <div class="stat-icon gold">▤</div>
+                <span class="stat-reference">04</span>
+              </div>
+
+              <span class="stat-label">Fiches de chargement</span>
+              <strong class="stat-value">{{ demoData.fiches }}</strong>
+              <small>Exemples de données</small>
             </article>
           </div>
 
+          <!-- Opérations récentes -->
           <section class="data-panel">
             <div class="panel-heading">
               <div>
+                <span class="panel-eyebrow">ACTIVITÉ</span>
                 <h2>Opérations récentes</h2>
-                <p>Exemples de fiches de chargement fictives</p>
+                <p>Exemples de fiches de chargement fictives.</p>
               </div>
+
               <span class="sample-label">EXEMPLES</span>
             </div>
 
@@ -190,11 +249,15 @@ function goToHome() {
                 </thead>
 
                 <tbody>
-                  <tr v-for="operation in recentOperations" :key="operation.id">
+                  <tr
+                    v-for="operation in recentOperations"
+                    :key="operation.id"
+                  >
                     <td class="reference">{{ operation.id }}</td>
                     <td>{{ operation.gare }}</td>
                     <td>{{ operation.chauffeur }}</td>
                     <td>{{ operation.vehicule }}</td>
+
                     <td>
                       <span
                         class="status"
@@ -204,6 +267,7 @@ function goToHome() {
                           warning: operation.statut === 'À vérifier',
                         }"
                       >
+                        <span class="status-dot"></span>
                         {{ operation.statut }}
                       </span>
                     </td>
@@ -211,24 +275,47 @@ function goToHome() {
                 </tbody>
               </table>
             </div>
+
+            <div class="table-footer">
+              <span>Affichage de {{ recentOperations.length }} opérations fictives</span>
+              <span class="table-footer-note">Aucune donnée de production</span>
+            </div>
           </section>
         </template>
 
+        <!-- Autres sections -->
         <template v-else>
           <section class="data-panel section-placeholder">
-            <div class="placeholder-icon">▦</div>
-            <h2>{{ menuItems.find(item => item.id === activeSection)?.label }}</h2>
+            <div class="placeholder-icon">
+              {{ currentSection?.icon ?? '▦' }}
+            </div>
+
+            <span class="placeholder-eyebrow">ENVIRONNEMENT DE DÉMONSTRATION</span>
+
+            <h2>{{ currentSection?.label }}</h2>
+
             <p>
               Cette section illustre une fonctionnalité de la plateforme.
               Les données affichées dans cet environnement sont fictives.
             </p>
-            <span class="readonly-badge">MODULE DE DÉMONSTRATION</span>
+
+            <span class="readonly-badge">
+              MODULE DE DÉMONSTRATION
+            </span>
           </section>
         </template>
 
+        <!-- Pied de page -->
         <footer class="demo-footer">
-          <span>Fiche Chargement — Démonstration</span>
-          <span>Aucune connexion au système de production</span>
+          <div>
+            <strong>FICHE CHARGEMENT</strong>
+            <span> — Environnement de démonstration</span>
+          </div>
+
+          <span class="footer-security">
+            <span class="footer-dot"></span>
+            Aucune connexion au système de production
+          </span>
         </footer>
       </section>
     </div>
@@ -236,148 +323,241 @@ function goToHome() {
 </template>
 
 <style scoped>
+/* =========================================
+   IDENTITÉ VISUELLE FOPTRAC
+   Bleu marine : #17365D
+   Or           : #C5A13B
+========================================= */
+
 .demo-page {
+  --primary: #17365d;
+  --primary-dark: #102744;
+  --primary-light: #eaf0f7;
+  --gold: #c5a13b;
+  --gold-light: #f8f1dc;
+  --text: #26364b;
+  --muted: #78879a;
+  --border: #e5eaf0;
+  --surface: #ffffff;
+  --background: #f5f7fa;
+
   min-height: 100vh;
-  background: #f4f7fb;
-  color: #17243b;
+  background: var(--background);
+  color: var(--text);
   font-family: Inter, Arial, sans-serif;
 }
 
+/* HEADER */
+
 .demo-header {
-  min-height: 75px;
+  min-height: 76px;
   padding: 12px 5%;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  background: #fff;
-  border-bottom: 1px solid #e5eaf2;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
 }
 
 .demo-brand,
 .demo-header-actions {
   display: flex;
   align-items: center;
-  gap: 13px;
+  gap: 14px;
 }
 
 .demo-brand img {
-  width: 43px;
-  height: 43px;
+  width: 45px;
+  height: 45px;
   object-fit: contain;
 }
 
-.demo-brand div {
+.brand-text {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
 
 .demo-brand strong {
-  color: #122b4c;
+  color: var(--primary);
   font-size: 13px;
-  letter-spacing: 0.7px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
 }
 
 .demo-brand span {
-  color: #8290a4;
+  color: var(--muted);
   font-size: 11px;
 }
 
 .demo-mode {
-  color: #1764ed;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--primary);
   font-size: 10px;
   font-weight: 800;
-  letter-spacing: 1px;
+  letter-spacing: 0.8px;
+  white-space: nowrap;
 }
 
-.demo-mode span {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  margin-right: 5px;
+.mode-indicator,
+.footer-dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
   border-radius: 50%;
-  background: #20bf89;
+  background: #2ca77c;
 }
 
 .login-button {
-  padding: 11px 16px;
+  padding: 11px 17px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--primary);
+  border-radius: 6px;
+  background: var(--primary);
   color: #fff;
-  background: #1764ed;
-  border: 0;
-  border-radius: 7px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
+
+.login-button:hover {
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+}
+
+.button-arrow {
+  color: #e2c16b;
+  font-size: 17px;
+}
+
+/* BANNIÈRE */
 
 .demo-banner {
-  padding: 13px 5%;
+  min-height: 45px;
+  padding: 11px 5%;
   display: flex;
   align-items: center;
-  gap: 10px;
-  color: #785a16;
-  background: #fff8e7;
-  border-bottom: 1px solid #f2e4bd;
-  font-size: 12px;
+  gap: 11px;
+  color: #755b20;
+  background: #faf5e7;
+  border-bottom: 1px solid #eee3c6;
+  font-size: 11px;
 }
 
-.demo-banner span {
+.demo-banner p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.demo-banner strong {
   font-weight: 800;
 }
 
-.demo-layout {
-  min-height: calc(100vh - 120px);
-  display: grid;
-  grid-template-columns: 245px minmax(0, 1fr);
+.banner-icon {
+  color: var(--gold);
+  font-size: 17px;
+  font-weight: 800;
 }
 
+/* STRUCTURE */
+
+.demo-layout {
+  min-height: calc(100vh - 121px);
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+}
+
+/* SIDEBAR */
+
 .demo-sidebar {
-  padding: 27px 17px;
+  padding: 27px 17px 20px;
   display: flex;
   flex-direction: column;
-  background: #102344;
+  background: var(--primary);
   color: #fff;
 }
 
 .sidebar-heading {
   padding: 0 12px;
-  margin-bottom: 20px;
-  color: #91a7c4;
+  margin-bottom: 22px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #b8c8da;
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 1px;
 }
 
+.sidebar-heading-line {
+  width: 3px;
+  height: 13px;
+  border-radius: 3px;
+  background: var(--gold);
+}
+
+.sidebar-navigation {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
 .menu-item {
+  position: relative;
   width: 100%;
-  padding: 13px 12px;
+  min-height: 44px;
+  padding: 11px 12px;
   display: flex;
   align-items: center;
   gap: 12px;
   border: 0;
-  border-radius: 7px;
+  border-radius: 5px;
   background: transparent;
-  color: #b8c8df;
+  color: #c4d0df;
   text-align: left;
   font-size: 12px;
   cursor: pointer;
-  transition: 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
-.menu-item:hover,
+.menu-item:hover {
+  color: #fff;
+  background: #ffffff12;
+}
+
 .menu-item.active {
   color: #fff;
   background: #ffffff18;
+  font-weight: 700;
 }
 
-.menu-item.active {
-  box-shadow: inset 3px 0 #65a4ff;
+.menu-item.active .menu-icon {
+  color: #e2c16b;
 }
 
 .menu-icon {
-  width: 19px;
-  color: #80b2ff;
+  width: 20px;
+  flex-shrink: 0;
+  color: #b6c8df;
   font-size: 17px;
+  text-align: center;
+}
+
+.menu-label {
+  flex: 1;
+}
+
+.active-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
 }
 
 .sidebar-bottom {
@@ -389,90 +569,152 @@ function goToHome() {
   padding: 15px 8px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  border-top: 1px solid #ffffff20;
+  gap: 11px;
+  border-top: 1px solid #ffffff24;
 }
 
 .user-avatar {
-  width: 35px;
-  height: 35px;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
   display: grid;
   place-items: center;
+  border: 1px solid #e2c16b66;
   border-radius: 50%;
-  background: #2468e9;
+  background: #ffffff14;
+  color: #e2c16b;
+  font-size: 14px;
   font-weight: 800;
 }
 
-.demo-user div:last-child {
+.user-information {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 5px;
 }
 
 .demo-user strong {
+  color: #fff;
   font-size: 11px;
 }
 
 .demo-user span {
-  color: #a9bad2;
+  color: #b8c8da;
   font-size: 10px;
 }
 
 .back-button {
   width: 100%;
-  padding: 12px 8px;
-  border: 1px solid #ffffff30;
-  border-radius: 7px;
-  color: #fff;
+  padding: 12px 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #ffffff35;
+  border-radius: 5px;
   background: transparent;
+  color: #e5edf6;
   text-align: left;
   font-size: 11px;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
+
+.back-button:hover {
+  border-color: var(--gold);
+  color: #e2c16b;
+  background: #ffffff0c;
+}
+
+/* CONTENU */
 
 .demo-content {
   min-width: 0;
-  padding: 38px;
+  padding: 35px 38px 25px;
 }
 
 .content-heading {
-  margin-bottom: 28px;
+  margin-bottom: 30px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 15px;
+  gap: 20px;
 }
 
-.eyebrow {
-  color: #1764ed;
-  font-size: 10px;
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 9px;
   font-weight: 800;
-  letter-spacing: 1px;
+  letter-spacing: 0.9px;
+}
+
+.breadcrumb-separator {
+  color: var(--gold);
 }
 
 .content-heading h1 {
-  margin: 10px 0 6px;
-  color: #152c4b;
+  margin: 10px 0 7px;
+  color: var(--primary);
   font-size: 27px;
+  font-weight: 800;
 }
 
 .content-heading p {
   margin: 0;
-  color: #8190a4;
+  color: var(--muted);
   font-size: 12px;
+  line-height: 1.6;
 }
 
-.readonly-badge,
-.sample-label {
-  padding: 7px 10px;
+.readonly-badge {
+  padding: 8px 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid #e9dfc5;
   border-radius: 5px;
-  color: #1764ed;
-  background: #eaf1ff;
+  background: var(--gold-light);
+  color: #826821;
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.5px;
   white-space: nowrap;
 }
+
+.readonly-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
+}
+
+/* INTRODUCTION */
+
+.section-intro {
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.section-intro h2 {
+  margin: 0 0 5px;
+  color: var(--primary);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.section-intro p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* INDICATEURS */
 
 .stats-grid {
   display: grid;
@@ -481,66 +723,92 @@ function goToHome() {
 }
 
 .stat-card {
-  padding: 20px;
+  min-width: 0;
+  padding: 19px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 10px;
-  border: 1px solid #e8edf5;
-  border-radius: 11px;
-  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  box-shadow: 0 2px 7px #17365d08;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px #17365d12;
+}
+
+.stat-card-top {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .stat-icon {
-  width: 38px;
-  height: 38px;
+  width: 39px;
+  height: 39px;
   display: grid;
   place-items: center;
-  border-radius: 9px;
+  border-radius: 7px;
   font-size: 20px;
 }
 
 .stat-icon.blue {
-  color: #1764ed;
-  background: #eaf1ff;
+  color: #315f92;
+  background: #eaf1f8;
 }
 
 .stat-icon.purple {
-  color: #8056dc;
-  background: #f1eaff;
+  color: #7956a7;
+  background: #f1ebf8;
 }
 
 .stat-icon.green {
-  color: #159c70;
-  background: #e3f8ef;
+  color: #218361;
+  background: #e6f4ee;
 }
 
-.stat-icon.orange {
-  color: #d88924;
-  background: #fff1dc;
+.stat-icon.gold {
+  color: #a17c22;
+  background: #f8f1dc;
 }
 
-.stat-card > span {
-  color: #8290a4;
+.stat-reference {
+  color: #b4bdc9;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.stat-label {
+  color: #78879a;
   font-size: 11px;
 }
 
-.stat-card strong {
-  color: #172d4c;
+.stat-value {
+  color: var(--primary);
   font-size: 29px;
+  font-weight: 800;
+  line-height: 1.2;
 }
 
 .stat-card small {
-  color: #a0aabc;
+  color: #a0aaba;
   font-size: 10px;
 }
 
+/* PANNEAUX */
+
 .data-panel {
   margin-top: 25px;
-  padding: 24px;
-  border: 1px solid #e8edf5;
-  border-radius: 11px;
-  background: #fff;
+  padding: 23px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  box-shadow: 0 2px 7px #17365d08;
 }
 
 .panel-heading {
@@ -548,21 +816,48 @@ function goToHome() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
+}
+
+.panel-eyebrow,
+.placeholder-eyebrow {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--gold);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
 }
 
 .panel-heading h2 {
-  margin: 0 0 7px;
+  margin: 0 0 6px;
+  color: var(--primary);
   font-size: 16px;
+  font-weight: 800;
 }
 
 .panel-heading p {
   margin: 0;
-  color: #8996a9;
+  color: var(--muted);
   font-size: 11px;
 }
 
+.sample-label {
+  padding: 7px 10px;
+  border: 1px solid #e9dfc5;
+  border-radius: 4px;
+  background: var(--gold-light);
+  color: #826821;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+/* TABLEAU */
+
 .table-wrapper {
+  width: 100%;
   overflow-x: auto;
 }
 
@@ -574,49 +869,91 @@ table {
 }
 
 th {
-  padding: 13px 10px;
-  color: #8290a4;
-  background: #f7f9fc;
+  padding: 13px 11px;
+  border-bottom: 1px solid var(--border);
+  background: #f7f9fb;
+  color: #748297;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 td {
-  padding: 15px 10px;
-  border-bottom: 1px solid #edf0f5;
+  padding: 15px 11px;
+  border-bottom: 1px solid #edf0f4;
   color: #526177;
   font-size: 11px;
 }
 
+tbody tr {
+  transition: background 0.15s ease;
+}
+
+tbody tr:hover {
+  background: #fafbfd;
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
 .reference {
-  color: #1764ed;
-  font-weight: 700;
+  color: var(--primary);
+  font-weight: 800;
 }
 
 .status {
-  padding: 5px 8px;
-  border-radius: 5px;
+  padding: 6px 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 4px;
   font-size: 10px;
   font-weight: 700;
 }
 
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
 .status.validated {
-  color: #16865f;
-  background: #e5f8ef;
+  background: #e7f4ed;
+  color: #21805b;
 }
 
 .status.pending {
-  color: #a56c15;
-  background: #fff3d9;
+  background: #faf1dc;
+  color: #99721e;
 }
 
 .status.warning {
-  color: #c04b4b;
-  background: #ffebeb;
+  background: #f9eaea;
+  color: #b54d4d;
 }
 
+.table-footer {
+  padding-top: 14px;
+  margin-top: 4px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--border);
+  color: #8996a8;
+  font-size: 10px;
+}
+
+.table-footer-note {
+  color: #a17c22;
+}
+
+/* PLACEHOLDER DES MODULES */
+
 .section-placeholder {
-  min-height: 300px;
+  min-height: 340px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -625,54 +962,75 @@ td {
 }
 
 .placeholder-icon {
-  width: 60px;
-  height: 60px;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 20px;
   display: grid;
   place-items: center;
-  border-radius: 14px;
-  color: #1764ed;
-  background: #eaf1ff;
-  font-size: 28px;
+  border: 1px solid #e9dfc5;
+  border-radius: 10px;
+  background: var(--gold-light);
+  color: #a17c22;
+  font-size: 27px;
+}
+
+.placeholder-eyebrow {
+  margin-bottom: 8px;
 }
 
 .section-placeholder h2 {
-  margin: 20px 0 5px;
+  margin: 0 0 9px;
+  color: var(--primary);
+  font-size: 19px;
 }
 
 .section-placeholder p {
   max-width: 440px;
-  color: #8290a4;
+  margin: 0 0 20px;
+  color: var(--muted);
   font-size: 12px;
-  line-height: 1.7;
+  line-height: 1.8;
 }
+
+/* FOOTER */
 
 .demo-footer {
   margin-top: 30px;
-  padding-top: 20px;
+  padding-top: 18px;
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 15px;
-  border-top: 1px solid #e5eaf2;
-  color: #98a4b5;
+  border-top: 1px solid var(--border);
+  color: #8996a8;
   font-size: 10px;
 }
 
-@media (max-width: 1050px) {
+.demo-footer strong {
+  color: var(--primary);
+  font-weight: 800;
+  letter-spacing: 0.4px;
+}
+
+.footer-security {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 1150px) {
   .stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .demo-content {
+    padding: 30px 25px;
+  }
 }
 
-@media (max-width: 700px) {
-  .demo-header {
-    flex-wrap: wrap;
-  }
-
-  .demo-header-actions {
-    width: 100%;
-    justify-content: space-between;
-  }
-
+@media (max-width: 800px) {
   .demo-layout {
     grid-template-columns: 1fr;
   }
@@ -686,18 +1044,46 @@ td {
     display: none;
   }
 
-  .demo-sidebar {
+  .sidebar-navigation {
     flex-direction: row;
     overflow-x: auto;
+    gap: 6px;
+    scrollbar-width: thin;
   }
 
   .menu-item {
     width: auto;
     min-width: max-content;
+    padding: 11px 13px;
+  }
+
+  .menu-label {
+    flex: initial;
   }
 
   .demo-content {
-    padding: 22px 15px;
+    padding: 25px 20px;
+  }
+}
+
+@media (max-width: 600px) {
+  .demo-header {
+    padding: 12px 16px;
+    flex-wrap: wrap;
+  }
+
+  .demo-header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .demo-banner {
+    padding: 12px 16px;
+    align-items: flex-start;
+  }
+
+  .demo-content {
+    padding: 22px 14px;
   }
 
   .content-heading {
@@ -705,22 +1091,46 @@ td {
     flex-direction: column;
   }
 
+  .section-intro {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .stat-card {
+    padding: 14px;
   }
 
   .data-panel {
-    padding: 15px;
+    padding: 16px;
   }
 
+  .table-footer,
   .demo-footer {
+    align-items: flex-start;
     flex-direction: column;
+  }
+
+  .panel-heading {
+    align-items: flex-start;
   }
 }
 
-@media (max-width: 400px) {
+@media (max-width: 380px) {
   .stats-grid {
     grid-template-columns: 1fr;
+  }
+
+  .demo-mode {
+    font-size: 9px;
+  }
+
+  .login-button {
+    padding: 10px 12px;
+    font-size: 11px;
   }
 }
 </style>
