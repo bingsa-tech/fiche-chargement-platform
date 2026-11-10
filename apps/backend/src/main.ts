@@ -26,28 +26,10 @@ async function bootstrap(): Promise<void> {
   // =====================================================
   // 3. CONFIGURATION CORS
   // =====================================================
-  app.enableCors({
-    origin: [
-      'http://localhost:5173',
-      'http://localhost:4173',
-      'https://fiche-chargement-platform-frontend.onrender.com',
-    ],
-    credentials: true,
-    methods: [
-      'GET',
-      'HEAD',
-      'PUT',
-      'PATCH',
-      'POST',
-      'DELETE',
-      'OPTIONS',
-    ],
-    allowedHeaders: [
-      'Content-Type',
-      'Accept',
-      'Authorization',
-    ],
-  });
+ app.enableCors({
+  origin: true,
+  credentials: true,
+});
 
   // =====================================================
   // 4. VALIDATION GLOBALE DES DTO
