@@ -28,7 +28,7 @@ export class BordereauPdfService {
 const logoPath = path.join(
   __dirname,
   'assets',
-  'logo-Fede.png',
+  'logo.png',
 );
 
 if (fs.existsSync(logoPath)) {
