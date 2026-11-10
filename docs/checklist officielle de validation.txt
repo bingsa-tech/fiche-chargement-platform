@@ -1,0 +1,61 @@
+
+***********************checklist officielle de validation*************************
+
+A. Qualité du code et architecture
+[ ] Architecture backend et frontend documentée
+[x] Tous les modules compilent sans erreur
+[x] Aucune dépendance critique obsolète ou vulnérable non traitée
+[x] DTO et contrats API vérifiés
+[ ] Gestion des exceptions uniformisée
+[x] Variables d'environnement séparées du code
+[ ] Documentation technique actualisée
+
+B. Tests et assurance qualité
+[ ] Tests unitaires exécutés
+[ ] Tests d'intégration exécutés
+[ ] Tests fonctionnels des parcours critiques
+[ ] Tests de non-régression
+[ ] Tests des erreurs réseau et des entrées invalides
+[ ] Tests de synchronisation offline-first
+[ ] Tests de compatibilité mobile et web
+
+C. Sécurité et autorisations
+[ ] Authentification JWT vérifiée
+[ ] Refresh token vérifié
+[ ] Permissions vérifiées pour chaque rôle
+[ ] Accès non autorisé rejeté avec 403
+[ ] Accès non authentifié rejeté avec 401
+[ ] Validation et nettoyage des entrées
+[ ] Secrets et clés protégés
+[ ] CORS et HTTPS configurés
+[ ] Données sensibles exclues des journaux non nécessaires
+
+D. Base de données
+[x] Schéma PostgreSQL audité
+[x] Relations et contraintes vérifiées
+[x] Migrations reproductibles
+[x] Index vérifiés
+[x] Contraintes d'unicité vérifiées
+[x] Sauvegarde effectuée
+[x] Restauration testée
+[x] Transactions et audit vérifiés
+
+E. Déploiement et exploitation
+[ ] Environnement staging créé
+[ ] Variables Render configurées
+[ ] Connexion Supabase vérifiée
+[ ] Déploiement reproductible
+[ ] Logs et monitoring disponibles
+[ ] Health check configuré
+[ ] Procédure de rollback documentée
+[ ] Plan de reprise après incident documenté
+
+F. Documentation et livraison
+[ ] Documentation d'installation
+[ ] Documentation architecture
+[ ] Documentation API et permissions
+[ ] Guide utilisateur
+[ ] Notes de version
+[ ] Version Git taguée
+[ ] Rapport de tests archivé
+[ ] Décision finale GO / NO-GO

@@ -53,6 +53,7 @@ export class RefreshTokenService {
       expiresAt,
       revokedAt: null,
       replacedBy: null,
+      replacedByTokenId: null,
       userAgent: userAgent ?? null,
       ipAddress: ipAddress ?? null,
     });
@@ -143,15 +144,16 @@ export class RefreshTokenService {
   /**
    * Marque un token comme remplacé par un nouveau token.
    */
-  async markAsReplaced(
-    refreshToken: RefreshToken,
-    replacement: RefreshToken,
-  ): Promise<RefreshToken> {
-    refreshToken.revokedAt = new Date();
-    refreshToken.replacedBy = replacement;
+ async markAsReplaced(
+  refreshToken: RefreshToken,
+  replacement: RefreshToken,
+): Promise<RefreshToken> {
+  refreshToken.revokedAt = new Date();
+  refreshToken.replacedBy = replacement;
+  refreshToken.replacedByTokenId = replacement.id;
 
-    return this.refreshTokenRepository.save(refreshToken);
-  }
+  return this.refreshTokenRepository.save(refreshToken);
+}
 
   /**
    * Supprime les Refresh Tokens expirés.

@@ -1,50 +1,89 @@
+
 import {
   ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+
+import {
+  DataSource,
+  EntityManager,
+  Repository,
+} from 'typeorm';
+
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 
 import { Passager } from './entities/passager.entity';
 import { CreatePassagerDto } from './dto/create-passager.dto';
 import { UpdatePassagerDto } from './dto/update-passager.dto';
+
+import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class PassagersService {
   constructor(
     @InjectRepository(Passager)
     private readonly passagerRepository: Repository<Passager>,
+
+    private readonly dataSource: DataSource,
+
+    private readonly auditService: AuditService,
   ) {}
 
-  // CREATE
-  async create(createPassagerDto: CreatePassagerDto): Promise<Passager> {
+  /**
+   * CREATE
+   */
+  async create(
+    createPassagerDto: CreatePassagerDto,
+    utilisateurId: number,
+    appareilId: string | null,
+  ): Promise<Passager> {
+    return this.dataSource.transaction(async (manager) => {
+      const repository = manager.getRepository(Passager);
 
-    const existing = await this.passagerRepository.findOne({
-      where: {
-        numeroCni: createPassagerDto.numeroCni,
-      },
-    });
+      const numeroCni = createPassagerDto.numeroCni.trim();
 
-    if (existing) {
-      throw new ConflictException(
-        'Un passager avec ce numéro de CNI existe déjà',
+      const existing = await repository.findOne({
+        where: { numeroCni },
+      });
+
+      if (existing) {
+        throw new ConflictException(
+          'Un passager avec ce numéro de CNI existe déjà',
+        );
+      }
+
+      const passager = repository.create({
+        nom: createPassagerDto.nom.trim(),
+        prenom: createPassagerDto.prenom.trim(),
+        numeroCni,
+        telephone: createPassagerDto.telephone?.trim() || null,
+      });
+
+      const savedPassager = await repository.save(passager);
+
+      await this.auditService.createLog(
+        {
+          utilisateurId,
+          action: 'CREATE',
+          entite: 'PASSAGER',
+          entiteId: savedPassager.id,
+          ancienneValeur: null,
+nouvelleValeur: this.createSnapshot(savedPassager),
+          appareilId,
+        },
+        manager,
       );
-    }
 
-const passager = this.passagerRepository.create({
-  nom: createPassagerDto.nom,
-  prenom: createPassagerDto.prenom,
-  numeroCni: createPassagerDto.numeroCni,
-  telephone: createPassagerDto.telephone?.trim() || null,
-});
-
-    return await this.passagerRepository.save(passager);
+      return savedPassager;
+    });
   }
 
-  // READ ALL
+  /**
+   * READ ALL
+   */
   async findAll(): Promise<Passager[]> {
-    return await this.passagerRepository.find({
+    return this.passagerRepository.find({
       order: {
         nom: 'ASC',
         prenom: 'ASC',
@@ -52,7 +91,9 @@ const passager = this.passagerRepository.create({
     });
   }
 
-  // READ ONE
+  /**
+   * READ ONE
+   */
   async findOne(id: string): Promise<Passager> {
     const passager = await this.passagerRepository.findOne({
       where: { id },
@@ -67,39 +108,145 @@ const passager = this.passagerRepository.create({
     return passager;
   }
 
-  // UPDATE
+  /**
+   * UPDATE
+   */
   async update(
     id: string,
     updatePassagerDto: UpdatePassagerDto,
+    utilisateurId: number,
+    appareilId: string | null,
   ): Promise<Passager> {
-    const passager = await this.findOne(id);
+    return this.dataSource.transaction(async (manager) => {
+      const repository = manager.getRepository(Passager);
 
-    if (
-      updatePassagerDto.numeroCni &&
-      updatePassagerDto.numeroCni !== passager.numeroCni
-    ) {
-      const existing = await this.passagerRepository.findOne({
-        where: {
-          numeroCni: updatePassagerDto.numeroCni,
-        },
-      });
+      const passager = await this.findOneWithManager(
+        id,
+        manager,
+      );
 
-      if (existing) {
-        throw new ConflictException(
-          'Un autre passager utilise déjà ce numéro de CNI',
-        );
+      const anciennesValeurs = this.createSnapshot(passager);
+
+      if (updatePassagerDto.numeroCni !== undefined) {
+        const numeroCni = updatePassagerDto.numeroCni.trim();
+
+        if (numeroCni !== passager.numeroCni) {
+          const existing = await repository.findOne({
+            where: { numeroCni },
+          });
+
+          if (existing && existing.id !== id) {
+            throw new ConflictException(
+              'Un autre passager utilise déjà ce numéro de CNI',
+            );
+          }
+
+          passager.numeroCni = numeroCni;
+        }
       }
-    }
 
-    Object.assign(passager, updatePassagerDto);
+      if (updatePassagerDto.nom !== undefined) {
+        passager.nom = updatePassagerDto.nom.trim();
+      }
 
-    return await this.passagerRepository.save(passager);
+      if (updatePassagerDto.prenom !== undefined) {
+        passager.prenom = updatePassagerDto.prenom.trim();
+      }
+
+      if (updatePassagerDto.telephone !== undefined) {
+        passager.telephone =
+          updatePassagerDto.telephone?.trim() || null;
+      }
+
+      const updatedPassager = await repository.save(passager);
+
+      await this.auditService.createLog(
+        {
+          utilisateurId,
+          action: 'UPDATE',
+          entite: 'PASSAGER',
+          entiteId: updatedPassager.id,
+          ancienneValeur: anciennesValeurs,
+nouvelleValeur: this.createSnapshot(updatedPassager),
+          appareilId,
+        },
+        manager,
+      );
+
+      return updatedPassager;
+    });
   }
 
-  // DELETE
-  async remove(id: string): Promise<void> {
-    const passager = await this.findOne(id);
+  /**
+   * DELETE
+   */
+  async remove(
+    id: string,
+    utilisateurId: number,
+    appareilId: string | null,
+  ): Promise<void> {
+    await this.dataSource.transaction(async (manager) => {
+      const repository = manager.getRepository(Passager);
 
-    await this.passagerRepository.remove(passager);
+      const passager = await this.findOneWithManager(
+        id,
+        manager,
+      );
+
+      const anciennesValeurs = this.createSnapshot(passager);
+
+      await repository.remove(passager);
+
+      await this.auditService.createLog(
+        {
+          utilisateurId,
+          action: 'DELETE',
+          entite: 'PASSAGER',
+          entiteId: id,
+          ancienneValeur: anciennesValeurs,
+nouvelleValeur: null,
+          appareilId,
+        },
+        manager,
+      );
+    });
+  }
+
+  /**
+   * Recherche dans la transaction courante.
+   */
+  private async findOneWithManager(
+    id: string,
+    manager: EntityManager,
+  ): Promise<Passager> {
+    const passager = await manager
+      .getRepository(Passager)
+      .findOne({
+        where: { id },
+      });
+
+    if (!passager) {
+      throw new NotFoundException(
+        `Passager avec l'identifiant ${id} introuvable`,
+      );
+    }
+
+    return passager;
+  }
+
+  /**
+   * Snapshot des données métier du passager.
+   * On exclut volontairement la relation fichePassagers.
+   */
+  private createSnapshot(passager: Passager) {
+    return {
+      id: passager.id,
+      nom: passager.nom,
+      prenom: passager.prenom,
+      numeroCni: passager.numeroCni,
+      telephone: passager.telephone,
+      createdAt: passager.createdAt,
+      updatedAt: passager.updatedAt,
+    };
   }
 }

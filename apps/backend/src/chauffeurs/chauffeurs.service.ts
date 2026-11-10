@@ -6,17 +6,21 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 
 import { CreateChauffeurDto } from './dto/create-chauffeur.dto';
 import { UpdateChauffeurDto } from './dto/update-chauffeur.dto';
+
 import { Chauffeur } from './entities/chauffeur.entity';
 import { DocumentChauffeur } from '../documents/entities/document-chauffeur.entity';
 import { Gare } from '../gares/entities/gare.entity';
 
+import { AuditService } from '../audit/audit.service';
+
 type UtilisateurAuthentifie = {
-  id: number;
+  sub: number;
   username: string;
   role: string;
   gareId: string | null;
@@ -27,15 +31,17 @@ export class ChauffeursService {
   constructor(
     @InjectRepository(Chauffeur)
     private readonly chauffeurRepository: Repository<Chauffeur>,
+
     private readonly dataSource: DataSource,
+
     @InjectRepository(Gare)
     private readonly gareRepository: Repository<Gare>,
+
+    private readonly auditService: AuditService,
   ) {}
 
   /**
    * Retourne la gare de l'utilisateur non administrateur.
-   * Un utilisateur sans gare ne peut pas accéder aux données
-   * limitées par gare.
    */
   private getGareId(user: UtilisateurAuthentifie): string {
     if (user.role === 'ADMIN') {
@@ -53,15 +59,46 @@ export class ChauffeursService {
     return user.gareId;
   }
 
+  /**
+   * Construit un snapshot JSON sans inclure les relations TypeORM.
+   */
+  private createChauffeurSnapshot(
+    chauffeur: Chauffeur,
+    document?: DocumentChauffeur | null,
+  ): Record<string, unknown> {
+    const relationsToExclude = ['gare', 'documentChauffeurs'];
+
+    const snapshot = Object.fromEntries(
+      Object.entries(chauffeur).filter(
+        ([key, value]) =>
+          !relationsToExclude.includes(key) &&
+          typeof value !== 'function',
+      ),
+    );
+
+    if (document !== undefined) {
+      snapshot.document = document
+        ? Object.fromEntries(
+            Object.entries(document).filter(
+              ([key, value]) => typeof value !== 'function',
+            ),
+          )
+        : null;
+    }
+
+    return snapshot;
+  }
+
   async create(
     createChauffeurDto: CreateChauffeurDto,
     user: UtilisateurAuthentifie,
+    appareilId: string | null = null,
   ): Promise<Chauffeur> {
     const { document, gareId: gareDemandee, ...chauffeurData } =
       createChauffeurDto;
 
     // Un ADMIN peut choisir la gare.
-    // Pour les autres rôles, on ne fait jamais confiance au client.
+    // Les autres rôles utilisent obligatoirement leur propre gare.
     const gareId =
       user.role === 'ADMIN'
         ? gareDemandee
@@ -74,8 +111,8 @@ export class ChauffeursService {
     }
 
     return this.dataSource.transaction(
-      async (transactionalEntityManager) => {
-        const gare = await transactionalEntityManager.findOne(Gare, {
+      async (manager) => {
+        const gare = await manager.findOne(Gare, {
           where: { id: gareId },
         });
 
@@ -85,16 +122,19 @@ export class ChauffeursService {
           );
         }
 
-        const chauffeur = transactionalEntityManager.create(Chauffeur, {
+        const chauffeur = manager.create(Chauffeur, {
           ...chauffeurData,
           gareId,
         });
 
-        const savedChauffeur =
-          await transactionalEntityManager.save(Chauffeur, chauffeur);
+        const savedChauffeur = await manager.save(
+          Chauffeur,
+          chauffeur,
+        );
 
-        const documentEntity =
-          transactionalEntityManager.create(DocumentChauffeur, {
+        const documentEntity = manager.create(
+          DocumentChauffeur,
+          {
             chauffeurId: savedChauffeur.id,
             typeDocument: document.typeDocument,
             numeroDocument: document.numeroDocument ?? null,
@@ -104,18 +144,24 @@ export class ChauffeursService {
             dateExpiration: new Date(document.dateExpiration),
             statut: document.statut,
             observations: document.observations ?? null,
-          });
+          },
+        );
 
-        await transactionalEntityManager.save(
+        const savedDocument = await manager.save(
           DocumentChauffeur,
           documentEntity,
         );
 
-        const chauffeurComplet =
-          await transactionalEntityManager.findOne(Chauffeur, {
+        const chauffeurComplet = await manager.findOne(
+          Chauffeur,
+          {
             where: { id: savedChauffeur.id },
-            relations: { documentChauffeurs: true, gare: true },
-          });
+            relations: {
+              documentChauffeurs: true,
+              gare: true,
+            },
+          },
+        );
 
         if (!chauffeurComplet) {
           throw new NotFoundException(
@@ -123,12 +169,32 @@ export class ChauffeursService {
           );
         }
 
+        // AUDIT CREATE : même transaction que le chauffeur
+        // et son document.
+        await this.auditService.createLog(
+          {
+            utilisateurId: user.sub,
+            action: 'CREATE',
+            entite: 'CHAUFFEUR',
+            entiteId: savedChauffeur.id,
+            ancienneValeur: null,
+            nouvelleValeur: this.createChauffeurSnapshot(
+              chauffeurComplet,
+              savedDocument,
+            ),
+            appareilId,
+          },
+          manager,
+        );
+
         return chauffeurComplet;
       },
     );
   }
 
-  async findAll(user: UtilisateurAuthentifie): Promise<Chauffeur[]> {
+  async findAll(
+    user: UtilisateurAuthentifie,
+  ): Promise<Chauffeur[]> {
     const where =
       user.role === 'ADMIN'
         ? {}
@@ -136,8 +202,14 @@ export class ChauffeursService {
 
     return this.chauffeurRepository.find({
       where,
-      relations: { documentChauffeurs: true, gare: true },
-      order: { nom: 'ASC', prenom: 'ASC' },
+      relations: {
+        documentChauffeurs: true,
+        gare: true,
+      },
+      order: {
+        nom: 'ASC',
+        prenom: 'ASC',
+      },
     });
   }
 
@@ -148,11 +220,17 @@ export class ChauffeursService {
     const where =
       user.role === 'ADMIN'
         ? { id }
-        : { id, gareId: this.getGareId(user) };
+        : {
+            id,
+            gareId: this.getGareId(user),
+          };
 
     const chauffeur = await this.chauffeurRepository.findOne({
       where,
-      relations: { documentChauffeurs: true, gare: true },
+      relations: {
+        documentChauffeurs: true,
+        gare: true,
+      },
     });
 
     if (!chauffeur) {
@@ -168,33 +246,152 @@ export class ChauffeursService {
     id: string,
     updateChauffeurDto: UpdateChauffeurDto,
     user: UtilisateurAuthentifie,
+    appareilId: string | null = null,
   ): Promise<Chauffeur> {
-    // La recherche vérifie aussi la gare de l'utilisateur.
-    const chauffeur = await this.findOne(id, user);
+    return this.dataSource.transaction(async (manager) => {
+      // Vérification de l'existence et du périmètre de gare.
+      const where =
+        user.role === 'ADMIN'
+          ? { id }
+          : {
+              id,
+              gareId: this.getGareId(user),
+            };
 
-    // Empêche le DTO de déplacer un chauffeur vers une autre gare.
-    Object.assign(chauffeur, updateChauffeurDto, {
-      gareId: chauffeur.gareId,
+      const chauffeur = await manager.findOne(Chauffeur, {
+        where,
+        relations: {
+          documentChauffeurs: true,
+          gare: true,
+        },
+      });
+
+      if (!chauffeur) {
+        throw new NotFoundException(
+          `Chauffeur avec l'identifiant ${id} introuvable.`,
+        );
+      }
+
+      const ancienneValeur =
+        this.createChauffeurSnapshot(chauffeur);
+
+      // Empêche le DTO de déplacer le chauffeur vers une autre gare.
+      Object.assign(chauffeur, updateChauffeurDto, {
+        gareId: chauffeur.gareId,
+      });
+
+      await manager.save(Chauffeur, chauffeur);
+
+      const chauffeurMisAJour = await manager.findOne(
+        Chauffeur,
+        {
+          where: { id },
+          relations: {
+            documentChauffeurs: true,
+            gare: true,
+          },
+        },
+      );
+
+      if (!chauffeurMisAJour) {
+        throw new NotFoundException(
+          `Chauffeur ${id} introuvable après modification.`,
+        );
+      }
+
+      // AUDIT UPDATE
+      await this.auditService.createLog(
+        {
+          utilisateurId: user.sub,
+          action: 'UPDATE',
+          entite: 'CHAUFFEUR',
+          entiteId: id,
+          ancienneValeur,
+          nouvelleValeur:
+            this.createChauffeurSnapshot(chauffeurMisAJour),
+          appareilId,
+        },
+        manager,
+      );
+
+      return chauffeurMisAJour;
     });
-
-    await this.chauffeurRepository.save(chauffeur);
-
-    return this.findOne(id, user);
   }
 
   async remove(
     id: string,
     user: UtilisateurAuthentifie,
+    appareilId: string | null = null,
   ): Promise<void> {
-    // Un chauffeur d'une autre gare ne sera pas récupéré.
-    const chauffeur = await this.findOne(id, user);
-
     try {
-      await this.chauffeurRepository.remove(chauffeur);
-    } catch {
-      throw new ConflictException(
-        'Impossible de supprimer ce chauffeur, car il est utilisé dans une ou plusieurs fiches.',
-      );
+      await this.dataSource.transaction(async (manager) => {
+        // Vérification du périmètre de gare.
+        const where =
+          user.role === 'ADMIN'
+            ? { id }
+            : {
+                id,
+                gareId: this.getGareId(user),
+              };
+
+        const chauffeur = await manager.findOne(Chauffeur, {
+          where,
+          relations: {
+            documentChauffeurs: true,
+            gare: true,
+          },
+        });
+
+        if (!chauffeur) {
+          throw new NotFoundException(
+            `Chauffeur avec l'identifiant ${id} introuvable.`,
+          );
+        }
+
+        const ancienneValeur =
+          this.createChauffeurSnapshot(chauffeur);
+
+        await manager.remove(Chauffeur, chauffeur);
+
+        // AUDIT DELETE : snapshot conservé après suppression.
+        await this.auditService.createLog(
+          {
+            utilisateurId: user.sub,
+            action: 'DELETE',
+            entite: 'CHAUFFEUR',
+            entiteId: id,
+            ancienneValeur,
+            nouvelleValeur: null,
+            appareilId,
+          },
+          manager,
+        );
+      });
+    } catch (error) {
+      // Ne pas masquer les erreurs métier ou les erreurs d'audit.
+      if (
+        error instanceof NotFoundException ||
+        error instanceof ForbiddenException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+
+      // Une suppression peut être bloquée par une fiche liée.
+      if (
+        error instanceof Error &&
+        (
+          (error as { code?: string }).code === '23503' ||
+          (error as { driverError?: { code?: string } })
+            .driverError?.code === '23503'
+        )
+      ) {
+        throw new ConflictException(
+          'Impossible de supprimer ce chauffeur, car il est utilisé dans une ou plusieurs fiches.',
+        );
+      }
+
+      throw error;
     }
   }
 }

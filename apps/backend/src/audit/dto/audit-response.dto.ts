@@ -5,7 +5,7 @@ export class AuditResponseDto {
   @ApiProperty()
   id!: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: Number, nullable: true })
   utilisateurId!: number | null;
 
   @ApiProperty()
@@ -20,12 +20,20 @@ export class AuditResponseDto {
   @ApiProperty()
   dateHeure!: Date;
 
-  @ApiPropertyOptional({ nullable: true, type: 'object' })
+  @ApiPropertyOptional({
+    type: 'object',
+    nullable: true,
+    additionalProperties: true,
+  })
   ancienneValeur!: Record<string, unknown> | null;
 
-  @ApiPropertyOptional({ nullable: true, type: 'object' })
+  @ApiPropertyOptional({
+    type: 'object',
+    nullable: true,
+    additionalProperties: true,
+  })
   nouvelleValeur!: Record<string, unknown> | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   appareilId!: string | null;
 }

@@ -17,16 +17,8 @@ import { Utilisateur } from '../../../utilisateurs/entities/utilisateur.entity';
 @Index('idx_refresh_token_expires_at', ['expiresAt'])
 @Index('idx_refresh_token_session', ['sessionId'])
 export class RefreshToken {
-  // =========================
-  // IDENTIFIANT
-  // =========================
-
   @PrimaryGeneratedColumn()
   id!: number;
-
-  // =========================
-  // UTILISATEUR
-  // =========================
 
   @Column({
     name: 'user_id',
@@ -48,10 +40,6 @@ export class RefreshToken {
   })
   user!: Utilisateur;
 
-  // =========================
-  // TOKEN
-  // =========================
-
   @Column({
     name: 'token_hash',
     type: 'varchar',
@@ -60,19 +48,11 @@ export class RefreshToken {
   })
   tokenHash!: string;
 
-  // =========================
-  // EXPIRATION
-  // =========================
-
   @Column({
     name: 'expires_at',
     type: 'timestamp',
   })
   expiresAt!: Date;
-
-  // =========================
-  // RÉVOCATION
-  // =========================
 
   @Column({
     name: 'revoked_at',
@@ -81,22 +61,23 @@ export class RefreshToken {
   })
   revokedAt!: Date | null;
 
-  // =========================
-  // ROTATION
-  // =========================
+  // Identifiant du token qui remplace ce token
+  @Column({
+    name: 'replaced_by_token_id',
+    type: 'integer',
+    nullable: true,
+  })
+  replacedByTokenId!: number | null;
 
   @ManyToOne(() => RefreshToken, {
-  nullable: true,
-  onDelete: 'SET NULL',
-})
-@JoinColumn({
-  name: 'replaced_by_token_id',
-})
-replacedBy!: RefreshToken | null;
-
-  // =========================
-  // CONTEXTE DE SESSION
-  // =========================
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({
+    name: 'replaced_by_token_id',
+    referencedColumnName: 'id',
+  })
+  replacedBy!: RefreshToken | null;
 
   @Column({
     name: 'user_agent',
@@ -114,10 +95,6 @@ replacedBy!: RefreshToken | null;
   })
   ipAddress!: string | null;
 
-  // =========================
-  // DATE DE CRÉATION
-  // =========================
-
   @CreateDateColumn({
     name: 'created_at',
     type: 'timestamp',
@@ -126,9 +103,9 @@ replacedBy!: RefreshToken | null;
   createdAt!: Date;
 
   @Column({
-  name: 'session_id',
-  type: 'uuid',
-  nullable: true,
-})
-sessionId!: string | null;
+    name: 'session_id',
+    type: 'uuid',
+    nullable: true,
+  })
+  sessionId!: string | null;
 }

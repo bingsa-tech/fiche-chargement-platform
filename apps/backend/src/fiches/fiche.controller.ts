@@ -1,8 +1,10 @@
+
 import {
   Body,
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -10,7 +12,7 @@ import {
   Req,
   Res,
   UseGuards,
-   UnauthorizedException,
+  UnauthorizedException,
 } from '@nestjs/common';
 
 import {
@@ -21,15 +23,19 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
+import type { Response } from 'express';
+
 import { FicheService } from './fiche.service';
 import { CreateFicheDto } from './dto/create-fiche.dto';
 import { UpdateFicheDto } from './dto/update-fiche.dto';
+
 import { ImprimerFicheDto } from '../fiche-impressions/dto/imprimer-fiche.dto';
+import { BordereauPdfService } from '../fiche-impressions/bordereau-pdf.service';
+
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permission } from '../auth/decorators/permission.decorator';
-import type { Response } from 'express';
-import { BordereauPdfService } from '../fiche-impressions/bordereau-pdf.service';
+
 import {
   PERMISSION_ACTIONS,
   PERMISSION_RESOURCES,
@@ -45,29 +51,35 @@ export class FicheController {
     private readonly bordereauPdfService: BordereauPdfService,
   ) {}
 
-private getUserContext(request: any): {
-  id: number;
-  username: string;
-  role: string;
-  gareId: string | null;
-} {
-  const jwtUser = request.user;
+  // =====================================================
+  // CONTEXTE UTILISATEUR
+  // =====================================================
 
-  const userId = Number(jwtUser?.sub ?? jwtUser?.id);
+  private getUserContext(request: any): {
+    id: number;
+    username: string;
+    role: string;
+    gareId: string | null;
+  } {
+    const jwtUser = request.user;
 
-  if (!Number.isInteger(userId) || userId <= 0) {
-    throw new UnauthorizedException(
-      'Identifiant utilisateur absent ou invalide dans le JWT.',
-    );
+    // L'identifiant provient de sub dans le JWT.
+    const userId = Number(jwtUser?.sub);
+
+    if (!Number.isInteger(userId) || userId <= 0) {
+      throw new UnauthorizedException(
+        'Identifiant utilisateur absent ou invalide dans le JWT.',
+      );
+    }
+
+    return {
+      id: userId,
+      username: jwtUser.username,
+      role: jwtUser.role,
+      gareId: jwtUser.gareId ?? null,
+    };
   }
 
-  return {
-    id: userId,
-    username: jwtUser.username,
-    role: jwtUser.role,
-    gareId: jwtUser.gareId ?? null,
-  };
-}
   // =====================================================
   // CRÉER UNE FICHE
   // =====================================================
@@ -92,15 +104,17 @@ private getUserContext(request: any): {
     status: 403,
     description: 'Permission insuffisante ou gare non autorisée',
   })
- create(
-  @Body() createFicheDto: CreateFicheDto,
-  @Req() request: any,
-) {
-  return this.ficheService.create(
-    createFicheDto,
-    this.getUserContext(request),
-  );
-}
+  create(
+    @Body() createFicheDto: CreateFicheDto,
+    @Req() request: any,
+    @Headers('x-device-id') appareilId?: string,
+  ) {
+    return this.ficheService.create(
+      createFicheDto,
+      this.getUserContext(request),
+      appareilId ?? null,
+    );
+  }
 
   // =====================================================
   // LISTER LES FICHES
@@ -129,7 +143,9 @@ private getUserContext(request: any): {
   findAll(
     @Req() request: any,
   ) {
-    return this.ficheService.findAll(this.getUserContext(request));
+    return this.ficheService.findAll(
+      this.getUserContext(request),
+    );
   }
 
   // =====================================================
@@ -214,11 +230,13 @@ private getUserContext(request: any): {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() updateFicheDto: UpdateFicheDto,
     @Req() request: any,
+    @Headers('x-device-id') appareilId?: string,
   ) {
     return this.ficheService.update(
       id,
       updateFicheDto,
       this.getUserContext(request),
+      appareilId ?? null,
     );
   }
 
@@ -262,10 +280,12 @@ private getUserContext(request: any): {
   prendreEnCharge(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Req() request: any,
+    @Headers('x-device-id') appareilId?: string,
   ) {
     return this.ficheService.prendreEnCharge(
       id,
       this.getUserContext(request),
+      appareilId ?? null,
     );
   }
 
@@ -309,10 +329,12 @@ private getUserContext(request: any): {
   finaliser(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Req() request: any,
+    @Headers('x-device-id') appareilId?: string,
   ) {
     return this.ficheService.finaliser(
       id,
       this.getUserContext(request),
+      appareilId ?? null,
     );
   }
 
@@ -351,10 +373,12 @@ private getUserContext(request: any): {
   remove(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Req() request: any,
+    @Headers('x-device-id') appareilId?: string,
   ) {
     return this.ficheService.remove(
       id,
       this.getUserContext(request),
+      appareilId ?? null,
     );
   }
 
@@ -362,7 +386,6 @@ private getUserContext(request: any): {
   // IMPRIMER UNE FICHE
   // FINALISEE → IMPRIMEE
   // =====================================================
-
 
   @Post(':id/imprimer')
   @Permission(
@@ -396,11 +419,13 @@ private getUserContext(request: any): {
     @Req() request: any,
     @Body() dto: ImprimerFicheDto,
     @Res() response: Response,
+    @Headers('x-device-id') appareilId?: string,
   ): Promise<void> {
     const fiche = await this.ficheService.imprimer(
       id,
       this.getUserContext(request),
       dto,
+      appareilId ?? null,
     );
 
     const pdf = this.bordereauPdfService.generer(fiche);
@@ -415,6 +440,9 @@ private getUserContext(request: any): {
     pdf.end();
   }
 
+  // =====================================================
+  // TÉLÉCHARGER LE BORDEREAU PDF
+  // =====================================================
 
   @Get(':id/bordereau-pdf')
   @Permission(
@@ -445,5 +473,4 @@ private getUserContext(request: any): {
     pdf.pipe(response);
     pdf.end();
   }
-
 }

@@ -1,3 +1,4 @@
+
 import {
   Body,
   Controller,
@@ -9,6 +10,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 
@@ -28,6 +30,15 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permission } from '../auth/decorators/permission.decorator';
 
+interface AuthenticatedRequest {
+  user: {
+    sub: number;
+  };
+  headers: {
+    'x-device-id'?: string | string[];
+  };
+}
+
 @ApiTags('Passagers')
 @ApiBearerAuth()
 @Controller('passagers')
@@ -37,7 +48,9 @@ export class PassagersController {
     private readonly passagersService: PassagersService,
   ) {}
 
-  // CREATE : selon permissions.config.ts
+  /**
+   * CREATE
+   */
   @Post()
   @Permission('passagers', 'CREATE')
   @ApiOperation({
@@ -61,11 +74,18 @@ export class PassagersController {
   })
   create(
     @Body() createPassagerDto: CreatePassagerDto,
+    @Req() req: AuthenticatedRequest,
   ) {
-    return this.passagersService.create(createPassagerDto);
+    return this.passagersService.create(
+      createPassagerDto,
+      req.user.sub,
+      this.getDeviceId(req),
+    );
   }
 
-  // READ : selon permissions.config.ts
+  /**
+   * READ ALL
+   */
   @Get()
   @Permission('passagers', 'READ')
   @ApiOperation({
@@ -87,6 +107,9 @@ export class PassagersController {
     return this.passagersService.findAll();
   }
 
+  /**
+   * READ ONE
+   */
   @Get(':id')
   @Permission('passagers', 'READ')
   @ApiOperation({
@@ -106,14 +129,6 @@ export class PassagersController {
     description: 'Identifiant UUID invalide',
   })
   @ApiResponse({
-    status: 401,
-    description: 'Authentification requise ou jeton invalide',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Permission insuffisante pour lire les passagers',
-  })
-  @ApiResponse({
     status: 404,
     description: 'Passager introuvable',
   })
@@ -123,7 +138,9 @@ export class PassagersController {
     return this.passagersService.findOne(id);
   }
 
-  // UPDATE : selon permissions.config.ts
+  /**
+   * UPDATE
+   */
   @Patch(':id')
   @Permission('passagers', 'UPDATE')
   @ApiOperation({
@@ -135,32 +152,36 @@ export class PassagersController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Passager modifié',
+    description: 'Passager modifié avec succès',
   })
   @ApiResponse({
     status: 400,
     description: 'Identifiant UUID invalide',
   })
   @ApiResponse({
-    status: 401,
-    description: 'Authentification requise ou jeton invalide',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Permission insuffisante pour modifier un passager',
-  })
-  @ApiResponse({
     status: 404,
     description: 'Passager introuvable',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Le numéro de CNI est déjà utilisé',
   })
   update(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() updatePassagerDto: UpdatePassagerDto,
+    @Req() req: AuthenticatedRequest,
   ) {
-    return this.passagersService.update(id, updatePassagerDto);
+    return this.passagersService.update(
+      id,
+      updatePassagerDto,
+      req.user.sub,
+      this.getDeviceId(req),
+    );
   }
 
-  // DELETE : selon permissions.config.ts
+  /**
+   * DELETE
+   */
   @Delete(':id')
   @Permission('passagers', 'DELETE')
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -173,19 +194,11 @@ export class PassagersController {
   })
   @ApiResponse({
     status: 204,
-    description: 'Passager supprimé',
+    description: 'Passager supprimé avec succès',
   })
   @ApiResponse({
     status: 400,
     description: 'Identifiant UUID invalide',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Authentification requise ou jeton invalide',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Permission insuffisante pour supprimer un passager',
   })
   @ApiResponse({
     status: 404,
@@ -193,7 +206,27 @@ export class PassagersController {
   })
   async remove(
     @Param('id', new ParseUUIDPipe()) id: string,
-  ) {
-    await this.passagersService.remove(id);
+    @Req() req: AuthenticatedRequest,
+  ): Promise<void> {
+    await this.passagersService.remove(
+      id,
+      req.user.sub,
+      this.getDeviceId(req),
+    );
+  }
+
+  /**
+   * Récupération de l'identifiant de l'appareil.
+   */
+  private getDeviceId(
+    req: AuthenticatedRequest,
+  ): string | null {
+    const deviceId = req.headers['x-device-id'];
+
+    if (Array.isArray(deviceId)) {
+      return deviceId[0]?.trim() || null;
+    }
+
+    return deviceId?.trim() || null;
   }
 }

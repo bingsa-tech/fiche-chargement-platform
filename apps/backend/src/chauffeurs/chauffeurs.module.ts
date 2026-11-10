@@ -4,9 +4,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { ChauffeursController } from './chauffeurs.controller';
 import { ChauffeursService } from './chauffeurs.service';
+
 import { Chauffeur } from './entities/chauffeur.entity';
 import { DocumentChauffeur } from '../documents/entities/document-chauffeur.entity';
 import { Gare } from '../gares/entities/gare.entity';
+
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
   imports: [
@@ -15,6 +18,7 @@ import { Gare } from '../gares/entities/gare.entity';
       DocumentChauffeur,
       Gare,
     ]),
+    AuditModule,
   ],
   controllers: [
     ChauffeursController,

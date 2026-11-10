@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router';
 
 import { useAuthStore } from '../../auth/auth.store';
 import { getApiErrorMessage } from '../../api/api-error';
+
 import { getGares } from '../../api/gares.api';
 import { getVehicules } from '../../api/vehicules.api';
 import { getChauffeurs } from '../../api/chauffeurs.api';
@@ -22,8 +23,13 @@ import type { CreateFichePayload } from '../../types/fiche.types';
 const router = useRouter();
 const authStore = useAuthStore();
 
+// =====================================================
+// ÉTATS
+// =====================================================
+
 const loading = ref(false);
 const submitting = ref(false);
+
 const errorMessage = ref('');
 const successMessage = ref('');
 
@@ -32,6 +38,10 @@ const vehicules = ref<Vehicule[]>([]);
 const chauffeurs = ref<Chauffeur[]>([]);
 const destinations = ref<Destination[]>([]);
 const itineraires = ref<Itineraire[]>([]);
+
+// =====================================================
+// FORMULAIRE
+// =====================================================
 
 const form = reactive({
   reference: '',
@@ -42,6 +52,10 @@ const form = reactive({
   itineraireId: '',
 });
 
+// =====================================================
+// DROITS UTILISATEUR
+// =====================================================
+
 const isAdmin = computed(() => authStore.role === 'ADMIN');
 
 const canCreate = computed(() =>
@@ -50,29 +64,63 @@ const canCreate = computed(() =>
   ),
 );
 
+// =====================================================
+// DONNÉES ACTIVES
+// =====================================================
+
 const availableGares = computed(() =>
   gares.value.filter((gare) => gare.statut === 'ACTIF'),
 );
 
 const availableVehicules = computed(() =>
-  vehicules.value.filter((vehicule) => vehicule.statut === 'ACTIF'),
+  vehicules.value.filter(
+    (vehicule) => vehicule.statut === 'ACTIF',
+  ),
 );
 
 const availableChauffeurs = computed(() =>
-  chauffeurs.value.filter((chauffeur) => chauffeur.statut === 'ACTIF'),
+  chauffeurs.value.filter(
+    (chauffeur) => chauffeur.statut === 'ACTIF',
+  ),
 );
 
 const availableDestinations = computed(() =>
-  destinations.value.filter((destination) => destination.statut === 'ACTIF'),
-);
-
-const availableItineraires = computed(() =>
-  itineraires.value.filter(
-    (itineraire) =>
-      itineraire.statut === 'ACTIF' &&
-      itineraire.destinationId === form.destinationId,
+  destinations.value.filter(
+    (destination) => destination.statut === 'ACTIF',
   ),
 );
+
+// =====================================================
+// ITINÉRAIRES DISPONIBLES
+// =====================================================
+
+const availableItineraires = computed(() => {
+  if (!form.destinationId) {
+    return [];
+  }
+
+  return itineraires.value.filter((itineraire) => {
+    const itineraireAvecDestination = itineraire as Itineraire & {
+      destination?: {
+        id?: string | number;
+      };
+    };
+
+    const destinationId =
+      itineraireAvecDestination.destinationId ??
+      itineraireAvecDestination.destination?.id;
+
+    return (
+      itineraire.statut === 'ACTIF' &&
+      destinationId != null &&
+      String(destinationId) === String(form.destinationId)
+    );
+  });
+});
+
+// =====================================================
+// CHARGEMENT DES DONNÉES
+// =====================================================
 
 async function loadData(): Promise<void> {
   loading.value = true;
@@ -99,6 +147,7 @@ async function loadData(): Promise<void> {
     destinations.value = destinationsData;
     itineraires.value = itinerairesData;
 
+    // Vérification de la gare de l'utilisateur.
     if (!isAdmin.value) {
       const userGareId = authStore.gareId;
 
@@ -127,12 +176,20 @@ async function loadData(): Promise<void> {
   }
 }
 
+// =====================================================
+// CHANGEMENT DE DESTINATION
+// =====================================================
+
 function onDestinationChange(): void {
+  // Une ancienne sélection ne doit pas rester liée
+  // à une destination différente.
   form.itineraireId = '';
 }
-function onItineraireChange(): void {
-  form.itineraireId = '';
-}
+
+// =====================================================
+// SOUMISSION DU FORMULAIRE
+// =====================================================
+
 async function submitForm(): Promise<void> {
   errorMessage.value = '';
   successMessage.value = '';
@@ -143,6 +200,8 @@ async function submitForm(): Promise<void> {
     return;
   }
 
+  // Vérification des champs obligatoires.
+  // L'itinéraire reste facultatif.
   if (
     !form.reference.trim() ||
     !form.gareId ||
@@ -155,10 +214,26 @@ async function submitForm(): Promise<void> {
     return;
   }
 
+  // Sécurité : un utilisateur non administrateur
+  // ne peut créer une fiche que dans sa propre gare.
   if (!isAdmin.value && form.gareId !== authStore.gareId) {
     errorMessage.value =
       'Vous ne pouvez créer une fiche que pour votre propre gare.';
     return;
+  }
+
+  // Vérifier que l'itinéraire choisi appartient
+  // bien à la destination sélectionnée.
+  if (form.itineraireId) {
+    const itineraireValide = availableItineraires.value.some(
+      (itineraire) => itineraire.id === form.itineraireId,
+    );
+
+    if (!itineraireValide) {
+      errorMessage.value =
+        'L’itinéraire sélectionné ne correspond pas à la destination choisie.';
+      return;
+    }
   }
 
   const payload: CreateFichePayload = {
@@ -176,7 +251,10 @@ async function submitForm(): Promise<void> {
 
   try {
     await createFiche(payload);
-    successMessage.value = 'La fiche de chargement a été créée.';
+
+    successMessage.value =
+      'La fiche de chargement a été créée.';
+
     await router.push({ name: 'fiches' });
   } catch (error: unknown) {
     errorMessage.value = getApiErrorMessage(error);
@@ -185,27 +263,40 @@ async function submitForm(): Promise<void> {
   }
 }
 
+// =====================================================
+// INITIALISATION
+// =====================================================
+
 onMounted(loadData);
 </script>
 
 <template>
   <section class="fiche-create">
+    <!-- FIL D'ARIANE -->
     <nav class="breadcrumb" aria-label="Fil d’Ariane">
       <span>Administration</span>
       <span class="breadcrumb-separator">/</span>
-      <button type="button" @click="router.push({ name: 'fiches' })">
+
+      <button
+        type="button"
+        @click="router.push({ name: 'fiches' })"
+      >
         Fiches de chargement
       </button>
+
       <span class="breadcrumb-separator">/</span>
       <span class="breadcrumb-current">Nouvelle fiche</span>
     </nav>
 
+    <!-- EN-TÊTE -->
     <header class="page-header">
       <div class="header-content">
         <div class="title-icon">▤</div>
+
         <div>
           <p class="eyebrow">Gestion opérationnelle</p>
           <h1>Nouvelle fiche de chargement</h1>
+
           <p class="subtitle">
             Renseignez les informations nécessaires à la création d'une fiche.
           </p>
@@ -222,37 +313,60 @@ onMounted(loadData);
       </button>
     </header>
 
+    <!-- CHARGEMENT -->
     <div v-if="loading" class="state-card" role="status">
       <span class="spinner"></span>
       <p>Chargement des données nécessaires...</p>
     </div>
 
-    <div v-else-if="errorMessage && !gares.length" class="alert alert-error" role="alert">
+    <!-- ERREUR DE CHARGEMENT -->
+    <div
+      v-else-if="errorMessage && !gares.length"
+      class="alert alert-error"
+      role="alert"
+    >
       <span class="alert-icon">!</span>
+
       <div class="alert-content">
         <strong>Impossible de charger les données</strong>
         <p>{{ errorMessage }}</p>
-        <button type="button" class="button button-secondary" @click="loadData">
+
+        <button
+          type="button"
+          class="button button-secondary"
+          @click="loadData"
+        >
           Réessayer
         </button>
       </div>
     </div>
 
     <template v-else>
-      <div v-if="errorMessage" class="alert alert-error" role="alert">
+      <!-- MESSAGES -->
+      <div
+        v-if="errorMessage"
+        class="alert alert-error"
+        role="alert"
+      >
         <span class="alert-icon">!</span>
         <p>{{ errorMessage }}</p>
       </div>
 
-      <div v-if="successMessage" class="alert alert-success" role="status">
+      <div
+        v-if="successMessage"
+        class="alert alert-success"
+        role="status"
+      >
         <span class="alert-icon">✓</span>
         <p>{{ successMessage }}</p>
       </div>
 
       <form class="fiche-form" @submit.prevent="submitForm">
+        <!-- SECTION 01 : INFORMATIONS GÉNÉRALES -->
         <div class="form-card">
           <div class="section-heading">
             <div class="section-icon">01</div>
+
             <div>
               <h2>Informations générales</h2>
               <p>Identification de la fiche de chargement.</p>
@@ -261,7 +375,10 @@ onMounted(loadData);
 
           <div class="form-grid">
             <div class="form-group">
-              <label for="reference">Référence <span>*</span></label>
+              <label for="reference">
+                Référence <span>*</span>
+              </label>
+
               <input
                 id="reference"
                 v-model.trim="form.reference"
@@ -270,18 +387,25 @@ onMounted(loadData);
                 required
                 placeholder="Ex. FCH-2026-001"
               />
+
               <small>Référence unique de la fiche.</small>
             </div>
 
             <div class="form-group">
-              <label for="gare">Gare <span>*</span></label>
+              <label for="gare">
+                Gare <span>*</span>
+              </label>
+
               <select
                 id="gare"
                 v-model="form.gareId"
                 required
                 :disabled="!isAdmin"
               >
-                <option value="" disabled>Sélectionner une gare</option>
+                <option value="" disabled>
+                  Sélectionner une gare
+                </option>
+
                 <option
                   v-for="gare in availableGares"
                   :key="gare.id"
@@ -290,6 +414,7 @@ onMounted(loadData);
                   {{ gare.nom }} — {{ gare.ville }}
                 </option>
               </select>
+
               <small v-if="!isAdmin">
                 La gare est déterminée par votre compte.
               </small>
@@ -297,9 +422,11 @@ onMounted(loadData);
           </div>
         </div>
 
+        <!-- SECTION 02 : RESSOURCES DE TRANSPORT -->
         <div class="form-card">
           <div class="section-heading">
             <div class="section-icon">02</div>
+
             <div>
               <h2>Ressources de transport</h2>
               <p>Sélection du véhicule et du chauffeur.</p>
@@ -308,13 +435,19 @@ onMounted(loadData);
 
           <div class="form-grid">
             <div class="form-group">
-              <label for="vehicule">Véhicule <span>*</span></label>
+              <label for="vehicule">
+                Véhicule <span>*</span>
+              </label>
+
               <select
                 id="vehicule"
                 v-model="form.vehiculeId"
                 required
               >
-                <option value="" disabled>Sélectionner un véhicule</option>
+                <option value="" disabled>
+                  Sélectionner un véhicule
+                </option>
+
                 <option
                   v-for="vehicule in availableVehicules"
                   :key="vehicule.id"
@@ -324,19 +457,26 @@ onMounted(loadData);
                   — {{ vehicule.marque }} {{ vehicule.modele }}
                 </option>
               </select>
+
               <small v-if="availableVehicules.length === 0">
                 Aucun véhicule actif disponible.
               </small>
             </div>
 
             <div class="form-group">
-              <label for="chauffeur">Chauffeur <span>*</span></label>
+              <label for="chauffeur">
+                Chauffeur <span>*</span>
+              </label>
+
               <select
                 id="chauffeur"
                 v-model="form.chauffeurId"
                 required
               >
-                <option value="" disabled>Sélectionner un chauffeur</option>
+                <option value="" disabled>
+                  Sélectionner un chauffeur
+                </option>
+
                 <option
                   v-for="chauffeur in availableChauffeurs"
                   :key="chauffeur.id"
@@ -345,6 +485,7 @@ onMounted(loadData);
                   {{ chauffeur.nom }} {{ chauffeur.prenom }}
                 </option>
               </select>
+
               <small v-if="availableChauffeurs.length === 0">
                 Aucun chauffeur actif disponible.
               </small>
@@ -352,25 +493,35 @@ onMounted(loadData);
           </div>
         </div>
 
+        <!-- SECTION 03 : DESTINATION ET ITINÉRAIRE -->
         <div class="form-card">
           <div class="section-heading">
             <div class="section-icon">03</div>
+
             <div>
               <h2>Destination et itinéraire</h2>
-              <p>Définissez la destination du transport et son parcours.</p>
+              <p>
+                Définissez la destination du transport et son parcours.
+              </p>
             </div>
           </div>
 
           <div class="form-grid">
             <div class="form-group">
-              <label for="destination">Destination <span>*</span></label>
+              <label for="destination">
+                Destination <span>*</span>
+              </label>
+
               <select
                 id="destination"
                 v-model="form.destinationId"
                 required
                 @change="onDestinationChange"
               >
-                <option value="" disabled>Sélectionner une destination</option>
+                <option value="" disabled>
+                  Sélectionner une destination
+                </option>
+
                 <option
                   v-for="destination in availableDestinations"
                   :key="destination.id"
@@ -379,6 +530,7 @@ onMounted(loadData);
                   {{ destination.nom }} — {{ destination.ville }}
                 </option>
               </select>
+
               <small v-if="availableDestinations.length === 0">
                 Aucune destination active disponible.
               </small>
@@ -386,13 +538,16 @@ onMounted(loadData);
 
             <div class="form-group">
               <label for="itineraire">Itinéraire</label>
+
               <select
                 id="itineraire"
                 v-model="form.itineraireId"
-                required
-                @change="onItineraireChange"
+                :disabled="!form.destinationId"
               >
-                <option value="" disabled>Sélectionner un itinéraire</option>
+                <option value="">
+                  Aucun itinéraire / Sélectionner un itinéraire
+                </option>
+
                 <option
                   v-for="itineraire in availableItineraires"
                   :key="itineraire.id"
@@ -401,18 +556,28 @@ onMounted(loadData);
                   {{ itineraire.code }} — {{ itineraire.libelle }}
                 </option>
               </select>
+
               <small>
                 Facultatif. Les itinéraires proposés dépendent de la destination.
               </small>
-              <small v-if="form.destinationId && availableItineraires.length === 0">
+
+              <small
+                v-if="
+                  form.destinationId &&
+                  availableItineraires.length === 0
+                "
+              >
                 Aucun itinéraire actif pour cette destination.
               </small>
             </div>
           </div>
         </div>
 
+        <!-- ACTIONS -->
         <footer class="form-actions">
-          <p class="required-note"><span>*</span> Champs obligatoires</p>
+          <p class="required-note">
+            <span>*</span> Champs obligatoires
+          </p>
 
           <div class="action-buttons">
             <button
@@ -429,7 +594,11 @@ onMounted(loadData);
               class="button button-primary"
               :disabled="submitting || !canCreate"
             >
-              {{ submitting ? 'Création en cours...' : 'Créer la fiche' }}
+              {{
+                submitting
+                  ? 'Création en cours...'
+                  : 'Créer la fiche'
+              }}
             </button>
           </div>
         </footer>
@@ -761,7 +930,9 @@ select:disabled {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 700px) {

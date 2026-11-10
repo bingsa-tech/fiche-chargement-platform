@@ -1,3 +1,4 @@
+
 import {
   Body,
   Controller,
@@ -8,8 +9,11 @@ import {
   Param,
   Patch,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
+
+import type { Request } from 'express';
 
 import {
   ApiBearerAuth,
@@ -28,6 +32,17 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permission } from '../auth/decorators/permission.decorator';
 
+type UtilisateurAuthentifie = {
+  sub: number;
+  username: string;
+  role: string;
+  gareId: string | null;
+};
+
+type RequeteAuthentifiee = Request & {
+  user: UtilisateurAuthentifie;
+};
+
 @ApiTags('Destinations')
 @ApiBearerAuth()
 @Controller('destinations')
@@ -36,6 +51,19 @@ export class DestinationsController {
   constructor(
     private readonly destinationsService: DestinationsService,
   ) {}
+
+  /**
+   * Récupère l'identifiant facultatif de l'appareil.
+   */
+  private getAppareilId(
+    req: RequeteAuthentifiee,
+  ): string | null {
+    const appareilId = req.headers['x-device-id'];
+
+    return typeof appareilId === 'string'
+      ? appareilId
+      : null;
+  }
 
   // CREATE : ADMIN, RESPONSABLE_GARE, AGENT
   @Post()
@@ -62,11 +90,16 @@ export class DestinationsController {
   })
   create(
     @Body() createDestinationDto: CreateDestinationDto,
+    @Req() req: RequeteAuthentifiee,
   ) {
-    return this.destinationsService.create(createDestinationDto);
+    return this.destinationsService.create(
+      createDestinationDto,
+      req.user,
+      this.getAppareilId(req),
+    );
   }
 
-  // READ : rôles autorisés par la matrice RBAC
+  // READ
   @Get()
   @Permission('destinations', 'READ')
   @ApiOperation({
@@ -116,11 +149,13 @@ export class DestinationsController {
     status: 404,
     description: 'Destination introuvable.',
   })
-  findOne(@Param('id') id: string) {
+  findOne(
+    @Param('id') id: string,
+  ) {
     return this.destinationsService.findOne(id);
   }
 
-  // UPDATE : selon la matrice RBAC existante
+  // UPDATE
   @Patch(':id')
   @Permission('destinations', 'UPDATE')
   @ApiOperation({
@@ -154,11 +189,17 @@ export class DestinationsController {
   update(
     @Param('id') id: string,
     @Body() updateDestinationDto: UpdateDestinationDto,
+    @Req() req: RequeteAuthentifiee,
   ) {
-    return this.destinationsService.update(id, updateDestinationDto);
+    return this.destinationsService.update(
+      id,
+      updateDestinationDto,
+      req.user,
+      this.getAppareilId(req),
+    );
   }
 
-  // DELETE : selon la matrice RBAC existante
+  // DELETE
   @Delete(':id')
   @Permission('destinations', 'DELETE')
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -185,7 +226,14 @@ export class DestinationsController {
     status: 404,
     description: 'Destination introuvable.',
   })
-  remove(@Param('id') id: string) {
-    return this.destinationsService.remove(id);
+  async remove(
+    @Param('id') id: string,
+    @Req() req: RequeteAuthentifiee,
+  ): Promise<void> {
+    await this.destinationsService.remove(
+      id,
+      req.user,
+      this.getAppareilId(req),
+    );
   }
 }

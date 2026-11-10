@@ -6,6 +6,7 @@ import {
   DocumentBuilder,
   SwaggerModule,
 } from '@nestjs/swagger';
+import 'reflect-metadata';
 
 import { AppModule } from './app.module';
 

@@ -33,11 +33,12 @@ export class AuditLog {
   })
   entite!: string;
 
-  @Column({
-    name: 'entite_id',
-    type: 'uuid',
-  })
-  entiteId!: string;
+@Column({
+  name: 'entite_id',
+  type: 'varchar',
+  length: 100,
+})
+entiteId!: string;
 
   @CreateDateColumn({
     name: 'date_heure',
